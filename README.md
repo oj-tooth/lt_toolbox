@@ -41,10 +41,7 @@ The Lagrangian Trajectories Toolbox is a Python library dedicated to the post-pr
 
 Users are able to:
 
-* model the body with peripheral compartments
-* utilise either *intravenous bolus* or *subcutaneous* dosing protocols
-* specify the dose and duration of dosing
-* compare multiple PK model ouputs
+* 
 
 ### Background
 
@@ -62,7 +59,6 @@ Below are our simple installation intructions to quickly get started with the LT
 
 ### Installation
 
-```
 Pip install the LT Toolbox.
 ```sh 
 pip install -i 
