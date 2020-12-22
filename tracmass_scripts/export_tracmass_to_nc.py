@@ -27,14 +27,14 @@ from tqdm import tqdm
 # Opening the raw ouput file from TRACMASS.
 
 # NOTE: change directory path to TRACMASS output data as required.
-os.chdir('/Users/ollietooth/Desktop/D.Phil./Tracmass/projects/NEMO/data/output')
+os.chdir('OUTPUT_DIR_PATH')
 
 # Read Tracmass output_run.csv output file to pandas DataFrame
 # with specified headers.
 
 # NOTE: change the raw data file name and variable names to
 # correspond with your run as required.
-df = pd.read_csv('ORCA1_output_run.csv',
+df = pd.read_csv('FILENAME.csv',
                  names=[
                         'ntrac',        # Trajectory no.
                         'x',            # Position in zonal direction.
@@ -57,7 +57,7 @@ df['time'] = pd.to_timedelta(df['time_s'], unit='s')
 
 # NOTE: specify TRACMASS output time step for your simulation -
 # use min/hours/days as required.
-t_step = pd.Timedelta('30 days').total_seconds()
+t_step = pd.Timedelta('No. days').total_seconds()
 
 # Create obs variable to store the observation no., equivalent
 # to the time-level of output in the model.
@@ -114,11 +114,11 @@ trajectory = Traj.to_numpy()
 
 # Move to fields input data directory.
 # NOTE: change directory path to lat/lon/depth files as required.
-os.chdir('../fields')
+os.chdir('FIELDS_DIR_PATH')
 
 # Set field file name containing nav_lat/nav_lon/depth data.
 # NOTE: change field file name as required.
-field_file = "ORCA1-N406_2000T.nc4"
+field_file = "FIELD_FILE.nc"
 
 # Import deptht/u/v variable from input fields to TRACMASS.
 # NOTE: change the depth variable as required - deptht/u/v.
@@ -198,17 +198,17 @@ dataset = xr.Dataset(
     attrs={
         "ncei_template_version": "NCEI_NetCDF_Trajectory_Template_v2.0",
         "featureType": "trajectory",
-        "title": "ORCA1-N406 TRACMASS Output",
-        "summary": "North Atlantic trial simulation of TRACMASS v7.0 with ORCA1-N406 data for 2000-01",
-        "TRACMASS_version": "7 (2020-10-26)",
+        "title": "",
+        "summary": "Output of TRACMASS",
+        "TRACMASS_version": "",
         "Conventions": "CF-1.6/CF-1.7",
-        "date_created": "2020-11-27",  # Use ISO 8601:2004 for date.
-        "creator_name": "Ollie Tooth",
-        "creator_email": "oliver.tooth@seh.ox.ac.uk",
-        "project": "D.Phil. Research - Phase I",
+        "date_created": "YYYY-MM-DD",  # Use ISO 8601:2004 for date.
+        "creator_name": "",
+        "creator_email": "",
+        "project": "",
         "creator_type": "person",
-        "creator_institution": "University of Oxford",
-        "product_version": "1.0",
+        "creator_institution": "",
+        "product_version": "",
         "references": "TRACMASS - https://github.com/TRACMASS",
         }
 )
@@ -277,4 +277,4 @@ dataset.sigma0.attrs = {
 # Save dataset to netCDF format -
 # NOTE: modify the output file path/name as required for your simulation.
 
-dataset.to_netcdf('/Users/ollietooth/Desktop/D.Phil./PrelimPhase/ORCA1-N406_TRACMASS_output_run.nc', format="NETCDF4")
+dataset.to_netcdf('PATH_TO_OUTPUT_FILE.nc', format="NETCDF4")
