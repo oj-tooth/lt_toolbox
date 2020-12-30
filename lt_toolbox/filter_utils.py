@@ -74,10 +74,15 @@ def filter_traj(self, filt_type, variable, val='NaN', min_val='NaN', max_val='Na
             # Sub-Routine for filtering with attribute variables != time.
             # -----------------------------------------------------------
 
-            # Defining rows as logical vector storing rows where trajectories
-            # meeting conditions will be stored
-            # Use numpy vectorisation, np.any().
-            rows = np.any((self.data[variable].values <= max_val) & (self.data[variable].values >= min_val), axis=1)
+            if np.ndim(self.data[variable].values) > 1:
+                # Defining rows as logical vector storing rows where
+                # trajectories meeting conditions will be stored
+                # Use numpy vectorisation, np.any().
+                rows = np.any((self.data[variable].values <= max_val) & (self.data[variable].values >= min_val), axis=1)
+
+            else:
+                # For 1-dimensional array, use logical condition.
+                rows = (self.data[variable].values <= max_val) & (self.data[variable].values >= min_val)
 
             # Returning the subsetted xarray DataSet.
             return self.data.isel(traj=xr.DataArray(rows, dims=["traj"]))
@@ -102,10 +107,15 @@ def filter_traj(self, filt_type, variable, val='NaN', min_val='NaN', max_val='Na
             # Routine for filtering with attribute variables != time.
             # -------------------------------------------------------
 
-            # Defining rows as logical vector storing rows where trajectories
-            # meeting conditions will be stored
-            # Uses numpy vectorisation, np.any().
-            rows = np.any(self.data[variable].values == val, axis=1)
+            if np.ndim(self.data[variable].values) > 1:
+                # Defining rows as logical vector storing rows where
+                # trajectories meeting conditions will be stored.
+                # Uses numpy vectorisation, np.any().
+                rows = np.any(self.data[variable].values == val, axis=1)
+
+            else:
+                # For 1-dimensional array, use logical condition.
+                rows = self.data[variable].values == val
 
             # Returning the subsetted xarray DataSet.
             return self.data.isel(traj=xr.DataArray(rows, dims=["traj"]))
