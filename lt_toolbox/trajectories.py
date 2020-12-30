@@ -17,11 +17,11 @@
 
 import xarray as xr
 import numpy as np
-from get_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_seed, get_val
+from get_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_seed, get_minmax, get_val
 from filter_utils import filter_traj
 from find_utils import find_traj
 from compute_utils import compute_displacement, compute_velocity, compute_distance
-from plot_utils import plot_trajectories
+from plot_utils import plot_trajectories, plot_timeseries
 
 ##############################################################################
 # Define trajectories Class.
@@ -1084,7 +1084,7 @@ class trajectories:
 
         The seeding level, an integer between 1 and the total no. of seeding
         levels, marks when a particle is released into the system and is
-        returned for all trajectories as a new DatatArray.
+        returned for all trajectories as a new DataArray.
 
         Parameters
         ----------
@@ -1124,6 +1124,72 @@ class trajectories:
         return trajectories(self.data)
 
 ##############################################################################
+# Define get_value() function.
+
+    def get_value(self, variable, time_level):
+        """
+        Returns the value of a specified variable at a specified
+        time level for each trajectory.
+
+        The values of the specified variable are returned for all
+        trajectories for a time level specified in the form
+        'YYYY-MM-DD' as a new DataArray.
+
+        Parameters
+        ----------
+        self : trajectories object
+            Trajectories object passed from trajectories class method.
+        variable : string
+            Name of the variable in the trajectories object.
+
+        Returns
+        -------
+        DataSet.
+            Original DataSet is returned with appended attribute
+            variable {variable}_max DataArray containing the min
+            values along each trajectory, with dimension (traj).
+
+        Examples
+        --------
+        Get the value of temperature for each trajectory at time
+        level 2000-01-31. Note that we must convert time to datetime64
+        format before using .get_value().
+        >>>  trajectories.use_datetime(start_time='2000-01-01').get_value('temp', '2000-01-31')
+        """
+        # -------------------
+        # Raising exceptions.
+        # -------------------
+        if isinstance(variable, str) is False:
+            raise TypeError("variable must be specified as a string")
+
+        if isinstance(time_level, str) is False:
+            raise TypeError("time_level must be specified as a string in the format YYYY-MM-DD")
+
+        # ----------------------------------------------------------
+        # Returning values of variable at time level with get_val().
+        # ----------------------------------------------------------
+        values = get_val(self=self, variable=variable, time_level=time_level)
+
+        # -------------------------
+        # Adding values to DataSet.
+        # -------------------------
+        # Defining std. name of values using specified variable.
+        std_name = variable + "_i"
+        # Defining long name of values using specified variable.
+        long_name = variable + " at " + time_level
+        # Append min_values DataArray to original DataSet.
+        self.data[std_name] = xr.DataArray(values, dims=["traj"])
+        # Adding attributes to min_values DataArray.
+        self.data[std_name].attrs = {
+                                'long_name': long_name,
+                                'standard_name': std_name,
+                                'units': self.data[variable].attrs['units']
+                                }
+
+        # Return trajectories object with updated DataSet.
+        return trajectories(self.data)
+
+##############################################################################
 # Define get_max() function.
 
     def get_max(self, variable):
@@ -1131,7 +1197,7 @@ class trajectories:
         Returns maximum value of a specified variable for each trajectory.
 
         The maximum value of the variable is returned for all trajectories
-        as an ndarray.
+        as a new DataArray.
 
         Parameters
         ----------
@@ -1158,10 +1224,10 @@ class trajectories:
         if isinstance(variable, str) is False:
             raise TypeError("variable must be specified as a string")
 
-        # -------------------------------------------------
-        # Returning max values of variable with get_vals().
-        # -------------------------------------------------
-        max_values = get_val(self=self, variable=variable, get_max=True)
+        # ---------------------------------------------------
+        # Returning max values of variable with get_minmax().
+        # ---------------------------------------------------
+        max_values = get_minmax(self=self, variable=variable, get_max=True)
 
         # -----------------------------
         # Adding max_values to DataSet.
@@ -1173,7 +1239,7 @@ class trajectories:
         # Append max_values DataArray to original DataSet.
         self.data[std_name] = xr.DataArray(max_values, dims=["traj"])
         # Adding attributes to max_values DataArray.
-        self.data[variable].attrs = {
+        self.data[std_name].attrs = {
                                 'long_name': long_name,
                                 'standard_name': std_name,
                                 'units': self.data[variable].attrs['units']
@@ -1190,7 +1256,7 @@ class trajectories:
         Returns minimum value of a specified variable for each trajectory.
 
         The minimum value of the variable is returned for all trajectories
-        as an ndarray.
+        as a new DataArray.
 
         Parameters
         ----------
@@ -1217,10 +1283,10 @@ class trajectories:
         if isinstance(variable, str) is False:
             raise TypeError("variable must be specified as a string")
 
-        # -------------------------------------------------
-        # Returning min values of variable with get_vals().
-        # -------------------------------------------------
-        min_values = get_val(self=self, variable=variable, get_max=False)
+        # ---------------------------------------------------
+        # Returning min values of variable with get_minmax().
+        # ---------------------------------------------------
+        min_values = get_minmax(self=self, variable=variable, get_max=False)
 
         # -----------------------------
         # Adding min_values to DataSet.
@@ -1232,7 +1298,7 @@ class trajectories:
         # Append min_values DataArray to original DataSet.
         self.data[std_name] = xr.DataArray(min_values, dims=["traj"])
         # Adding attributes to min_values DataArray.
-        self.data[variable].attrs = {
+        self.data[std_name].attrs = {
                                 'long_name': long_name,
                                 'standard_name': std_name,
                                 'units': self.data[variable].attrs['units']
@@ -1241,8 +1307,91 @@ class trajectories:
         # Return trajectories object with updated DataSet.
         return trajectories(self.data)
 
+##############################################################################
+# Define plot_trajectories() method.
+
+    def plot_trajectories(self, col_variable=None):
+        """
+        Plots surface trajectories (latitudes and longitudes) of
+        particles on an orthographic projection of Earth's surface.
+
+        Latitudes and longitudes of particle positions are connected
+        to visualise surface trajectories. Trajectories can also be
+        optionally coloured according to a specified scalar variable
+        given by col_variable.
+
+        Parameters
+        ----------
+        self : trajectories object
+            Trajectories object passed from trajectories class method.
+        col_variable : string
+            Name of variable in the trajectories object to colour
+            plotted trajectories, default is None.
+
+        Returns
+        -------
+        """
+        # -------------------
+        # Raising exceptions.
+        # -------------------
+        if isinstance(col_variable, str) is False:
+            raise TypeError("col_variable must be specified as a string")
+
+        # -------------------------
+        # Return trajectories plot.
+        # -------------------------
+        plot_trajectories(self=self, col_variable=col_variable)
+
+        return
+
+##############################################################################
+# Define plot_timeseries() function.
+
+    def plot_timeseries(self, variable, col_variable=None):
+        """
+        Plots time series of specified attribute variable as it
+        evolves along each particle's trajectory.
+
+        Time series can also be optionally coloured according to
+        a specified (1-dimensional) scalar variable given by
+        col_variable.
+
+        Parameters
+        ----------
+        self : trajectories object
+            Trajectories object passed from trajectories class method.
+        variable : string
+            Name of the variable in the trajectories object.
+        col_variable : string
+            Name of variable in the trajectories object to colour
+            plotted trajectories - must be 1-dimensional - default
+            is None.
+
+        Returns
+        -------
+        """
+        # -------------------
+        # Raising exceptions.
+        # -------------------
+        if isinstance(variable, str) is False:
+            raise TypeError("variable must be specified as a string")
+
+        if (isinstance(col_variable, str) or col_variable is None) is False:
+            raise TypeError("col_variable must be specified as a string")
+
+        # ------------------------
+        # Return time series plot.
+        # ------------------------
+        plot_timeseries(self=self, variable=variable, col_variable=col_variable)
+
+        return
+
 
 ##############################################################################
 # Testing with ORCA01 Preliminary Data.
 traj = trajectories(xr.open_dataset('ORCA1-N406_TRACMASS_output_run.nc'))
-plot_trajectories(traj.get_seed().filter_equal('seed_level', val=1), col_var='temp')
+
+traj.filter_between('traj', 3000, 3010).use_datetime('2000-01-01').plot_timeseries('sal')
+
+# plot_trajectories(traj.filter_between('traj', 0, 30), col_variable='temp')
+# plot_timeseries(traj.filter_between('traj', 0, 5).use_datetime('2000-01-01'), 'temp')
