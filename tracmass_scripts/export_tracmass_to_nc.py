@@ -53,6 +53,7 @@ df = pd.read_csv('FILENAME.csv',
 # Defining time and obs variables.
 
 # Create new time column where time_s is stored in timedelta64 format.
+# timedelta64 has units of nanoseconds.
 df['time'] = pd.to_timedelta(df['time_s'], unit='s')
 
 # NOTE: specify TRACMASS output time step for your simulation -
@@ -142,7 +143,9 @@ z = np.zeros([nrows, ncols])
 
 # For loop to use interpolate the particle depth from f_depth using z_index.
 for i in np.arange(0, nrows):
-    z[i, :] = f_depth(z_index[i, :])
+    # Defining z to be negative since the z-axis is traditionally
+    # positive-upwards in physical oceanography.
+    z[i, :] = - f_depth(z_index[i, :])
 
 # ---------------------------------------------------------------------------
 
@@ -225,7 +228,7 @@ dataset.trajectory.attrs = {
 dataset.time.attrs = {
     'long_name': "time since begining of the simulation",
     'standard_name': "time",
-    'unit': 'days',
+    'unit': 'nanoseconds',
     'calendar': "none"
 }
 
@@ -246,7 +249,7 @@ dataset.z.attrs = {
     'long_name': "depth",
     'standard_name': "depth",
     'units': "meters",
-    "positive": "down"
+    "positive": "upward"
 }
 
 # NOTE: modify tracer attributes below as required.
