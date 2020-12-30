@@ -290,10 +290,10 @@ def get_seed(self):
     return seed_level
 
 ##############################################################################
-# Define get_val() function.
+# Define get_minmax() function.
 
 
-def get_val(self, variable, get_max=True):
+def get_minmax(self, variable, get_max=True):
     """
     Returns maximum (default) or minimum value of a specified variable
     for each trajectory.
@@ -330,6 +330,50 @@ def get_val(self, variable, get_max=True):
     else:
         # Determining min values of variable for each traj (row).
         values = np.nanmin(self.data[variable].values, axis=1)
+
+    # Returning max or min values as np.array, values.
+    return values
+
+##############################################################################
+# Define get_val() function.
+
+
+def get_val(self, variable, time_level):
+    """
+    Returns the value of a specified variable at a specified
+    time level for each trajectory.
+
+    The values of the specified variable are returned for all
+    trajectories for a time level specified in the form
+    'YYYY-MM-DD' as an ndarray.
+
+    Parameters
+    ----------
+    self : trajectories object
+        Trajectories object passed from trajectories class method.
+    variable : string
+        Name of the variable in the trajectories object.
+    time_level : string
+        Time level from which to get the values of variable.
+
+    Returns
+    -------
+    values : ndarray
+        values of specified variable at the specified time level
+        for each trajectory, with dimension (traj).
+    """
+    # ------------------------------------------------------
+    # Determining indices of observations at specified time.
+    # ------------------------------------------------------
+    obs_equal = (self.data.time.values[0, :] == np.datetime64(time_level))
+
+    # -----------------------------------------------------
+    # Determining the values of variable stored at obs-ind.
+    # -----------------------------------------------------
+    values = self.data[variable].values[:, obs_equal]
+
+    # Removes single-dimensional entries from values array.
+    values = np.squeeze(values)
 
     # Returning max or min values as np.array, values.
     return values
