@@ -24,18 +24,19 @@ from tqdm import tqdm
 # ---------------------------------------------------------------------------
 
 # Stage 1:
-# Opening the raw ouput file from TRACMASS.
+# Opening the raw ouput files from TRACMASS.
 
 # NOTE: change directory path to TRACMASS output data as required.
-os.chdir('OUTPUT_DIR_PATH')
+# os.chdir('OUTPUT_DIR_PATH')
+os.chdir('/Users/ollietooth/Desktop/D.Phil./Tracmass/projects/NEMO/data/output/')
 
 # Read Tracmass output_run.csv output file to pandas DataFrame
 # with specified headers.
 
 # NOTE: change the raw data file name and variable names to
-# correspond with your run as required.
-df = pd.read_csv('FILENAME.csv',
-                 names=[
+# correspond with your run as required. 'FILENAME_run.csv'
+df_run = pd.read_csv('ORCA1_output_run.csv',
+                     names=[
                         'ntrac',        # Trajectory no.
                         'x',            # Position in zonal direction.
                         'y',            # Position in meridional direction.
@@ -47,6 +48,29 @@ df = pd.read_csv('FILENAME.csv',
                         'sigma0_kgm-3'  # Density (computed - kg per m3).
                         ])
 
+# Read Tracmass output_out.csv output file to pandas DataFrame
+# with specified headers.
+
+# NOTE: change the raw data file name and variable names to
+# correspond with your run as required. 'FILENAME_out.csv'
+df_out = pd.read_csv('ORCA1_output_out.csv',
+                     names=[
+                        'ntrac',        # Trajectory no.
+                        'x',            # Position in zonal direction.
+                        'y',            # Position in meridional direction.
+                        'z',            # Position in the vertical direction.
+                        'subvol',       # Transport of particle.
+                        'time_s',       # Time since start of simulation (s).
+                        'To_C',         # Temperature (read - degrees C) .
+                        'S_psu',        # Salinity (read - g per kg).
+                        'sigma0_kgm-3'  # Density (computed - kg per m3).
+                        ])
+
+# Concantenate pandas DataFrames, df_run and df_out.
+# Since indexes overlap, ignore index in concantenation.
+df = pd.concat([df_run, df_out], ignore_index=True, sort=False)
+df.drop_duplicates()
+
 # ---------------------------------------------------------------------------
 
 # Stage 2:
@@ -57,12 +81,12 @@ df = pd.read_csv('FILENAME.csv',
 df['time'] = pd.to_timedelta(df['time_s'], unit='s')
 
 # NOTE: specify TRACMASS output time step for your simulation -
-# use min/hours/days as required.
-t_step = pd.Timedelta('No. days').total_seconds()
+# modify unit to min/hours/days as required.
+t_step = pd.Timedelta(30, unit='D').total_seconds()
 
 # Create obs variable to store the observation no., equivalent
 # to the time-level of output in the model.
-df['obs'] = (df['time_s']/t_step) + 1
+df['obs'] = np.ceil((df['time_s']/t_step) + 1)
 # Ensure obs variable is of in64 type.
 df = df.astype({'obs': 'int64'})
 
@@ -75,6 +99,9 @@ df = df.astype({'obs': 'int64'})
 X = df.pivot(index='ntrac', columns='obs', values='x')
 Y = df.pivot(index='ntrac', columns='obs', values='y')
 Z = df.pivot(index='ntrac', columns='obs', values='z')
+
+# Transform subvol into (traj x obs) pandas DataFrames.
+Volume = df.pivot(index='ntrac', columns='obs', values='subvol')
 
 # Transform tracers into (traj x obs) pandas DataFrames.
 # NOTE: modify the number of tracers as required.
@@ -98,6 +125,9 @@ x_index = X.to_numpy()
 y_index = Y.to_numpy()
 z_index = Z.to_numpy()
 
+# Transport arrays.
+vol = Volume.to_numpy()
+
 # Tracer arrays.
 # NOTE: modify the number of tracers as required.
 temp = Temp.to_numpy()
@@ -115,11 +145,12 @@ trajectory = Traj.to_numpy()
 
 # Move to fields input data directory.
 # NOTE: change directory path to lat/lon/depth files as required.
-os.chdir('FIELDS_DIR_PATH')
+# os.chdir('FIELD_DIR_PATH')
+os.chdir('/Users/ollietooth/Desktop/D.Phil./Tracmass/projects/NEMO/data/fields/')
 
 # Set field file name containing nav_lat/nav_lon/depth data.
 # NOTE: change field file name as required.
-field_file = "FIELD_FILE.nc"
+field_file = "ORCA1-N406_2000T.nc4"  # 'FIELD_FILE.nc'
 
 # Import deptht/u/v variable from input fields to TRACMASS.
 # NOTE: change the depth variable as required - deptht/u/v.
@@ -279,5 +310,5 @@ dataset.sigma0.attrs = {
 
 # Save dataset to netCDF format -
 # NOTE: modify the output file path/name as required for your simulation.
-
-dataset.to_netcdf('PATH_TO_OUTPUT_FILE.nc', format="NETCDF4")
+# dataset.to_netcdf('OUTPUT_FILE_PATH', format="NETCDF4")
+dataset.to_netcdf('/Users/ollietooth/Desktop/D.Phil./PrelimPhase/data/ORCA1-N406_TRACMASS_output_run.nc', format="NETCDF4")
