@@ -15,6 +15,7 @@
 # Importing relevant packages.
 
 import numpy as np
+from add_utils import add_id
 import matplotlib.colors as colors
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
@@ -283,13 +284,19 @@ def plot_timeseries(self, variable, col_variable):
         # Determine number of trajectories to plot.
         traj = np.shape(var)[0]
 
+        # Defining list of variables contained in data.
+        variables = list(self.data.variables)
+        # Add trajectory id if not found in variables.
+        if 'id' not in variables:
+            self = self.add_id()
+
         # ------------------------------------------------------
         # Plotting time series of variable for all trajectories.
         # ------------------------------------------------------
         # Plot time series for all trajectories, traj.
         for n in np.arange(0, traj-1):
             # Defining trajectory id, i.
-            i = self.data.traj_id.values[n]
+            i = self.data.id.values[n]
             # Plot time series of var with default colours specififed
             # by matplotlib.
             ax.plot(time[n, :], var[n, :], linewidth=2, label='$%i$' % i)
@@ -333,6 +340,146 @@ def plot_timeseries(self, variable, col_variable):
         for n in np.arange(0, traj-1):
             # Plot trajectories with single colour defined by color.
             ax.plot(time[n, :], var[n, :], c=color[n], linewidth=2)
+
+        # Adding axis labels.
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+
+        # ------------------------------
+        # Adding colorbar to the figure.
+        # ------------------------------
+
+        # Linearly normalise data between 0.0 and 1.0.
+        norm = colors.Normalize(vmin=np.nanmin(col), vmax=np.nanmax(col))
+
+        # Defining Scalar Mappable object for colorbar.
+        sm = plt.cm.ScalarMappable(cmap=cm.coolwarm, norm=norm)
+
+        # Defining colorbar, cbar, to be 0.9 of the fig height.
+        cbar = plt.colorbar(sm, shrink=0.9)
+        cbar.ax.get_yaxis().labelpad = 15
+
+        # Creating colorbar label with col_variable attributes.
+        col_label = self.data[col_variable].attrs['standard_name'] + " (" + self.data[col_variable].attrs['units'] + ")"
+        # Add colobar label with SI units.
+        cbar.ax.set_ylabel(col_label, rotation=270)
+
+    # Show plot.
+    plt.show()
+
+    # Return figure.
+    return
+
+##############################################################################
+# Define plot_ts_diagram() function.
+
+
+def plot_ts_diagram(self, col_variable):
+    """
+    Plots temperature-salinity diagram as a scatter plot of
+    temp (y) and salinity (x) for every point along each
+    particle's trajectory.
+
+    Plotted points can be optionally coloured according to
+    a specified (1-dimensional) scalar variable given by
+    col_variable.
+
+    When col_variable is not specified, points are coloured
+    according to their trajectory id with an accompanying legend.
+
+    Parameters
+    ----------
+    self : trajectories object
+        Trajectories object passed from trajectories class method.
+    col_variable : string
+        Name of variable in the trajectories object to colour
+        scatter points - must be 1-dimensional.
+
+    Returns
+    -------
+    """
+    # ----------------------------------------
+    # Configuiring figure dimensions and axes.
+    # ----------------------------------------
+    # Initialising figure.
+    plt.figure()
+    ax = plt.axes()
+    # Adding grid lines.
+    plt.grid(zorder=0)
+
+    # ------------------------------------------------------
+    # Defining temp and sal variables from trajectories obj.
+    # ------------------------------------------------------
+    sal = self.data.sal.values
+    x_label = self.data.sal.attrs['standard_name'] + ' (' + self.data.sal.attrs['units'] + ')'
+
+    temp = self.data.temp.values
+    y_label = self.data.temp.attrs['standard_name'] + ' (' + self.data.temp.attrs['units'] + ')'
+
+    # -------------------------------------------
+    # Subroutine for no specified color variable.
+    # -------------------------------------------
+    if col_variable is None:
+
+        # Determine number of trajectories to plot.
+        traj = np.shape(temp)[0]
+
+        # Defining list of variables contained in data.
+        variables = list(self.data.variables)
+        # Add trajectory id if not found in variables.
+        if 'id' not in variables:
+            traj_id = add_id(self)
+
+        # ------------------------------------------------------------
+        # Plotting scatter plot of temp and sal for all trajectories.
+        # ------------------------------------------------------------
+        # Scatter plot for all trajectories, traj.
+        for n in np.arange(0, traj-1):
+            # Defining trajectory id, i.
+            i = traj_id[n]
+            # Plot scatter of sal (x) and temp (y) with default colours
+            # specififed by matplotlib.
+            ax.scatter(sal[n, :], temp[n, :], edgecolor='black', zorder=3, label='$%i$' % i)
+
+        # Return current axes positions.
+        box = ax.get_position()
+        # Reduce axes to 0.9 of original size.
+        ax.set_position([box.x0, box.y0, box.width * 0.9, box.height])
+
+        # Add legend to the right of the axes, indicating traj no.
+        ax.legend(title=r'$\bf{traj}$', loc='center left', bbox_to_anchor=(1, 0.5))
+        # Adding axis labels.
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+
+    # --------------------------------------------
+    # Subroutine for 1-dimensional color variable.
+    # --------------------------------------------
+    else:
+
+        # Defining col as attribute variable col_variable.
+        col = self.data[col_variable].values
+
+        # ---------------------------------------------
+        # Normalise col_variable to colour trajectories.
+        # ---------------------------------------------
+        # Normalise col for colours using normalise().
+        col_norm = normalise(col)
+
+        # ------------------------------------------------------
+        # Plotting time series of variable for all trajectories.
+        # ------------------------------------------------------
+        # Determine number of trajectories to plot.
+        traj = np.shape(temp)[0]
+
+        # Defining color from col_norm with diverging coolwarm
+        # colour map.
+        color = cm.coolwarm(col_norm)
+
+        # Plot scatter plot for all trajectories, traj.
+        for n in np.arange(0, traj-1):
+            # Plot scatter with single colour defined by color.
+            ax.scatter(sal[n, :], temp[n, :], c=color[n], edgecolor='black', zorder=3)
 
         # Adding axis labels.
         plt.xlabel(x_label)
