@@ -17,11 +17,12 @@
 
 import xarray as xr
 import numpy as np
-from get_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_seed, get_minmax, get_val
+from get_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_minmax, get_val
+from add_utils import add_seed, add_id
 from filter_utils import filter_traj
 from find_utils import find_traj
 from compute_utils import compute_displacement, compute_velocity, compute_distance
-from plot_utils import plot_trajectories, plot_timeseries
+from plot_utils import plot_trajectories, plot_timeseries, plot_ts_diagram
 
 ##############################################################################
 # Define trajectories Class.
@@ -1075,55 +1076,6 @@ class trajectories:
         return trajectories(self.data)
 
 ##############################################################################
-# Define get_seed() method.
-
-    def get_seed(self):
-        """
-        Returns seeding level when particles are released (start
-        of trajectory).
-
-        The seeding level, an integer between 1 and the total no. of seeding
-        levels, marks when a particle is released into the system and is
-        returned for all trajectories as a new DataArray.
-
-        Parameters
-        ----------
-        self : trajectories object
-        Trajectories object passed from trajectories class method.
-
-        Returns
-        -------
-        DataSet.
-            Original DataSet is returned with appended attribute
-            variable seed_level DataArray containing the seed
-            level for each particle released, with dimension (traj).
-
-        Examples
-        --------
-        Get seed levels for all trajectories.
-        >>> trajectories.get_seed().
-        """
-        # ------------------------------------
-        # Return seed levels with get_seed().
-        # ------------------------------------
-        seed_level = get_seed(self)
-
-        # -----------------------------
-        # Adding seed_level to DataSet.
-        # -----------------------------
-        # Append seed_level DataArray to original DataSet.
-        self.data['seed_level'] = xr.DataArray(seed_level, dims=["traj"])
-        # Adding attributes to seed_level DataArray.
-        self.data.seed_level.attrs = {
-                             'long_name': "seeding level",
-                             'standard_name': "seed_level",
-                             'units': "none"
-                             }
-
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
-
-##############################################################################
 # Define get_value() function.
 
     def get_value(self, variable, time_level):
@@ -1308,6 +1260,103 @@ class trajectories:
         return trajectories(self.data)
 
 ##############################################################################
+# Define add_seed() method.
+
+    def add_seed(self):
+        """
+        Adds seeding level when particles are released (start
+        of trajectory) as a new attribute variable.
+
+        The seeding level, an integer between 1 and the total no. of seeding
+        levels, marks when a particle is released into the system and is
+        returned for all trajectories as a new DataArray.
+
+        Parameters
+        ----------
+        self : trajectories object
+        Trajectories object passed from trajectories class method.
+
+        Returns
+        -------
+        DataSet.
+            Original DataSet is returned with appended attribute
+            variable seed_level DataArray containing the seed
+            level for each particle released, with dimension (traj).
+
+        Examples
+        --------
+        Get seed levels for all trajectories.
+        >>> trajectories.add_seed().
+        """
+        # ------------------------------------
+        # Return seed levels with add_seed().
+        # ------------------------------------
+        seed_level = add_seed(self)
+
+        # -----------------------------
+        # Adding seed_level to DataSet.
+        # -----------------------------
+        # Append seed_level DataArray to original DataSet.
+        self.data['seed_level'] = xr.DataArray(seed_level, dims=["traj"])
+        # Adding attributes to seed_level DataArray.
+        self.data.seed_level.attrs = {
+                             'long_name': "seeding level",
+                             'standard_name': "seed_level",
+                             'units': "none"
+                             }
+
+        # Return trajectories object with updated DataSet.
+        return trajectories(self.data)
+
+##############################################################################
+# Define add_id() method.
+
+    def add_id(self):
+        """
+        Returns unique identifier (integer) for each trajectory.
+
+        The trajectory id, an integer between 1 and the total no. of
+        trajectories, identifies every particle released into the system
+        and is returned for all trajectories as a new ndarray.
+
+        Parameters
+        ----------
+        self : trajectories object
+        Trajectories object passed from trajectories class method.
+
+        Returns
+        -------
+        DataSet.
+            Original DataSet is returned with appended attribute
+            variable seed_level DataArray containing the id
+            for each particle released, with dimension (traj).
+
+        Examples
+        --------
+        Get trajectory id for all trajectories.
+        >>> trajectories.add_id().
+        """
+        # -----------------------------------
+        # Return trajectory id with add_id().
+        # -----------------------------------
+        traj_id = add_id(self)
+
+        # --------------------------
+        # Adding traj_id to DataSet.
+        # --------------------------
+        # Append traj_id DataArray to original DataSet.
+        self.data['id'] = xr.DataArray(traj_id, dims=["traj"])
+        # Adding attributes to traj_id DataArray.
+        self.data.id.attrs = {
+                             'long_name': "trajectory id",
+                             'standard_name': "id",
+                             'units': "none"
+                             }
+
+        # Return trajectories object with updated DataSet.
+        return trajectories(self.data)
+
+##############################################################################
 # Define plot_trajectories() method.
 
     def plot_trajectories(self, col_variable=None):
@@ -1356,6 +1405,9 @@ class trajectories:
         a specified (1-dimensional) scalar variable given by
         col_variable.
 
+        When col_variable is not specified, the trajectory id of
+        each time series is included in a legend.
+
         Parameters
         ----------
         self : trajectories object
@@ -1386,12 +1438,53 @@ class trajectories:
 
         return
 
+##############################################################################
+# Define plot_ts_diagram() function.
+
+    def plot_ts_diagram(self, col_variable=None):
+        """
+        Plots temperature-salinity diagram as a scatter plot of
+        temp (y) and salinity (x) for every point along each
+        particle's trajectory.
+
+        Plotted points can be optionally coloured according to
+        a specified (1-dimensional) scalar variable given by
+        col_variable.
+
+        When col_variable is not specified, points are coloured
+        according to their trajectory id with an accompanying legend.
+
+        Parameters
+        ----------
+        self : trajectories object
+            Trajectories object passed from trajectories class method.
+        col_variable : string
+            Name of variable in the trajectories object to colour
+            scatter points - must be 1-dimensional - default
+            is None.
+
+        Returns
+        -------
+        """
+        # -------------------
+        # Raising exceptions.
+        # -------------------
+        if (isinstance(col_variable, str) or col_variable is None) is False:
+            raise TypeError("col_variable must be specified as a string")
+
+        # -----------------------------
+        # Return temp-salinity diagram.
+        # -----------------------------
+        plot_ts_diagram(self=self, col_variable=col_variable)
+
+        return
+
 
 ##############################################################################
 # Testing with ORCA01 Preliminary Data.
 traj = trajectories(xr.open_dataset('ORCA1-N406_TRACMASS_output_run.nc'))
 
-traj.filter_between('traj', 3000, 3010).use_datetime('2000-01-01').plot_timeseries('sal')
-
+# traj.filter_between('traj', 100, 110).plot_ts_diagram()
+# traj.filter_between('traj', 0, 10).use_datetime('2000-01-01').plot_timeseries('sal')
 # plot_trajectories(traj.filter_between('traj', 0, 30), col_variable='temp')
 # plot_timeseries(traj.filter_between('traj', 0, 5).use_datetime('2000-01-01'), 'temp')
