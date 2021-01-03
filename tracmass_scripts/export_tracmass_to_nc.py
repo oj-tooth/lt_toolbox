@@ -8,7 +8,7 @@
 # are indicated beneath NOTE statements in the script.
 #
 # --------------------------------------------------------------
-# Date Created: 2020-11-27
+# Date Created: 2021-01-03
 #
 # Author: Ollie Tooth
 ###############################################################
@@ -20,6 +20,7 @@ import pandas as pd
 import xarray as xr
 from scipy import interpolate
 from tqdm import tqdm
+from export_utils import add_seed
 
 # ---------------------------------------------------------------------------
 
@@ -71,6 +72,9 @@ df_out = pd.read_csv('ORCA1_output_out.csv',
 df = pd.concat([df_run, df_out], ignore_index=True, sort=False)
 df.drop_duplicates()
 
+# Update user at command line.
+print("Completed: Loading and Concantenating DataFrames.")
+
 # ---------------------------------------------------------------------------
 
 # Stage 2:
@@ -86,9 +90,12 @@ t_step = pd.Timedelta(30, unit='D').total_seconds()
 
 # Create obs variable to store the observation no., equivalent
 # to the time-level of output in the model.
-df['obs'] = np.ceil((df['time_s']/t_step) + 1)
+df['obs'] = np.ceil((df['time_s']/t_step))
 # Ensure obs variable is of in64 type.
 df = df.astype({'obs': 'int64'})
+
+# Update user at command line.
+print("Completed: Added time variable.")
 
 # ---------------------------------------------------------------------------
 
@@ -112,6 +119,9 @@ Sigma0 = df.pivot(index='ntrac', columns='obs', values='sigma0_kgm-3')
 # Transform time and ntrac into (traj x obs) pandas DataFrames.
 Time = df.pivot(index='ntrac', columns='obs', values='time')
 Traj = df.pivot(index='ntrac', columns='obs', values='ntrac')
+
+# Update user at command line.
+print("Completed: Pivoted output variables into (traj x obs) DataFrames.")
 
 # ---------------------------------------------------------------------------
 
@@ -137,6 +147,9 @@ sigma0 = Sigma0.to_numpy()
 # Time/ID arrays.
 time = Time.to_numpy()
 trajectory = Traj.to_numpy()
+
+# Update user at command line.
+print("Completed: Converted DataFrames to arrays.")
 
 # ---------------------------------------------------------------------------
 
@@ -178,6 +191,9 @@ for i in np.arange(0, nrows):
     # positive-upwards in physical oceanography.
     z[i, :] = - f_depth(z_index[i, :])
 
+# Update user at command line.
+print("Completed: Depth interpolation.")
+
 # ---------------------------------------------------------------------------
 
 # Stage 6:
@@ -196,6 +212,7 @@ lon = np.zeros([nrows, ncols])
 
 # For loop to interpolate particle poisitions in lat/lon space from
 # (x_index, y_index) pairs.
+print("Position Interpolation Progress:")
 # Uses tqdm package for progress bar of linear interpolation loop.
 for i in tqdm(np.arange(0, nrows)):
     lat[i, :] = lat_mdl.interp(
@@ -207,6 +224,8 @@ for i in tqdm(np.arange(0, nrows)):
                                 x=xr.DataArray(x_index[i, :], dims="z"),
                                 y=xr.DataArray(y_index[i, :], dims="z")
                                 )
+# Update user at command line.
+print("Completed: Position interpolation.")
 
 # ---------------------------------------------------------------------------
 
@@ -222,6 +241,7 @@ dataset = xr.Dataset(
          "lat": (["traj", "obs"], lat),
          "lon": (["traj", "obs"], lon),
          "z": (["traj", "obs"], z),
+         "vol": (["traj", "obs"], vol),
          "temp": (["traj", "obs"], temp),
          "sal": (["traj", "obs"], sal),
          "sigma0": (["traj", "obs"], sigma0),
@@ -232,17 +252,17 @@ dataset = xr.Dataset(
     attrs={
         "ncei_template_version": "NCEI_NetCDF_Trajectory_Template_v2.0",
         "featureType": "trajectory",
-        "title": "",
-        "summary": "Output of TRACMASS",
-        "TRACMASS_version": "",
+        "title": "ORCA1 Trial Sim",
+        "summary": "Trial simulation of ORCA1 - seeding particles southwards on x-z plane at ~70N",
+        "TRACMASS_version": "v7 (2020-10-28)",
         "Conventions": "CF-1.6/CF-1.7",
-        "date_created": "YYYY-MM-DD",  # Use ISO 8601:2004 for date.
-        "creator_name": "",
-        "creator_email": "",
-        "project": "",
+        "date_created": "2020-12-29",  # Use ISO 8601:2004 for date.
+        "creator_name": "Ollie Tooth",
+        "creator_email": "oliver_tooth@env-res.ox.ac.uk",
+        "project": "ORCA1_Sim01",
         "creator_type": "person",
-        "creator_institution": "",
-        "product_version": "",
+        "creator_institution": "University of Oxford",
+        "product_version": "1.0",
         "references": "TRACMASS - https://github.com/TRACMASS",
         }
 )
@@ -282,7 +302,12 @@ dataset.z.attrs = {
     'units': "meters",
     "positive": "upward"
 }
-
+# vol
+dataset.vol.attrs = {
+    'long_name': "particle transport",
+    'standard_name': "volume",
+    'units': "m3"
+}
 # NOTE: modify tracer attributes below as required.
 # temp
 dataset.temp.attrs = {
@@ -303,12 +328,82 @@ dataset.sigma0.attrs = {
     'units': "kg/m3"
 }
 
+# Update user at command line.
+print("Completed: Generated output DataSet.")
+
 # ---------------------------------------------------------------------------
 
 # Stage 8:
 # Saving our NCEI_NetCDF_Trajectory file as a netCDF file.
 
-# Save dataset to netCDF format -
-# NOTE: modify the output file path/name as required for your simulation.
-# dataset.to_netcdf('OUTPUT_FILE_PATH', format="NETCDF4")
-dataset.to_netcdf('/Users/ollietooth/Desktop/D.Phil./PrelimPhase/data/ORCA1-N406_TRACMASS_output_run.nc', format="NETCDF4")
+# NOTE: change directory path to where we would like output .nc
+# files to be stored.
+# os.chdir('OUTPUT_DIR_PATH')
+os.chdir('/Users/ollietooth/Desktop/D.Phil./PrelimPhase/data/')
+
+# NOTE: modify multifile variable (logical) as True for multiple
+# .nc output files, one file per seed-level, or False for a single
+# .nc output file.
+multifile = False
+
+if multifile is True:
+    # -----------------------------------------
+    # Subroutine for multiple .nc output files.
+    # -----------------------------------------
+    # Defining output file name prefix and suffix.
+    fn_prefix = "ORCA1-N406_TRACMASS_seed"
+    fn_suffix = ".nc"
+
+    # -----------------------------
+    # Adding seed_level to DataSet.
+    # -----------------------------
+    # Returning the seed-levels with add_seed().
+    seed_level = add_seed(dataset)
+
+    # Append seed_level DataArray to original DataSet.
+    dataset['seed_level'] = xr.DataArray(seed_level, dims=["traj"])
+    # Adding attributes to seed_level DataArray.
+    dataset.seed_level.attrs = {'long_name': "seeding level",
+                                'standard_name': "seed_level",
+                                'units': "none"
+                                }
+
+    # --------------------------------------------------------
+    # Subsetting dataset by seed_level and saving as .nc file.
+    # --------------------------------------------------------
+    # Minimum seed_level.
+    min_seed = np.min(seed_level)
+    # Maximum seed_level.
+    max_seed = np.max(seed_level)
+
+    # Iterate over seed-levels - subset and save DataSet to .nc files.
+    print("Saving Files Progress:")
+    # Uses tqdm package for progress bar of linear interpolation loop.
+    for seed in tqdm(np.arange(min_seed, max_seed + 1)):
+
+        # Find rows where seed-level equals seed.
+        rows = np.where(seed_level == seed)[0]
+        # Subset the DataSet with rows and return as output_data.
+        output_data = dataset.isel(traj=xr.DataArray(rows, dims=["traj"]))
+
+        # Save dataset to netCDF format -
+        # Defining out_filename with prefix and suffix specififed above.
+        output_filename = fn_prefix + str(seed) + fn_suffix
+        # Use loseless compression for .nc files by updating encoding.
+        output_data.to_netcdf(output_filename,encoding=output_data.encoding.update({'zlib': True, 'complevel': 4}), format="NETCDF4")
+
+        # Update user at command line.
+        print("Completed: Saved Dataset in multiple .nc files.")
+
+else:
+    # ---------------------------------------
+    # Subroutine for single .nc output file.
+    # ---------------------------------------
+    # Save dataset to netCDF format -
+    #  NOTE: modify the output file name as required for your simulation.
+    # dataset.to_netcdf('OUTPUT_FILENAME', format="NETCDF4")
+    # Use loseless compression for .nc files by updating encoding.
+    dataset.to_netcdf('ORCA1-N406_TRACMASS_complete.nc', encoding=dataset.encoding.update({'zlib': True, 'complevel': 4}), format="NETCDF4")
+
+    # Update user at command line.
+    print("Completed: Saved Dataset in single .nc file.")
