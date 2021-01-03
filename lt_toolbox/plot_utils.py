@@ -2,8 +2,7 @@
 # plot_utils.py
 #
 # Description:
-# Defines functions for plotting attribute variables for
-# trajectories objects.
+# Defines functions for plotting attribute variables for trajectories objects.
 #
 # Last Edited:
 # 2020/12/29
@@ -19,8 +18,6 @@ from add_utils import add_id
 import matplotlib.colors as colors
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
-import cartopy
-import cartopy.crs as ccrs
 
 ##############################################################################
 # Define normalise() function.
@@ -55,184 +52,6 @@ def normalise(data):
 
     # Returning normalised data in ndarray, data_norm.
     return data_norm
-
-##############################################################################
-# Define plot_trajectories() function.
-
-
-def plot_trajectories(self, col_variable):
-    """
-    Plots surface trajectories (latitudes and longitudes) of
-    particles on an orthographic projection of Earth's surface.
-
-    Latitudes and longitudes of particle positions are connected
-    to visualise surface trajectories. Trajectories can also be
-    optionally coloured according to a specified scalar variable
-    given by col_variable.
-
-    Parameters
-    ----------
-    self : trajectories object
-        Trajectories object passed from trajectories class method.
-    col_variable : string
-        Name of variable in the trajectories object to colour
-        plotted trajectories.
-
-    Returns
-    -------
-    """
-    # ----------------------------------------
-    # Configuiring figure dimensions and axes.
-    # ----------------------------------------
-    # Initialising figure.
-    plt.figure()
-
-    # Find the mean latitude and longitude from our
-    # plot data in order to centre our orthographic
-    # projection.
-    lat_mean = np.nanmean(self.data.lat.values)
-    lon_mean = np.nanmean(self.data.lon.values)
-
-    # Configuire axes with an orthographic projection,
-    # centred on position (lon_mean, lat_mean).
-    ax = plt.axes(projection=ccrs.Orthographic(lon_mean, lat_mean))
-
-    # Add land and coastlines to trajectory plot.
-    ax.add_feature(cartopy.feature.LAND, zorder=0, edgecolor='black')
-    # Add grid lines of constant latitude and longitude.
-    ax.gridlines()
-
-    # -----------------------------------------
-    # Defining variables from trajectories obj.
-    # -----------------------------------------
-    # Defining lat and lon for all trajectories.
-    lat = self.data.lat.values
-    lon = self.data.lon.values
-
-    # -------------------------------------------
-    # Subroutine for no specified color variable.
-    # -------------------------------------------
-    if col_variable is None:
-
-        # -------------------------------------------------
-        # Plotting trajectories with default random colors.
-        # -------------------------------------------------
-        # Determine number of trajectories to plot.
-        traj = np.shape(lon)[0]
-
-        # Plot all trajectories, traj.
-        for n in np.arange(0, traj-1):
-            # Plot trajectories with default colors specififed by
-            # matplotlib.
-            ax.plot(lon[n, :], lat[n, :], transform=ccrs.PlateCarree())
-
-    # --------------------------------------------
-    # Subroutine for 1-dimensional color variable.
-    # --------------------------------------------
-    elif np.ndim(self.data[col_variable].values) == 1:
-
-        # Defining col as attribute variable col_variable.
-        col = self.data[col_variable].values
-
-        # -------------------------------------------------
-        # Normalise colour variable to colour trajectories.
-        # -------------------------------------------------
-        # Normalise col for colours using normalise().
-        col_norm = normalise(col)
-
-        # ----------------------------------------
-        # Plotting trajectories as coloured lines.
-        # ----------------------------------------
-        # Determine number of trajectories to plot.
-        traj = np.shape(lon)[0]
-
-        # Defining color from col_norm with diverging coolwarm
-        # colour map.
-        color = cm.coolwarm(col_norm)
-
-        # Plot all trajectories, traj.
-        for n in np.arange(0, traj-1):
-            # Plot trajectories with single colour defined by color.
-            ax.plot(lon[n, :], lat[n, :], c=color[n], transform=ccrs.PlateCarree())
-
-        # ------------------------------
-        # Adding colorbar to the figure.
-        # ------------------------------
-        # Linearly normalise data between 0.0 and 1.0.
-        norm = colors.Normalize(vmin=np.nanmin(col), vmax=np.nanmax(col))
-
-        # Defining Scalar Mappable object for colorbar.
-        sm = plt.cm.ScalarMappable(cmap=cm.coolwarm, norm=norm)
-
-        # Defining colorbar, cbar, to be 0.9 of the fig height.
-        cbar = plt.colorbar(sm, shrink=0.9)
-        cbar.ax.get_yaxis().labelpad = 15
-
-        # Creating colorbar label with col_variable attributes.
-        col_label = self.data[col_variable].attrs['standard_name'] + " (" + self.data[col_variable].attrs['units'] + ")"
-        # Add colobar label with SI units.
-        cbar.ax.set_ylabel(col_label, rotation=270)
-
-    # --------------------------------------------
-    # Subroutine for 2-dimensional color variable.
-    # --------------------------------------------
-    # NOTE: Owing to the dependence on multiple loops, the use
-    # of a 2-dimensional color variable should only be used with
-    # a small number of trajectories (10-100) to avoid long
-    # execution times due to computation inefficiency.
-    elif np.ndim(self.data[col_variable].values) == 2:
-
-        # Defining col as attribute variable col_var.
-        col = self.data[col_variable].values
-
-        # ---------------------------------------------------
-        # Normalise colour variable to colour line segments.
-        # ---------------------------------------------------
-        # Normalise col for colours using normalise().
-        col_norm = normalise(col)
-
-        # ------------------------------------------------
-        # Plotting trajectories as coloured line segments.
-        # ------------------------------------------------
-        # Determine number of trajectories to plot.
-        traj = np.shape(lon)[0]
-        obs = np.shape(lon)[1]
-
-        # Plot all trajectories, traj.
-        for n in np.arange(0, traj-1):
-            # Within each trajectory iteration define color from col_norm with
-            # diverging cool warm colour map.
-            color = cm.coolwarm(col_norm[n, :])
-
-            # Plot all line segments between observations, obs.
-            for i in np.arange(0, obs-1):
-                # Plot trajectories with col_norm of previous particle position
-                # as colour of line segment.
-                ax.plot([lon[n, i], lon[n, i+1]], [lat[n, i], lat[n, i+1]], c=color[i], transform=ccrs.PlateCarree())
-
-        # ------------------------------
-        # Adding colorbar to the figure.
-        # ------------------------------
-        # Linearly normalise data between 0.0 and 1.0.
-        norm = colors.Normalize(vmin=np.nanmin(col), vmax=np.nanmax(col))
-
-        # Defining Scalar Mappable object for colorbar.
-        sm = plt.cm.ScalarMappable(cmap=cm.coolwarm, norm=norm)
-
-        # Defining colorbar, cbar, to be 0.9 of the fig height.
-        cbar = plt.colorbar(sm, shrink=0.9)
-        cbar.ax.get_yaxis().labelpad = 15
-
-        # Creating colorbar label with col_variable attributes.
-        col_label = self.data[col_variable].attrs['standard_name'] + " (" + self.data[col_variable].attrs['units'] + ")"
-        # Add colobar label with SI units.
-        cbar.ax.set_ylabel(col_label, rotation=270)
-
-    # Show plot.
-    plt.show()
-
-    # Return figure.
-    return
 
 ##############################################################################
 # Define plot_timeseries() function.
@@ -503,6 +322,142 @@ def plot_ts_diagram(self, col_variable):
         col_label = self.data[col_variable].attrs['standard_name'] + " (" + self.data[col_variable].attrs['units'] + ")"
         # Add colobar label with SI units.
         cbar.ax.set_ylabel(col_label, rotation=270)
+
+    # Show plot.
+    plt.show()
+
+    # Return figure.
+    return
+
+##############################################################################
+# Define plot_variable() function.
+
+
+def plot_variable(self, variable, plane, seed_level, time_level, cmap):
+    """
+    2-dimensional Cartesian contour plot of a specified variable
+    at a specific time along particle trajectories.
+
+    Follows the specification of the trajectory map of Betten et
+    al. (2017); values of the variable are displayed on particle
+    initial grid locations at the time of seeding.
+
+    Parameters
+    ----------
+    self : trajectories object
+        Trajectories object passed from trajectories class method.
+    variable : string
+        Name of the variable in the trajectories object.
+    plane : string
+        Seeding plane from which particles are released - options
+        are 'xz' zonal-vertical and 'yz' meridional-vertical.
+    seed_level : integer
+        Seeding level when particles are released.
+    time_level : string
+        Time level along trajectories to plot variable.
+    cmap : string
+        A colormap instance or registered colormap name.
+
+    Returns
+    -------
+    """
+    # ----------------------------------------
+    # Configuiring figure dimensions and axes.
+    # ----------------------------------------
+    # Initialising figure.
+    fig = plt.figure()
+    ax = plt.axes()
+    # Adding grid lines.
+    plt.grid(zorder=0)
+
+    # ---------------------------------------------------
+    # Defining DataSet from which to create contour plot.
+    # ---------------------------------------------------
+    # Add seed_levels to DataSet, filter on specified seed level.
+    # Return starting locations lat, lon and z for contour plot.
+    dataset = self.add_seed().filter_equal('seed_level', seed_level).get_start_loc()
+    # Return specified variable at specified time_level as {variable}_i.
+    dataset = dataset.get_value(variable, time_level)
+
+    # -------------------------------------------------
+    # Defining x- and y- variables for specified plane.
+    # -------------------------------------------------
+    # Zonal-Vertical.
+    if plane == 'xz':
+        x = dataset.lon_start.values
+        x_label = dataset.lon_start.attrs['standard_name'] + ' (' + dataset.lon_start.attrs['units'] + ')'
+
+        y = dataset.z_start.values
+        y_label = dataset.z_start.attrs['standard_name'] + ' (' + dataset.z_start.attrs['units'] + ')'
+
+    # Meridional-Vertical.
+    else:
+        x = dataset.lat_start.values
+        x_label = dataset.lat_start.attrs['standard_name'] + ' (' + dataset.lat_start.attrs['units'] + ')'
+
+        y = dataset.z_start.values
+        y_label = dataset.z_start.attrs['standard_name'] + ' (' + dataset.z_start.attrs['units'] + ')'
+
+    # ----------------------------------------
+    # Defining z variable for specified plane.
+    # ----------------------------------------
+    # Defining standard_name of the {variable].
+    var_name = variable + '_i'
+    # Defining z as the values of {variable} at the specified time-level.
+    z = dataset.data[var_name].values
+    z_label = dataset.data[variable].attrs['standard_name'] + ' (' + dataset.data[variable].attrs['units'] + ')'
+
+    # ---------------------------------------------
+    # Defining 2D grid of x and y for contour plot.
+    # ---------------------------------------------
+    # Neglecting repeated values with np.unique.
+    X, Y = np.meshgrid(np.unique(x), np.unique(y))
+
+    # Defining no. rows and cols for both 2D grids.
+    rows = np.shape(X)[0]
+    cols = np.shape(X)[1]
+
+    # Defining no. trajectories, ntraj.
+    ntraj = len(z)
+
+    # Defining arrays to store indices of z on X-Y grid.
+    X_ind = np.zeros(ntraj).astype(int)
+    Y_ind = np.zeros(ntraj).astype(int)
+
+    # -------------------------------------
+    # Filling 2D grid Z with values from z.
+    # -------------------------------------
+    # Defining Z with dimensions (rows x cols) - same as X-Y grid.
+    Z = np.empty([rows, cols])
+    # Fill Z with NaN values.
+    Z[:, :] = np.nan
+
+    # Iterate over no. trajectories - find X and Y indices of
+    # start locations and allocate the corresponding value of z.
+    for i in range(0, ntraj):
+        X_ind[i] = np.where(X[0, :] == x[i])[0]
+        Y_ind[i] = np.where(Y[:, 0] == y[i])[0]
+        Z[Y_ind[i], X_ind[i]] = z[i]
+
+    # ---------------------------------------------------
+    # Plotting contourplot of {variable} on seeding grid.
+    # ---------------------------------------------------
+    # Contour plot with colour map specified as cmap (str).
+    cplot = ax.contourf(X, Y, Z, cmap=cm.get_cmap(cmap), zorder=4)
+
+    # Adding axis labels.
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+
+    # ------------------------------
+    # Adding colorbar to the figure.
+    # ------------------------------
+    # Defining colorbar, cbar, to be 0.9 of the fig height.
+    cbar = fig.colorbar(cplot, shrink=0.9)
+    cbar.ax.get_yaxis().labelpad = 15
+
+    # Add colobar label with SI units.
+    cbar.ax.set_ylabel(z_label, rotation=270)
 
     # Show plot.
     plt.show()
