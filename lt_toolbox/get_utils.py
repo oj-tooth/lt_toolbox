@@ -65,8 +65,8 @@ def get_start_loc(self):
     """
     Returns locations where particles are released (start of trajectory).
 
-    The start location is divided into start_lon and start_lat which are
-    returned for all trajectories as new ndarrays.
+    The start location is divided into start_lon, start_lat and start_z
+    which are returned for all trajectories as new ndarrays.
 
     Parameters
     ----------
@@ -81,6 +81,10 @@ def get_start_loc(self):
 
     start_lon: ndarray
         longitude of each particle at the time of release, with
+        dimension (traj).
+
+    start_z: ndarray
+        depth of each particle at the time of release, with
         dimension (traj).
     """
     # --------------------------------------------
@@ -100,10 +104,12 @@ def get_start_loc(self):
     start_lat = np.take_along_axis(self.data.lat.values, np.expand_dims(start_ind, axis=-1), axis=-1).squeeze(axis=-1)
     # Using start_ind as the indices to determine start_lon.
     start_lon = np.take_along_axis(self.data.lon.values, np.expand_dims(start_ind, axis=-1), axis=-1).squeeze(axis=-1)
+    # Using start_ind as the indices to determine start_z.
+    start_z = np.take_along_axis(self.data.z.values, np.expand_dims(start_ind, axis=-1), axis=-1).squeeze(axis=-1)
 
-    # Returning starting latitudes and longutudes as ndarrays,
-    # start_lat and start_lon.
-    return start_lat, start_lon
+    # Returning starting latitudes, longutudes and depths as ndarrays,
+    # start_lat, start_lon and start_z.
+    return start_lat, start_lon, start_z
 
 ##############################################################################
 # Define get_end_time() function.
@@ -171,6 +177,10 @@ def get_end_loc(self):
     end_lon: ndarray
         longitude of each particle at the time of exit, with
         dimension (traj).
+
+    end_z: ndarray
+        depth of each particle at the time of release, with
+        dimension (traj).
     """
     # -------------------------------------------
     # Determining indices of ending time values.
@@ -189,10 +199,12 @@ def get_end_loc(self):
     end_lat = np.take_along_axis(self.data.lat.values, np.expand_dims(end_ind, axis=-1), axis=-1).squeeze(axis=-1)
     # Using end_ind as the indices to determine end_lon.
     end_lon = np.take_along_axis(self.data.lon.values, np.expand_dims(end_ind, axis=-1), axis=-1).squeeze(axis=-1)
+    # Using end_ind as the indices to determine end_z.
+    end_z = np.take_along_axis(self.data.z.values, np.expand_dims(end_ind, axis=-1), axis=-1).squeeze(axis=-1)
 
-    # Returning final latitudes and longutudes as ndarrays,
-    # end_lat and start_lon.
-    return end_lat, end_lon
+    # Returning final latitudes, longitudes and depths as ndarrays,
+    # end_lat, end_lon and end_z.
+    return end_lat, end_lon, end_z
 
 ##############################################################################
 # Define get_duration() function.
