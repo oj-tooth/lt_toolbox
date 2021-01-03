@@ -17,12 +17,14 @@
 
 import xarray as xr
 import numpy as np
+import matplotlib.pyplot as plt
 from get_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_minmax, get_val
-from add_utils import add_seed, add_id
+from add_utils import add_seed, add_id, add_var
 from filter_utils import filter_traj
 from find_utils import find_traj
 from compute_utils import compute_displacement, compute_velocity, compute_distance
-from plot_utils import plot_trajectories, plot_timeseries, plot_ts_diagram
+from plot_utils import plot_timeseries, plot_ts_diagram, plot_variable
+from map_utils import map_trajectories
 
 ##############################################################################
 # Define trajectories Class.
@@ -869,8 +871,8 @@ class trajectories:
         """
         Returns locations where particles are released (start of trajectory).
 
-        The start locations are divided into lon_start and lat_start which
-        are returned for all trajectories as new DataArrays.
+        The start locations are divided into lon_start, lat_start and z_start
+        which are returned for all trajectories as new DataArrays.
 
         Parameters
         ----------
@@ -881,8 +883,8 @@ class trajectories:
         -------
         DataSet.
             Original DataSet is returned with appended attribute
-            variables lat_start and lon_start DataArray containing
-            the release latitude and longitude of each particle
+            variables lat_start, lon_start, z_start DataArray containing
+            the release latitude, longitude and depth of each particle
             with dimension (traj).
 
         Examples
@@ -893,11 +895,11 @@ class trajectories:
         # ----------------------------------------------
         # Return start locations with get_start_loc().
         # ----------------------------------------------
-        lat_start, lon_start = get_start_loc(self)
+        lat_start, lon_start, z_start = get_start_loc(self)
 
-        # --------------------------------
-        # Adding lat/lon_start to DataSet.
-        # --------------------------------
+        # -----------------------------------
+        # Adding lat/lon/z_start to DataSet.
+        # -----------------------------------
         # Append lat_start DataArray to original DataSet.
         self.data['lat_start'] = xr.DataArray(lat_start, dims=["traj"])
         # Adding attributes to lat_start DataArray.
@@ -914,6 +916,16 @@ class trajectories:
                              'long_name': "release longitude",
                              'standard_name': "lon_start",
                              'units': "degrees east"
+                             }
+
+        # Append z_start DataArray to original DataSet.
+        self.data['z_start'] = xr.DataArray(z_start, dims=["traj"])
+        # Adding attributes to z_start DataArray.
+        self.data.z_start.attrs = {
+                             'long_name': "release depth",
+                             'standard_name': "z_start",
+                             'units': "meters",
+                             'positive': "upwards"
                              }
 
         # Return trajectories object with updated DataSet.
@@ -975,8 +987,9 @@ class trajectories:
         Returns locations where particles exit the system
         (start of trajectory).
 
-        The end locations are divided into lon_end and lat_end which
-        are returned for all trajectories as new DataArrays.
+        The end locations are divided into lon_end, lat_end and
+        z_end which are returned for all trajectories as new
+        DataArrays.
 
         Parameters
         ----------
@@ -987,8 +1000,8 @@ class trajectories:
         -------
         DataSet.
             Original DataSet is returned with appended attribute
-            variables lat_end and lon_end DataArray containing
-            the exit latitude and longitude of each particle
+            variables lat_end, lon_end and z_end DataArray containing
+            the exit latitude, longitude and depth of each particle
             with dimension (traj).
 
         Examples
@@ -999,10 +1012,10 @@ class trajectories:
         # -----------------------------------------
         # Return exit locations with get_end_loc().
         # -----------------------------------------
-        lat_end, lon_end = get_end_loc(self)
+        lat_end, lon_end, z_end = get_end_loc(self)
 
         # --------------------------------
-        # Adding lat/lon_end to DataSet.
+        # Adding lat/lon/z_end to DataSet.
         # --------------------------------
         # Append lat_end DataArray to original DataSet.
         self.data['lat_end'] = xr.DataArray(lat_end, dims=["traj"])
@@ -1020,6 +1033,16 @@ class trajectories:
                              'long_name': "exit longitude",
                              'standard_name': "lon_end",
                              'units': "degrees east"
+                             }
+
+        # Append z_end DataArray to original DataSet.
+        self.data['z_end'] = xr.DataArray(z_end, dims=["traj"])
+        # Adding attributes to z_end DataArray.
+        self.data.z_end.attrs = {
+                             'long_name': "exit depth",
+                             'standard_name': "z_end",
+                             'units': "meters",
+                             'positive': "upwards"
                              }
 
         # Return trajectories object with updated DataSet.
@@ -1357,11 +1380,49 @@ class trajectories:
         return trajectories(self.data)
 
 ##############################################################################
-# Define plot_trajectories() method.
+# Define add_variable() method.
 
-    def plot_trajectories(self, col_variable=None):
+    def add_variable(self, data, attributes):
         """
-        Plots surface trajectories (latitudes and longitudes) of
+        Adds a new variable to the existing trajectories object.
+
+        The variable data must be provided as an ndarray with dimensions
+        (traj) / (obs) / (traj x obs) and the attributes provided as a
+        dictionary.
+
+        Parameters
+        ----------
+        self : trajectories object
+            Trajectories object passed from trajectories class method.
+        data : ndarray
+            values of new variable to be added to the trajectories object
+            DataSet.
+        attributes : dict
+            the attributes of the new variable, at a minimum -'long_name',
+            'standard_name' and 'units' should be included. The standard
+            name will be assigned as the attribute variable name.
+
+        Returns
+        -------
+        trajectories object
+            Original trajectories object is returned with new attribute
+            variable DataArray appended, dimensions are either (traj) /
+            (obs) / (traj x obs).
+        """
+        # -----------------------------------------
+        # Returning updated DataSet with add_var().
+        # -----------------------------------------
+        self.data = add_var(self=self, data=data, attrs=attributes)
+
+        # Return trajectories object with updated DataSet.
+        return trajectories(self.data)
+
+##############################################################################
+# Define map_trajectories() method.
+
+    def map_trajectories(self, col_variable=None):
+        """
+        Maps surface trajectories (latitudes and longitudes) of
         particles on an orthographic projection of Earth's surface.
 
         Latitudes and longitudes of particle positions are connected
@@ -1375,7 +1436,7 @@ class trajectories:
             Trajectories object passed from trajectories class method.
         col_variable : string
             Name of variable in the trajectories object to colour
-            plotted trajectories, default is None.
+            mapped trajectories, default is None.
 
         Returns
         -------
@@ -1386,15 +1447,15 @@ class trajectories:
         if isinstance(col_variable, str) is False:
             raise TypeError("col_variable must be specified as a string")
 
-        # -------------------------
-        # Return trajectories plot.
-        # -------------------------
-        plot_trajectories(self=self, col_variable=col_variable)
+        # ------------------------------------------------
+        # Return trajectories map with map_trajectories().
+        # ------------------------------------------------
+        map_trajectories(self=self, col_variable=col_variable)
 
         return
 
 ##############################################################################
-# Define plot_timeseries() function.
+# Define plot_timeseries() method.
 
     def plot_timeseries(self, variable, col_variable=None):
         """
@@ -1439,7 +1500,7 @@ class trajectories:
         return
 
 ##############################################################################
-# Define plot_ts_diagram() function.
+# Define plot_ts_diagram() method.
 
     def plot_ts_diagram(self, col_variable=None):
         """
@@ -1479,12 +1540,63 @@ class trajectories:
 
         return
 
+##############################################################################
+# Define plot_variable() method.
+
+    def plot_variable(self, variable, plane, seed_level, time_level, cmap='coolwarm'):
+        """
+        2-dimensional Cartesian contour plot of a specified variable
+        at a specific time along particle trajectories.
+
+        Follows the specification of the trajectory map of Betten et
+        al. (2017); values of the variable are displayed on particle
+        initial grid locations at the time of seeding.
+
+        When cmap is not specified, the default colour map is 'coolwarm'
+        - a diverging colormap.
+
+        Parameters
+        ----------
+        self : trajectories object
+            Trajectories object passed from trajectories class method.
+        variable : string
+            Name of the variable in the trajectories object.
+        plane : string
+            Seeding plane from which particles are released - options
+            are 'xz' zonal-vertical and 'yz' meridional-vertical.
+        seed_level : integer
+            Seeding level when particles are released.
+        time_level : string
+            Time level along trajectories to plot variable.
+        cmap : string
+            A colormap instance or registered colormap name.
+
+        Returns
+        -------
+        """
+        # -------------------
+        # Raising exceptions.
+        # -------------------
+        if isinstance(variable, str) is False:
+            raise TypeError("variable must be specified as a string")
+        if isinstance(plane, str) is False:
+            raise TypeError("plan must be specified as a string - options are \'xz\' or \'yz\'")
+        if isinstance(seed_level, int) is False:
+            raise TypeError("seed_level must be specified as an integer")
+        if isinstance(time_level, str) is False:
+            raise TypeError("time_level must be specified as a string in the format \'YYYY-MM-DD\'")
+        if isinstance(cmap, str) is False:
+            raise TypeError("cmap must be specified as a string")
+
+        # ------------------------
+        # Return 2-D contour plot.
+        # ------------------------
+        plot_variable(self=self, variable=variable, plane=plane, seed_level=seed_level, time_level=time_level, cmap=cmap)
+
+        return
 
 ##############################################################################
 # Testing with ORCA01 Preliminary Data.
-traj = trajectories(xr.open_dataset('ORCA1-N406_TRACMASS_output_run.nc'))
-
-# traj.filter_between('traj', 100, 110).plot_ts_diagram()
-# traj.filter_between('traj', 0, 10).use_datetime('2000-01-01').plot_timeseries('sal')
-# plot_trajectories(traj.filter_between('traj', 0, 30), col_variable='temp')
-# plot_timeseries(traj.filter_between('traj', 0, 5).use_datetime('2000-01-01'), 'temp')
+traj = trajectories(xr.open_dataset('ORCA1-N406_TRACMASS_complete.nc'))
+traj = traj.use_datetime('2000-01-01')
+traj.plot_variable('temp', 'xz', 11, '2007-07-23')

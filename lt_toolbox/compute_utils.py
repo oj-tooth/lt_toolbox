@@ -369,7 +369,16 @@ def compute_velocity(self, axis, unit):
         # -----------------------------------
 
         # Defining time-step, dt.
-        dt = int(self.data.time.values[0, 1] - self.data.time.values[0, 0])
+        dt = np.diff(self.data.time.values, axis=1)
+        dt = dt.astype(int)
+
+        # Concantenate array of NaNs to start of dt, ensuring
+        # dt has dimensions (traj x obs).
+        empty = np.empty([rows, 1])
+        empty[:, 0] = np.NaN
+        dt = np.append(empty, dt, axis=1)
+
+        # dt = int(self.data.time.values[0, 1] - self.data.time.values[0, 0])
         # Converting dt from nanoseconds to seconds.
         dt = dt * 1E-9
 
@@ -448,7 +457,16 @@ def compute_velocity(self, axis, unit):
         # ---------------------------------------
 
         # Defining time-step, dt.
-        dt = int(self.data.time.values[0, 1] - self.data.time.values[0, 0])
+        dt = np.diff(self.data.time.values, axis=1)
+        dt = dt.astype(int)
+
+        # Concantenate array of NaNs to start of dt, ensuring
+        # dt has dimensions (traj x obs).
+        empty = np.empty([rows, 1])
+        empty[:, 0] = np.NaN
+        dt = np.append(empty, dt, axis=1)
+
+        # dt = int(self.data.time.values[0, 1] - self.data.time.values[0, 0])
         # Converting dt from nanoseconds to seconds.
         dt = dt * 1E-9
 
@@ -504,7 +522,16 @@ def compute_velocity(self, axis, unit):
         # --------------------------------------
 
         # Defining time-step, dt.
-        dt = int(self.data.time.values[0, 1] - self.data.time.values[0, 0])
+        dt = np.diff(self.data.time.values, axis=1)
+        dt = dt.astype(int)
+
+        # Concantenate array of NaNs to start of dt, ensuring
+        # dt has dimensions (traj x obs).
+        empty = np.empty([rows, 1])
+        empty[:, 0] = np.NaN
+        dt = np.append(empty, dt, axis=1)
+
+        # dt = int(self.data.time.values[0, 1] - self.data.time.values[0, 0])
         # Converting dt from nanoseconds to seconds.
         dt = dt * 1E-9
 

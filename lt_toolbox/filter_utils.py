@@ -66,7 +66,7 @@ def filter_traj(self, filt_type, variable, val='NaN', min_val='NaN', max_val='Na
             obs_min = np.where(self.data[variable].values[0, :] == pd.to_timedelta(min_val, unit='s'))[0]
             obs_max = np.where(self.data[variable].values[0, :] == pd.to_timedelta(max_val, unit='s'))[0]
 
-            # Returning the subseteed xarray DataSet.
+            # Returning the subseted xarray DataSet.
             return self.data.isel(obs=xr.DataArray(np.arange(obs_min, obs_max + 1), dims=["obs"]))
 
         else:
