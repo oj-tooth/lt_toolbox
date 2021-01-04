@@ -17,14 +17,13 @@
 
 import xarray as xr
 import numpy as np
-import matplotlib.pyplot as plt
 from get_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_minmax, get_val
 from add_utils import add_seed, add_id, add_var
 from filter_utils import filter_traj
 from find_utils import find_traj
 from compute_utils import compute_displacement, compute_velocity, compute_distance
 from plot_utils import plot_timeseries, plot_ts_diagram, plot_variable
-from map_utils import map_trajectories
+from map_utils import map_trajectories, map_probability, map_property
 
 ##############################################################################
 # Define trajectories Class.
@@ -1455,6 +1454,120 @@ class trajectories:
         return
 
 ##############################################################################
+# Define map_probability() method.
+
+    def map_probability(self, bin_res, prob_type, cmap='coolwarm'):
+        """
+        Map binned probability distribution of particle positions
+        or particle pathways on an orthographic projection
+        of Earth's surface.
+
+        Particle positions are binned into a 2-dimensional
+        (x-y) histogram and normalised by the total number
+        of particle positions ('pos') or the total number
+        of particles ('traj').
+
+        When cmap is not specified, the default colour map
+        is 'coolwarm' - a diverging colormap.
+
+        Parameters
+        ----------
+        self : trajectories object
+            Trajectories object passed from trajectories class method.
+        bin_res : numeric
+            The resolution (degrees) of the grid on to which particle
+            positions will be binned.
+        prob_type : string
+            The type of probability to be computed. 'pos' - all particle
+            positions are binned and then normalised by the total number
+            of particle positions. 'traj' - for each particle positions
+            are counted once per bin and then normalised by the total
+            number of particles.
+        cmap : string
+            A colormap instance or registered colormap name.
+
+        Returns
+        -------
+
+        Note
+        ----
+        Aliasing is an important consideration when selecting a bin
+        resolution. If the selected grid resolution is too fine,
+        particles may be advected through a bin within one time step
+        without adding to the bin count. This is especially relevant
+        for simulations with long output time steps (> 5 days).
+        """
+        # -------------------
+        # Raising exceptions.
+        # -------------------
+        if (isinstance(bin_res, int) or isinstance(bin_res, float)) is False:
+            raise TypeError("bin_res must be specified as integer or float")
+        if isinstance(prob_type, str) is False:
+            raise TypeError("prob_type must be specified as a string - options are \'pos\' or \'traj\'")
+        if isinstance(cmap, str) is False:
+            raise TypeError("cmap must be specified as a string")
+
+        # ------------------------------------------------
+        # Return probability map with map_probabability().
+        # ------------------------------------------------
+        map_probability(self=self, bin_res=bin_res, prob_type=prob_type, cmap=cmap)
+
+        return
+
+##############################################################################
+# Define map_property() function.
+
+    def map_property(self, bin_res, variable, statistic, cmap='coolwarm'):
+        """
+        Map binned property of particles on an orthographic
+        projection of Earth's surface.
+
+        The particle property is binned onto a 2-dimensional
+        (x-y) grid before a specified statistic is computed
+        with the values in each bin.
+
+        Bidimensional binned statistic is computed with
+        scipy.stats.binned_statistic_2d().
+
+        When cmap is not specified, the default colour map
+        is 'coolwarm' - a diverging colormap.
+
+        Parameters
+        ----------
+        self : trajectories object
+            Trajectories object passed from trajectories class method.
+        bin_res : numeric
+            The resolution (degrees) of the grid on to which particle
+            positions will be binned.
+        statistic : string
+            The statistic to be computed with binned values - options
+            are 'mean', 'std', 'median', 'count', 'sum', 'min' or 'max'.
+        cmap : string
+            A colormap instance or registered colormap name.
+
+        Returns
+        -------
+        """
+        # -------------------
+        # Raising exceptions.
+        # -------------------
+        if (isinstance(bin_res, int) or isinstance(bin_res, float)) is False:
+            raise TypeError("bin_res must be specified as integer or float")
+        if isinstance(variable, str) is False:
+            raise TypeError("variable must be specified as a string")
+        if isinstance(statistic, str) is False:
+            raise TypeError("statistic must be specified as a string - options are \'mean\', \'median\', \'std\', \'count\', \'sum\', \'min\' or \'max\'")
+        if isinstance(cmap, str) is False:
+            raise TypeError("cmap must be specified as a string")
+
+        # ----------------------------------------
+        # Return property map with map_property().
+        # ----------------------------------------
+        map_property(self=self, bin_res=bin_res, variable=variable, stat=statistic, cmap=cmap)
+
+        return
+
+##############################################################################
 # Define plot_timeseries() method.
 
     def plot_timeseries(self, variable, col_variable=None):
@@ -1595,8 +1708,11 @@ class trajectories:
 
         return
 
+
 ##############################################################################
 # Testing with ORCA01 Preliminary Data.
 traj = trajectories(xr.open_dataset('ORCA1-N406_TRACMASS_complete.nc'))
-traj = traj.use_datetime('2000-01-01')
-traj.plot_variable('temp', 'xz', 11, '2007-07-23')
+traj.map_property(bin_res=1, variable='temp', statistic='mean')
+
+# traj = traj.use_datetime('2000-01-01')
+# traj.plot_variable('temp', 'xz', 11, '2007-07-23')
