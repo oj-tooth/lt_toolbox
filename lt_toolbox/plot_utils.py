@@ -14,10 +14,10 @@
 # Importing relevant packages.
 
 import numpy as np
-from add_utils import add_id
 import matplotlib.colors as colors
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
+from add_utils import add_id
 
 ##############################################################################
 # Define normalise() function.
