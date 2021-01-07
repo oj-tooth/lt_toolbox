@@ -63,9 +63,10 @@ def filter_traj(self, filt_type, variable, val='NaN', min_val='NaN', max_val='Na
         # ------------------------------------
         if variable == 'time':
             # Finding the minimum and maximum observations from specified min_val and max_val.
-            obs_min = np.where(self.data[variable].values[0, :] == pd.to_timedelta(min_val, unit='s'))[0]
-            obs_max = np.where(self.data[variable].values[0, :] == pd.to_timedelta(max_val, unit='s'))[0]
-
+            # obs_min = np.where(self.data[variable].values[0, :] == pd.to_timedelta(min_val, unit='s'))[0]
+            # obs_max = np.where(self.data[variable].values[0, :] == pd.to_timedelta(max_val, unit='s'))[0]
+            obs_min = np.where(self.data[variable].values[0, :] == min_val)[0]
+            obs_max = np.where(self.data[variable].values[0, :] == max_val)[0]
             # Returning the subseted xarray DataSet.
             return self.data.isel(obs=xr.DataArray(np.arange(obs_min, obs_max + 1), dims=["obs"]))
 
@@ -97,7 +98,8 @@ def filter_traj(self, filt_type, variable, val='NaN', min_val='NaN', max_val='Na
         # --------------------------------
         if variable == 'time':
             # Finding the observations for a specified time.
-            obs_equal = np.where(self.data[variable].values[0, :] == pd.to_timedelta(val, unit='s'))[0]
+            # obs_equal = np.where(self.data[variable].values[0, :] == pd.to_timedelta(val, unit='s'))[0]
+            obs_equal = np.where(self.data[variable].values[0, :] == val)[0]
 
             # Returning the sub-setted xarray DataSet.
             return self.data.isel(obs=xr.DataArray(obs_equal + 1, dims=["obs"]))
