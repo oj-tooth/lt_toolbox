@@ -7,7 +7,7 @@
 # CF-conventions implemented with the NCEI trajectory template.
 #
 # Last Edited:
-# 2020/12/22
+# 2021/01/06
 #
 # Created By:
 # Ollie Tooth
@@ -17,13 +17,13 @@
 
 import xarray as xr
 import numpy as np
-from get_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_minmax, get_val
-from add_utils import add_seed, add_id, add_var
-from filter_utils import filter_traj
-from find_utils import find_traj
-from compute_utils import compute_displacement, compute_velocity, compute_distance
-from plot_utils import plot_timeseries, plot_ts_diagram, plot_variable
-from map_utils import map_trajectories, map_probability, map_property
+from .get_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_minmax, get_val
+from .add_utils import add_seed, add_id, add_var
+from .filter_utils import filter_traj
+from .find_utils import find_traj
+from .compute_utils import compute_displacement, compute_velocity, compute_distance
+from .plot_utils import plot_timeseries, plot_ts_diagram, plot_variable
+from .map_utils import map_trajectories, map_probability, map_property
 
 ##############################################################################
 # Define trajectories Class.
@@ -41,9 +41,6 @@ class trajectories:
             CF-conventions implemented with the NCEI trajectory
             template.
 
-        For NCEI trajectory template see
-        https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/trajectoryIncomplete.cdl
-
         Returns
         --------
         trajectories object
@@ -53,7 +50,13 @@ class trajectories:
         Examples
         --------
         Creating trajectories object, traj, with output_file.nc file.
+
         >>> trajectories = trajectories(xr.open_dataset('output_file.nc'))
+
+        Note
+        ----
+        For NCEI trajectory template see:
+        https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/trajectoryIncomplete.cdl
         """
         # ----------------------------------------
         # Storing input Dataset as data attribute.
@@ -99,6 +102,7 @@ class trajectories:
         --------
         Convert time in trajectories object to datetime with start
         date '2000-01-01.
+
         >>> trajectories.use_datetime('2000-01-01')
         """
         # -------------------
@@ -133,6 +137,10 @@ class trajectories:
         attribute variable takes a value between a specified min
         and max (including these values).
 
+        When variable is specified as 'time' only the observations (obs)
+        equal to and between the specified time-levels are returned for all
+        trajectories.
+
         Parameters
         ----------
         variable : string
@@ -151,7 +159,21 @@ class trajectories:
         Examples
         --------
         Filtering all trajectories where Latitude is between 0 N - 20 N.
+
         >>> trajectories.filter_between('lat', 0, 20)
+
+        Filtering trajectory observations between two dates using numpy
+        datetime64.
+
+        >>> tmin = np.datetime64('2000-01-01')
+        >>> tmax = np.datetime64('2000-03-01')
+        >>> trajectories.filter_between('time', tmin, tmax)
+
+        Filtering trajectory observations with time using numpy timedelta64.
+
+        >>> tmin = np.timedelta64(0, 'D')
+        >>> tmax = np.timedelta64(90, 'D')
+        >>> trajectories.filter_between('time', tmin, tmax)
         """
         # -------------------
         # Raising exceptions.
@@ -159,11 +181,20 @@ class trajectories:
         if isinstance(variable, str) is False:
             raise TypeError("variable must be specified as a string")
 
-        if (isinstance(min_val, int) or isinstance(min_val, float)) is False:
-            raise TypeError("min must be specified as integer or float")
+        # For non-time variables integers or floats only.
+        if variable != 'time':
+            if (isinstance(min_val, int) or isinstance(min_val, float)) is False:
+                raise TypeError("min must be specified as integer or float")
 
-        if (isinstance(max_val, int) or isinstance(max_val, float)) is False:
-            raise TypeError("max must be specified as integer or float")
+            if (isinstance(max_val, int) or isinstance(max_val, float)) is False:
+                raise TypeError("max must be specified as integer or float")
+        # For time variable numpy datetime64 or timedelta64 format only.
+        else:
+            if (isinstance(min_val, np.datetime64) or isinstance(min_val, np.timedelta64)) is False:
+                raise TypeError("min must be specified as datetime64 or timedelta64")
+
+            if (isinstance(max_val, np.datetime64) or isinstance(max_val, np.timedelta64)) is False:
+                raise TypeError("max must be specified as datetime64 or timedelta64")
 
         # ----------------------------------
         # Defining ds, the filtered DataSet.
@@ -187,6 +218,10 @@ class trajectories:
         where the specified attribute variable takes a value between a
         specified min and max (including these values).
 
+        When variable is specified as 'time' only the indices of observations
+        (obs) equal to and between the specified time-levels are returned for
+        all trajectories.
+
         Parameters
         ----------
         variable : string
@@ -205,7 +240,22 @@ class trajectories:
         --------
         Find indices of trajectory points where Latitude is between
         0 N - 20 N.
+
         >>> trajectories.find_between('lat', 0, 20)
+
+        Finding indices of trajectory observations between two dates using
+        numpy datetime64.
+
+        >>> tmin = np.datetime64('2000-01-01')
+        >>> tmax = np.datetime64('2000-03-01')
+        >>> trajectories.find_between('time', tmin, tmax)
+
+        Finding indices of trajectory observations with time using numpy
+        timedelta64.
+
+        >>> tmin = np.timedelta64(0, 'D')
+        >>> tmax = np.timedelta64(90, 'D')
+        >>> trajectories.find_between('time', tmin, tmax)
         """
         # -------------------
         # Raising exceptions.
@@ -213,11 +263,20 @@ class trajectories:
         if isinstance(variable, str) is False:
             raise TypeError("variable must be specified as a string")
 
-        if (isinstance(min_val, int) or isinstance(min_val, float)) is False:
-            raise TypeError("min must be specified as integer or float")
+        # For non-time variables integers or floats only.
+        if variable != 'time':
+            if (isinstance(min_val, int) or isinstance(min_val, float)) is False:
+                raise TypeError("min must be specified as integer or float")
 
-        if (isinstance(max_val, int) or isinstance(max_val, float)) is False:
-            raise TypeError("max must be specified as integer or float")
+            if (isinstance(max_val, int) or isinstance(max_val, float)) is False:
+                raise TypeError("max must be specified as integer or float")
+        # For time variable numpy datetime64 or timedelta64 format only.
+        else:
+            if (isinstance(min_val, np.datetime64) or isinstance(min_val, np.timedelta64)) is False:
+                raise TypeError("min must be specified as datetime64 or timedelta64")
+
+            if (isinstance(max_val, np.datetime64) or isinstance(max_val, np.timedelta64)) is False:
+                raise TypeError("max must be specified as datetime64 or timedelta64")
 
         # ----------------------------------------------------
         # Return indices between min and max with find_traj().
@@ -240,6 +299,10 @@ class trajectories:
         Filtering returns the complete trajectories where the specified
         attribute variable takes the value specified by val.
 
+        When variable is specified as 'time' only the observations (obs)
+        equal to and between the specified time-levels are returned for
+        all trajectories.
+
         Parameters
         ----------
         variable : string
@@ -256,7 +319,20 @@ class trajectories:
         Examples
         --------
         Filtering all trajectories where Latitude equals 0 N.
+
         >>> trajectories.filter_equal('lat', 0)
+
+        Filtering trajectory observations for one date using numpy
+        datetime64.
+
+        >>> tval = np.datetime64('2000-03-01')
+        >>> trajectories.filter_equal('time', tval)
+
+        Filtering trajectory observations for one time using numpy
+        timedelta64.
+
+        >>> tval = np.timedelta64(90, 'D')
+        >>> trajectories.filter_equal('time', tval)
         """
         # -------------------
         # Raising exceptions.
@@ -264,8 +340,14 @@ class trajectories:
         if isinstance(variable, str) is False:
             raise TypeError("variable must be specified as a string")
 
-        if (isinstance(val, int) or isinstance(val, float)) is False:
-            raise TypeError("val must be specified as integer or float")
+        # For non-time variables integers or floats only.
+        if variable != 'time':
+            if (isinstance(val, int) or isinstance(val, float)) is False:
+                raise TypeError("val must be specified as integer or float")
+        # For time variable numpy datetime64 or timedelta64 format only.
+        else:
+            if (isinstance(val, np.datetime64) or isinstance(val, np.timedelta64)) is False:
+                raise TypeError("val must be specified as datetime64 or timedelta64")
 
         # ----------------------------------
         # Defining ds, the filtered DataSet.
@@ -304,7 +386,20 @@ class trajectories:
         --------
         Find indices of trajectory points where Latitude is equalt to
         0 N.
+
         >>> trajectories.find_equal('lat', 0)
+
+        Finding indices of trajectory observations for one date using
+        numpy datetime64.
+
+        >>> tval = np.datetime64('2000-03-01')
+        >>> trajectories.find_equal('time', tval)
+
+        Finding indices of trajectory observations for one time using
+        numpy timedelta64.
+
+        >>> tval = np.timedelta64(90, 'D')
+        >>> trajectories.find_equal('time', tval)
         """
         # -------------------
         # Raising exceptions.
@@ -312,8 +407,14 @@ class trajectories:
         if isinstance(variable, str) is False:
             raise TypeError("variable must be specified as a string")
 
-        if (isinstance(val, int) or isinstance(val, float)) is False:
-            raise TypeError("val must be specified as integer or float")
+        # For non-time variables integers or floats only.
+        if variable != 'time':
+            if (isinstance(val, int) or isinstance(val, float)) is False:
+                raise TypeError("val must be specified as integer or float")
+        # For time variable numpy datetime64 or timedelta64 format only.
+        else:
+            if (isinstance(val, np.datetime64) or isinstance(val, np.timedelta64)) is False:
+                raise TypeError("val must be specified as datetime64 or timedelta64")
 
         # ---------------------------------------------
         # Return indices equal to val with find_traj().
@@ -359,6 +460,7 @@ class trajectories:
         Examples
         --------
         Computing zonal displacements for all trajectories.
+
         >>> trajectories.compute_dx()
         """
         # ------------------
@@ -426,6 +528,7 @@ class trajectories:
         Examples
         --------
         Computing meridional displacements for all trajectories.
+
         >>> trajectories.compute_dy()
         """
         # ------------------
@@ -493,6 +596,7 @@ class trajectories:
         Examples
         --------
         Computing vertical displacements for all trajectories.
+
         >>> trajectories.compute_dz()
         """
         # ------------------
@@ -561,6 +665,7 @@ class trajectories:
         Examples
         --------
         Computing zonal velocities for all trajectories.
+
         >>> trajectories.compute_u()
         """
         # ------------------
@@ -629,6 +734,7 @@ class trajectories:
         Examples
         --------
         Computing meridional velocities for all trajectories.
+
         >>> trajectories.compute_v()
         """
         # ------------------
@@ -697,6 +803,7 @@ class trajectories:
         Examples
         --------
         Computing vertical velocities for all trajectories.
+
         >>> trajectories.compute_w()
         """
         # ------------------
@@ -770,6 +877,7 @@ class trajectories:
         --------
         Computing distance travelled by particles for all trajectories,
         specifying cumulative distance as False and unit as default 'km'.
+
         >>> trajectories.compute_dist()
         """
         # ------------------
@@ -841,6 +949,7 @@ class trajectories:
         Examples
         --------
         Get release times for all trajectories.
+
         >>> trajectories.get_start_time()
         """
         # ------------------------------------------
@@ -889,6 +998,7 @@ class trajectories:
         Examples
         --------
         Get release locations for all trajectories.
+
         >>> trajectories.get_start_loc()
         """
         # ----------------------------------------------
@@ -956,6 +1066,7 @@ class trajectories:
         Examples
         --------
         Get exit times for all trajectories.
+
         >>> trajectories.get_end_time()
         """
         # ------------------------------------------
@@ -1006,6 +1117,7 @@ class trajectories:
         Examples
         --------
         Get exit locations for all trajectories.
+
         >>> trajectories.get_end_loc()
         """
         # -----------------------------------------
@@ -1075,6 +1187,7 @@ class trajectories:
         Examples
         --------
         Get duration for all trajectories.
+
         >>> trajectories.get_duration()
         """
         # ------------------------------------
@@ -1128,6 +1241,7 @@ class trajectories:
         Get the value of temperature for each trajectory at time
         level 2000-01-31. Note that we must convert time to datetime64
         format before using .get_value().
+
         >>>  trajectories.use_datetime(start_time='2000-01-01').get_value('temp', '2000-01-31')
         """
         # -------------------
@@ -1190,6 +1304,7 @@ class trajectories:
         Examples
         --------
         Get the maximum temperature along each trajectory.
+
         >>>  trajectories.get_max('temp').
         """
         # -------------------
@@ -1249,6 +1364,7 @@ class trajectories:
         Examples
         --------
         Get the maximum temperature along each trajectory.
+
         >>>  trajectories.get_max('temp').
         """
         # -------------------
@@ -1308,6 +1424,7 @@ class trajectories:
         Examples
         --------
         Get seed levels for all trajectories.
+
         >>> trajectories.add_seed().
         """
         # ------------------------------------
@@ -1356,6 +1473,7 @@ class trajectories:
         Examples
         --------
         Get trajectory id for all trajectories.
+
         >>> trajectories.add_id().
         """
         # -----------------------------------
@@ -1711,8 +1829,14 @@ class trajectories:
 
 ##############################################################################
 # Testing with ORCA01 Preliminary Data.
-traj = trajectories(xr.open_dataset('ORCA1-N406_TRACMASS_complete.nc'))
-traj.map_property(bin_res=1, variable='temp', statistic='mean')
 
+# traj = trajectories(xr.open_dataset('ORCA1-N406_TRACMASS_complete.nc'))
+# tmin = np.timedelta64(0, 'D')
+# tmax = np.timedelta64(60, 'D')
+
+# traj_test = traj.find_between('time', tmin, tmax)
+# print(traj_test)
+
+# traj.map_property(bin_res=1, variable='temp', statistic='mean')
 # traj = traj.use_datetime('2000-01-01')
 # traj.plot_variable('temp', 'xz', 11, '2007-07-23')
