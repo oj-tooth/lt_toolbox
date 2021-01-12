@@ -22,14 +22,19 @@ from .add_utils import add_seed, add_id, add_var
 from .filter_utils import filter_traj
 from .find_utils import find_traj
 from .compute_utils import compute_displacement, compute_velocity, compute_distance
-from .plot_utils import plot_timeseries, plot_ts_diagram, plot_variable
-from .map_utils import map_trajectories, map_probability, map_property
+
 
 ##############################################################################
 # Define trajectories Class.
 
 
 class trajectories:
+
+    # Importing methods for cartesian plotting with matplotlib.
+    from .plot_utils import plot_timeseries, plot_ts_diagram, plot_variable
+    # Importing methods for geospatial mapping with Cartopy.
+    from .map_utils import map_trajectories, map_probability, map_property
+
     def __init__(self, ds):
         """
         Create a trajectories object from an xarray DataSet.
@@ -110,6 +115,8 @@ class trajectories:
         # -------------------
         if isinstance(start_date, str) is False:
             raise TypeError("start_date must be specified as a string")
+        if np.issubdtype(self.data['time'].values.dtype, np.datetime64) is True:
+            raise TypeError("time already exists with dtype = \'datetime64[ns]\'")
 
         # -----------------------------------
         # Set start_date in datetime format.
@@ -129,7 +136,7 @@ class trajectories:
 ##############################################################################
 # Define filter_between() method.
 
-    def filter_between(self, variable, min_val, max_val):
+    def filter_between(self, variable, min_val, max_val, drop=False):
         """
         Filter trajectories between two values of an attribute variable.
 
@@ -149,6 +156,10 @@ class trajectories:
             Minimum value variable should equal or be greater than.
         max_val : numeric
             Maximum value variable should equal or be less than.
+        drop : boolean
+            Determines if fitered trajectories should be returned as a
+            new trajectories object (False) or instead dropped from the
+            existing trajectories object (True).
 
         Returns
         -------
@@ -160,7 +171,7 @@ class trajectories:
         --------
         Filtering all trajectories where Latitude is between 0 N - 20 N.
 
-        >>> trajectories.filter_between('lat', 0, 20)
+        >>> trajectories.filter_between('lat', 0, 20, drop=False)
 
         Filtering trajectory observations between two dates using numpy
         datetime64.
@@ -178,28 +189,38 @@ class trajectories:
         # -------------------
         # Raising exceptions.
         # -------------------
+        # Defining list of variables contained in data.
+        variables = list(self.data.variables)
+
         if isinstance(variable, str) is False:
             raise TypeError("variable must be specified as a string")
 
+        if variable not in variables:
+            raise ValueError("variable: \'" + variable + "\' not found in Dataset")
+
+        if isinstance(drop, bool) is False:
+            raise TypeError("drop must be specified as a boolean")
+
         # For non-time variables integers or floats only.
         if variable != 'time':
-            if (isinstance(min_val, int) or isinstance(min_val, float)) is False:
+            if isinstance(min_val, (int, float)) is False:
                 raise TypeError("min must be specified as integer or float")
 
-            if (isinstance(max_val, int) or isinstance(max_val, float)) is False:
+            if isinstance(max_val, (int, float)) is False:
                 raise TypeError("max must be specified as integer or float")
+
         # For time variable numpy datetime64 or timedelta64 format only.
         else:
-            if (isinstance(min_val, np.datetime64) or isinstance(min_val, np.timedelta64)) is False:
+            if isinstance(min_val, (np.datetime64, np.timedelta64)) is False:
                 raise TypeError("min must be specified as datetime64 or timedelta64")
 
-            if (isinstance(max_val, np.datetime64) or isinstance(max_val, np.timedelta64)) is False:
+            if isinstance(max_val, (np.datetime64, np.timedelta64)) is False:
                 raise TypeError("max must be specified as datetime64 or timedelta64")
 
         # ----------------------------------
         # Defining ds, the filtered DataSet.
         # ----------------------------------
-        ds = filter_traj(self, filt_type='between', variable=variable, min_val=min_val, max_val=max_val)
+        ds = filter_traj(self, filt_type='between', variable=variable, val=None, min_val=min_val, max_val=max_val, drop=drop)
 
         # Returning the subsetted xarray DataSet as a trajectories object -
         # this enables multiple filtering to take place.
@@ -260,22 +281,28 @@ class trajectories:
         # -------------------
         # Raising exceptions.
         # -------------------
+        # Defining list of variables contained in data.
+        variables = list(self.data.variables)
+
         if isinstance(variable, str) is False:
             raise TypeError("variable must be specified as a string")
 
+        if variable not in variables:
+            raise ValueError("variable: \'" + variable + "\' not found in Dataset")
+
         # For non-time variables integers or floats only.
         if variable != 'time':
-            if (isinstance(min_val, int) or isinstance(min_val, float)) is False:
+            if isinstance(min_val, (int, float)) is False:
                 raise TypeError("min must be specified as integer or float")
 
-            if (isinstance(max_val, int) or isinstance(max_val, float)) is False:
+            if isinstance(max_val, (int, float)) is False:
                 raise TypeError("max must be specified as integer or float")
         # For time variable numpy datetime64 or timedelta64 format only.
         else:
-            if (isinstance(min_val, np.datetime64) or isinstance(min_val, np.timedelta64)) is False:
+            if isinstance(min_val, (np.datetime64, np.timedelta64)) is False:
                 raise TypeError("min must be specified as datetime64 or timedelta64")
 
-            if (isinstance(max_val, np.datetime64) or isinstance(max_val, np.timedelta64)) is False:
+            if isinstance(max_val, (np.datetime64, np.timedelta64)) is False:
                 raise TypeError("max must be specified as datetime64 or timedelta64")
 
         # ----------------------------------------------------
@@ -292,7 +319,7 @@ class trajectories:
 ##############################################################################
 # Define filter_equal() method.
 
-    def filter_equal(self, variable, val):
+    def filter_equal(self, variable, val, drop=False):
         """
         Filter trajectories with attribute variable equal to value.
 
@@ -309,6 +336,10 @@ class trajectories:
             Name of the variable in the trajectories object.
         val : numeric
             Value variable should equal.
+        drop : boolean
+            Determines if fitered trajectories should be returned as a
+            new trajectories object (False) or instead dropped from the
+            existing trajectories object (True).
 
         Returns
         -------
@@ -320,7 +351,7 @@ class trajectories:
         --------
         Filtering all trajectories where Latitude equals 0 N.
 
-        >>> trajectories.filter_equal('lat', 0)
+        >>> trajectories.filter_equal('lat', 0, drop=False)
 
         Filtering trajectory observations for one date using numpy
         datetime64.
@@ -337,22 +368,31 @@ class trajectories:
         # -------------------
         # Raising exceptions.
         # -------------------
+        # Defining list of variables contained in data.
+        variables = list(self.data.variables)
+
         if isinstance(variable, str) is False:
             raise TypeError("variable must be specified as a string")
 
+        if variable not in variables:
+            raise ValueError("variable: \'" + variable + "\' not found in Dataset")
+
+        if isinstance(drop, bool) is False:
+            raise TypeError("drop must be specified as a boolean")
+
         # For non-time variables integers or floats only.
         if variable != 'time':
-            if (isinstance(val, int) or isinstance(val, float)) is False:
+            if isinstance(val, (int, float)) is False:
                 raise TypeError("val must be specified as integer or float")
         # For time variable numpy datetime64 or timedelta64 format only.
         else:
-            if (isinstance(val, np.datetime64) or isinstance(val, np.timedelta64)) is False:
+            if isinstance(val, (np.datetime64, np.timedelta64)) is False:
                 raise TypeError("val must be specified as datetime64 or timedelta64")
 
         # ----------------------------------
         # Defining ds, the filtered DataSet.
         # ----------------------------------
-        ds = filter_traj(self, filt_type='equal', variable=variable, val=val)
+        ds = filter_traj(self, filt_type='equal', variable=variable, val=val, min_val=None, max_val=None, drop=drop)
 
         # Returning the subsetted xarray DataSet as a trajectories object -
         # this enables multiple filtering to take place.
@@ -404,16 +444,22 @@ class trajectories:
         # -------------------
         # Raising exceptions.
         # -------------------
+        # Defining list of variables contained in data.
+        variables = list(self.data.variables)
+
         if isinstance(variable, str) is False:
             raise TypeError("variable must be specified as a string")
 
+        if variable not in variables:
+            raise ValueError("variable: \'" + variable + "\' not found in Dataset")
+
         # For non-time variables integers or floats only.
         if variable != 'time':
-            if (isinstance(val, int) or isinstance(val, float)) is False:
+            if isinstance(val, (int, float)) is False:
                 raise TypeError("val must be specified as integer or float")
         # For time variable numpy datetime64 or timedelta64 format only.
         else:
-            if (isinstance(val, np.datetime64) or isinstance(val, np.timedelta64)) is False:
+            if isinstance(val, (np.datetime64, np.timedelta64)) is False:
                 raise TypeError("val must be specified as datetime64 or timedelta64")
 
         # ---------------------------------------------
@@ -839,9 +885,9 @@ class trajectories:
         return trajectories(self.data)
 
 ##############################################################################
-# Define compute_dist() method.
+# Define compute_distance() method.
 
-    def compute_dist(self, cumsum_dist=False, unit='km'):
+    def compute_distance(self, cumsum_dist=False, unit='km'):
         """
         Compute distance travelled by particles along their
         of trajectories.
@@ -878,7 +924,7 @@ class trajectories:
         Computing distance travelled by particles for all trajectories,
         specifying cumulative distance as False and unit as default 'km'.
 
-        >>> trajectories.compute_dist()
+        >>> trajectories.compute_distance()
         """
         # ------------------
         # Raise exceptions.
@@ -1247,8 +1293,14 @@ class trajectories:
         # -------------------
         # Raising exceptions.
         # -------------------
+        # Defining list of variables contained in data.
+        variables = list(self.data.variables)
+
         if isinstance(variable, str) is False:
             raise TypeError("variable must be specified as a string")
+
+        if variable not in variables:
+            raise ValueError("variable: \'" + variable + "\' not found in Dataset")
 
         if isinstance(time_level, str) is False:
             raise TypeError("time_level must be specified as a string in the format YYYY-MM-DD")
@@ -1310,8 +1362,14 @@ class trajectories:
         # -------------------
         # Raising exceptions.
         # -------------------
+        # Defining list of variables contained in data.
+        variables = list(self.data.variables)
+
         if isinstance(variable, str) is False:
             raise TypeError("variable must be specified as a string")
+
+        if variable not in variables:
+            raise ValueError("variable: \'" + variable + "\' not found in Dataset")
 
         # ---------------------------------------------------
         # Returning max values of variable with get_minmax().
@@ -1370,8 +1428,14 @@ class trajectories:
         # -------------------
         # Raising exceptions.
         # -------------------
+        # Defining list of variables contained in data.
+        variables = list(self.data.variables)
+
         if isinstance(variable, str) is False:
             raise TypeError("variable must be specified as a string")
+
+        if variable not in variables:
+            raise ValueError("variable: \'" + variable + "\' not found in Dataset")
 
         # ---------------------------------------------------
         # Returning min values of variable with get_minmax().
@@ -1526,6 +1590,14 @@ class trajectories:
             variable DataArray appended, dimensions are either (traj) /
             (obs) / (traj x obs).
         """
+        # -------------------
+        # Raising exceptions.
+        # -------------------
+        if isinstance(data, np.ndarray) is False:
+            raise TypeError("data must be provided as an ndarray")
+        if isinstance(attributes, dict) is False:
+            raise TypeError("variable attributes must be provided as a dictionary")
+
         # -----------------------------------------
         # Returning updated DataSet with add_var().
         # -----------------------------------------
@@ -1533,310 +1605,3 @@ class trajectories:
 
         # Return trajectories object with updated DataSet.
         return trajectories(self.data)
-
-##############################################################################
-# Define map_trajectories() method.
-
-    def map_trajectories(self, col_variable=None):
-        """
-        Maps surface trajectories (latitudes and longitudes) of
-        particles on an orthographic projection of Earth's surface.
-
-        Latitudes and longitudes of particle positions are connected
-        to visualise surface trajectories. Trajectories can also be
-        optionally coloured according to a specified scalar variable
-        given by col_variable.
-
-        Parameters
-        ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
-        col_variable : string
-            Name of variable in the trajectories object to colour
-            mapped trajectories, default is None.
-
-        Returns
-        -------
-        """
-        # -------------------
-        # Raising exceptions.
-        # -------------------
-        if isinstance(col_variable, str) is False:
-            raise TypeError("col_variable must be specified as a string")
-
-        # ------------------------------------------------
-        # Return trajectories map with map_trajectories().
-        # ------------------------------------------------
-        map_trajectories(self=self, col_variable=col_variable)
-
-        return
-
-##############################################################################
-# Define map_probability() method.
-
-    def map_probability(self, bin_res, prob_type, cmap='coolwarm'):
-        """
-        Map binned probability distribution of particle positions
-        or particle pathways on an orthographic projection
-        of Earth's surface.
-
-        Particle positions are binned into a 2-dimensional
-        (x-y) histogram and normalised by the total number
-        of particle positions ('pos') or the total number
-        of particles ('traj').
-
-        When cmap is not specified, the default colour map
-        is 'coolwarm' - a diverging colormap.
-
-        Parameters
-        ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
-        bin_res : numeric
-            The resolution (degrees) of the grid on to which particle
-            positions will be binned.
-        prob_type : string
-            The type of probability to be computed. 'pos' - all particle
-            positions are binned and then normalised by the total number
-            of particle positions. 'traj' - for each particle positions
-            are counted once per bin and then normalised by the total
-            number of particles.
-        cmap : string
-            A colormap instance or registered colormap name.
-
-        Returns
-        -------
-
-        Note
-        ----
-        Aliasing is an important consideration when selecting a bin
-        resolution. If the selected grid resolution is too fine,
-        particles may be advected through a bin within one time step
-        without adding to the bin count. This is especially relevant
-        for simulations with long output time steps (> 5 days).
-        """
-        # -------------------
-        # Raising exceptions.
-        # -------------------
-        if (isinstance(bin_res, int) or isinstance(bin_res, float)) is False:
-            raise TypeError("bin_res must be specified as integer or float")
-        if isinstance(prob_type, str) is False:
-            raise TypeError("prob_type must be specified as a string - options are \'pos\' or \'traj\'")
-        if isinstance(cmap, str) is False:
-            raise TypeError("cmap must be specified as a string")
-
-        # ------------------------------------------------
-        # Return probability map with map_probabability().
-        # ------------------------------------------------
-        map_probability(self=self, bin_res=bin_res, prob_type=prob_type, cmap=cmap)
-
-        return
-
-##############################################################################
-# Define map_property() function.
-
-    def map_property(self, bin_res, variable, statistic, cmap='coolwarm'):
-        """
-        Map binned property of particles on an orthographic
-        projection of Earth's surface.
-
-        The particle property is binned onto a 2-dimensional
-        (x-y) grid before a specified statistic is computed
-        with the values in each bin.
-
-        Bidimensional binned statistic is computed with
-        scipy.stats.binned_statistic_2d().
-
-        When cmap is not specified, the default colour map
-        is 'coolwarm' - a diverging colormap.
-
-        Parameters
-        ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
-        bin_res : numeric
-            The resolution (degrees) of the grid on to which particle
-            positions will be binned.
-        statistic : string
-            The statistic to be computed with binned values - options
-            are 'mean', 'std', 'median', 'count', 'sum', 'min' or 'max'.
-        cmap : string
-            A colormap instance or registered colormap name.
-
-        Returns
-        -------
-        """
-        # -------------------
-        # Raising exceptions.
-        # -------------------
-        if (isinstance(bin_res, int) or isinstance(bin_res, float)) is False:
-            raise TypeError("bin_res must be specified as integer or float")
-        if isinstance(variable, str) is False:
-            raise TypeError("variable must be specified as a string")
-        if isinstance(statistic, str) is False:
-            raise TypeError("statistic must be specified as a string - options are \'mean\', \'median\', \'std\', \'count\', \'sum\', \'min\' or \'max\'")
-        if isinstance(cmap, str) is False:
-            raise TypeError("cmap must be specified as a string")
-
-        # ----------------------------------------
-        # Return property map with map_property().
-        # ----------------------------------------
-        map_property(self=self, bin_res=bin_res, variable=variable, stat=statistic, cmap=cmap)
-
-        return
-
-##############################################################################
-# Define plot_timeseries() method.
-
-    def plot_timeseries(self, variable, col_variable=None):
-        """
-        Plots time series of specified attribute variable as it
-        evolves along each particle's trajectory.
-
-        Time series can also be optionally coloured according to
-        a specified (1-dimensional) scalar variable given by
-        col_variable.
-
-        When col_variable is not specified, the trajectory id of
-        each time series is included in a legend.
-
-        Parameters
-        ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
-        variable : string
-            Name of the variable in the trajectories object.
-        col_variable : string
-            Name of variable in the trajectories object to colour
-            plotted trajectories - must be 1-dimensional - default
-            is None.
-
-        Returns
-        -------
-        """
-        # -------------------
-        # Raising exceptions.
-        # -------------------
-        if isinstance(variable, str) is False:
-            raise TypeError("variable must be specified as a string")
-
-        if (isinstance(col_variable, str) or col_variable is None) is False:
-            raise TypeError("col_variable must be specified as a string")
-
-        # ------------------------
-        # Return time series plot.
-        # ------------------------
-        plot_timeseries(self=self, variable=variable, col_variable=col_variable)
-
-        return
-
-##############################################################################
-# Define plot_ts_diagram() method.
-
-    def plot_ts_diagram(self, col_variable=None):
-        """
-        Plots temperature-salinity diagram as a scatter plot of
-        temp (y) and salinity (x) for every point along each
-        particle's trajectory.
-
-        Plotted points can be optionally coloured according to
-        a specified (1-dimensional) scalar variable given by
-        col_variable.
-
-        When col_variable is not specified, points are coloured
-        according to their trajectory id with an accompanying legend.
-
-        Parameters
-        ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
-        col_variable : string
-            Name of variable in the trajectories object to colour
-            scatter points - must be 1-dimensional - default
-            is None.
-
-        Returns
-        -------
-        """
-        # -------------------
-        # Raising exceptions.
-        # -------------------
-        if (isinstance(col_variable, str) or col_variable is None) is False:
-            raise TypeError("col_variable must be specified as a string")
-
-        # -----------------------------
-        # Return temp-salinity diagram.
-        # -----------------------------
-        plot_ts_diagram(self=self, col_variable=col_variable)
-
-        return
-
-##############################################################################
-# Define plot_variable() method.
-
-    def plot_variable(self, variable, plane, seed_level, time_level, cmap='coolwarm'):
-        """
-        2-dimensional Cartesian contour plot of a specified variable
-        at a specific time along particle trajectories.
-
-        Follows the specification of the trajectory map of Betten et
-        al. (2017); values of the variable are displayed on particle
-        initial grid locations at the time of seeding.
-
-        When cmap is not specified, the default colour map is 'coolwarm'
-        - a diverging colormap.
-
-        Parameters
-        ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
-        variable : string
-            Name of the variable in the trajectories object.
-        plane : string
-            Seeding plane from which particles are released - options
-            are 'xz' zonal-vertical and 'yz' meridional-vertical.
-        seed_level : integer
-            Seeding level when particles are released.
-        time_level : string
-            Time level along trajectories to plot variable.
-        cmap : string
-            A colormap instance or registered colormap name.
-
-        Returns
-        -------
-        """
-        # -------------------
-        # Raising exceptions.
-        # -------------------
-        if isinstance(variable, str) is False:
-            raise TypeError("variable must be specified as a string")
-        if isinstance(plane, str) is False:
-            raise TypeError("plan must be specified as a string - options are \'xz\' or \'yz\'")
-        if isinstance(seed_level, int) is False:
-            raise TypeError("seed_level must be specified as an integer")
-        if isinstance(time_level, str) is False:
-            raise TypeError("time_level must be specified as a string in the format \'YYYY-MM-DD\'")
-        if isinstance(cmap, str) is False:
-            raise TypeError("cmap must be specified as a string")
-
-        # ------------------------
-        # Return 2-D contour plot.
-        # ------------------------
-        plot_variable(self=self, variable=variable, plane=plane, seed_level=seed_level, time_level=time_level, cmap=cmap)
-
-        return
-
-
-##############################################################################
-# Testing with ORCA01 Preliminary Data.
-
-# traj = trajectories(xr.open_dataset('ORCA1-N406_TRACMASS_complete.nc'))
-# tmin = np.timedelta64(0, 'D')
-# tmax = np.timedelta64(60, 'D')
-
-# traj_test = traj.find_between('time', tmin, tmax)
-# print(traj_test)
-
-# traj.map_property(bin_res=1, variable='temp', statistic='mean')
-# traj = traj.use_datetime('2000-01-01')
-# traj.plot_variable('temp', 'xz', 11, '2007-07-23')
