@@ -68,7 +68,7 @@ def add_seed(self):
     # Setting ouput array data type.
     # -------------------------------
     # Setting seed_level type to int.
-    seed_level = seed_level.astype('int')
+    seed_level = seed_level.astype(np.int64)
 
     # Returning seed levels as ndarray, seed_level.
     return seed_level
@@ -109,7 +109,7 @@ def add_id(self):
     # Setting ouput array data type.
     # -------------------------------
     # Setting traj_id type to int.
-    traj_id = traj_id.astype('int')
+    traj_id = traj_id.astype(np.int64)
 
     # Returning trajectory id as ndarray, traj_id.
     return traj_id

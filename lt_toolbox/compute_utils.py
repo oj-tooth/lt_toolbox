@@ -40,10 +40,9 @@ def haversine_dist(Lat1, Lon1, Lat2, Lon2):
 
     Returns
     -------
-    DataSet.
-        Original DataSet is returned with appended attribute
-        variable dx/dy/dz (m) DataArray containing particle
-        displacements with dimensions (traj x obs).
+    ndarray
+        Haversine distance between points (Lat1, Lon1) and
+        (Lat2, Lon2) with dimensions (traj x obs-1).
     """
     # -------------------------------------------
     # Defining Variables and Physical Parameters
