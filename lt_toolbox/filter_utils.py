@@ -15,13 +15,12 @@
 
 import numpy as np
 import xarray as xr
-import pandas as pd
 
 ##############################################################################
 # Define filter_traj() function.
 
 
-def filter_traj(self, filt_type, variable, val='NaN', min_val='NaN', max_val='NaN'):
+def filter_traj(self, filt_type, variable, val, min_val, max_val, drop):
     """
     Filter trajectories using attribute variable.
 
@@ -45,6 +44,10 @@ def filter_traj(self, filt_type, variable, val='NaN', min_val='NaN', max_val='Na
     max_val : numeric
         Maximum value variable should equal or be less than
         (using 'between' method).
+    drop : boolean
+        Determines if fitered trajectories should be returned as a
+        new Dataset (False) or instead dropped from the existing
+        Dataset (True).
 
     Returns
     -------
@@ -62,13 +65,29 @@ def filter_traj(self, filt_type, variable, val='NaN', min_val='NaN', max_val='Na
         # Sub-Routine for filtering with time.
         # ------------------------------------
         if variable == 'time':
-            # Finding the minimum and maximum observations from specified min_val and max_val.
-            # obs_min = np.where(self.data[variable].values[0, :] == pd.to_timedelta(min_val, unit='s'))[0]
-            # obs_max = np.where(self.data[variable].values[0, :] == pd.to_timedelta(max_val, unit='s'))[0]
+            # Defining number of observations, obs.
+            obs = np.shape(self.data[variable].values)[1]
+
+            # Finding the minimum and maximum observations from specified
+            # min_val and max_val.
             obs_min = np.where(self.data[variable].values[0, :] == min_val)[0]
             obs_max = np.where(self.data[variable].values[0, :] == max_val)[0]
-            # Returning the subseted xarray DataSet.
-            return self.data.isel(obs=xr.DataArray(np.arange(obs_min, obs_max + 1), dims=["obs"]))
+            # Defining cols to contain indexes obs_min : obs_max.
+            cols = np.arange(obs_min, obs_max + 1)
+
+            # Returning the filtered trajectories as a subset of the original
+            # DataSet.
+            if drop is False:
+                return self.data.isel(obs=xr.DataArray(cols, dims=["obs"]))
+
+            # Where drop is True, remove filtered trajectories from original
+            # Datset.
+            else:
+                # Defining cols to contain indexes not including obs_min :
+                # obs_max.
+                cols = np.concatenate([np.arange(obs_min), np.arange(obs_max + 1, obs)])
+
+                return self.data.isel(obs=xr.DataArray(cols, dims=["obs"]))
 
         else:
             # -----------------------------------------------------------
@@ -85,8 +104,15 @@ def filter_traj(self, filt_type, variable, val='NaN', min_val='NaN', max_val='Na
                 # For 1-dimensional array, use logical condition.
                 rows = (self.data[variable].values <= max_val) & (self.data[variable].values >= min_val)
 
-            # Returning the subsetted xarray DataSet.
-            return self.data.isel(traj=xr.DataArray(rows, dims=["traj"]))
+            # Returning the filtered trajectories as a subset of the original
+            # DataSet.
+            if drop is False:
+                return self.data.isel(traj=xr.DataArray(rows, dims=["traj"]))
+
+            # Where drop is True, remove filtered trajectories from original
+            # Datset.
+            else:
+                return self.data.isel(traj=xr.DataArray(~rows, dims=["traj"]))
 
     # ----------------------------
     # Routine for filter_equal().
@@ -97,12 +123,28 @@ def filter_traj(self, filt_type, variable, val='NaN', min_val='NaN', max_val='Na
         # Routine for filtering with time.
         # --------------------------------
         if variable == 'time':
+            # Defining number of observations, obs.
+            obs = np.shape(self.data[variable].values)[1]
+
             # Finding the observations for a specified time.
-            # obs_equal = np.where(self.data[variable].values[0, :] == pd.to_timedelta(val, unit='s'))[0]
             obs_equal = np.where(self.data[variable].values[0, :] == val)[0]
 
-            # Returning the sub-setted xarray DataSet.
-            return self.data.isel(obs=xr.DataArray(obs_equal + 1, dims=["obs"]))
+            # Defining cols to contain indexes obs_min : obs_max.
+            cols = obs_equal
+
+            # Returning the filtered trajectories as a subset of the original
+            # DataSet.
+            if drop is False:
+                return self.data.isel(obs=xr.DataArray(cols, dims=["obs"]))
+
+            # Where drop is True, remove filtered trajectories from original
+            # Datset.
+            else:
+                # Defining cols to contain indexes not including obs_min :
+                # obs_max.
+                cols = np.concatenate([np.arange(obs_equal), np.arange(obs_equal + 1, obs)])
+
+                return self.data.isel(obs=xr.DataArray(cols, dims=["obs"]))
 
         else:
             # -------------------------------------------------------
@@ -119,5 +161,12 @@ def filter_traj(self, filt_type, variable, val='NaN', min_val='NaN', max_val='Na
                 # For 1-dimensional array, use logical condition.
                 rows = self.data[variable].values == val
 
-            # Returning the subsetted xarray DataSet.
-            return self.data.isel(traj=xr.DataArray(rows, dims=["traj"]))
+            # Returning the filtered trajectories as a subset of the original
+            # DataSet.
+            if drop is False:
+                return self.data.isel(traj=xr.DataArray(rows, dims=["traj"]))
+
+            # Where drop is True, remove filtered trajectories from original
+            # Datset.
+            else:
+                return self.data.isel(traj=xr.DataArray(~rows, dims=["traj"]))
