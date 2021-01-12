@@ -56,12 +56,12 @@ def normalise(data):
     return data_norm
 
 ##############################################################################
-# Define map_trajectories() function.
+# Define map_trajectories() method.
 
 
-def map_trajectories(self, col_variable):
+def map_trajectories(self, col_variable=None):
     """
-    Map surface trajectories (latitudes and longitudes) of
+    Maps surface trajectories (latitudes and longitudes) of
     particles on an orthographic projection of Earth's surface.
 
     Latitudes and longitudes of particle positions are connected
@@ -75,16 +75,23 @@ def map_trajectories(self, col_variable):
         Trajectories object passed from trajectories class method.
     col_variable : string
         Name of variable in the trajectories object to colour
-        mapped trajectories.
+        mapped trajectories, default is None.
 
     Returns
     -------
     """
+    # -------------------
+    # Raising exceptions.
+    # -------------------
+    if col_variable is not None:
+        if isinstance(col_variable, str) is False:
+            raise TypeError("col_variable must be specified as a string")
+
     # ----------------------------------------
     # Configuiring figure dimensions and axes.
     # ----------------------------------------
     # Initialising figure.
-    plt.figure()
+    plt.figure(figsize=(10, 10))
 
     # Find the mean latitude and longitude from our
     # plot data in order to centre our orthographic
@@ -234,19 +241,22 @@ def map_trajectories(self, col_variable):
     return
 
 ##############################################################################
-# Define map_probability() function.
+# Define map_probability() method.
 
 
-def map_probability(self, bin_res, prob_type, cmap):
+def map_probability(self, bin_res, prob_type, cmap='coolwarm'):
     """
     Map binned probability distribution of particle positions
-    or particle pathways on an orthographic projection of
-    Earth's surface.
+    or particle pathways on an orthographic projection
+    of Earth's surface.
 
     Particle positions are binned into a 2-dimensional
     (x-y) histogram and normalised by the total number
     of particle positions ('pos') or the total number
     of particles ('traj').
+
+    When cmap is not specified, the default colour map
+    is 'coolwarm' - a diverging colormap.
 
     Parameters
     ----------
@@ -275,11 +285,21 @@ def map_probability(self, bin_res, prob_type, cmap):
     without adding to the bin count. This is especially relevant
     for simulations with long output time steps (> 5 days).
     """
+    # -------------------
+    # Raising exceptions.
+    # -------------------
+    if (isinstance(bin_res, int) or isinstance(bin_res, float)) is False:
+        raise TypeError("bin_res must be specified as integer or float")
+    if isinstance(prob_type, str) is False:
+        raise TypeError("prob_type must be specified as a string - options are \'pos\' or \'traj\'")
+    if isinstance(cmap, str) is False:
+        raise TypeError("cmap must be specified as a string")
+
     # ----------------------------------------
     # Configuiring figure dimensions and axes.
     # ----------------------------------------
     # Initialising figure.
-    plt.figure()
+    plt.figure(figsize=(10, 10))
 
     # Find the mean latitude and longitude from our
     # plot data in order to centre our orthographic
@@ -396,10 +416,10 @@ def map_probability(self, bin_res, prob_type, cmap):
     return
 
 ##############################################################################
-# Define map_property() function.
+# Define map_property() method.
 
 
-def map_property(self, bin_res, variable, stat, cmap):
+def map_property(self, bin_res, variable, statistic, cmap='coolwarm'):
     """
     Map binned property of particles on an orthographic
     projection of Earth's surface.
@@ -410,6 +430,9 @@ def map_property(self, bin_res, variable, stat, cmap):
 
     Bidimensional binned statistic is computed with
     scipy.stats.binned_statistic_2d().
+
+    When cmap is not specified, the default colour map
+    is 'coolwarm' - a diverging colormap.
 
     Parameters
     ----------
@@ -427,11 +450,23 @@ def map_property(self, bin_res, variable, stat, cmap):
     Returns
     -------
     """
+    # -------------------
+    # Raising exceptions.
+    # -------------------
+    if (isinstance(bin_res, int) or isinstance(bin_res, float)) is False:
+        raise TypeError("bin_res must be specified as integer or float")
+    if isinstance(variable, str) is False:
+        raise TypeError("variable must be specified as a string")
+    if isinstance(statistic, str) is False:
+        raise TypeError("statistic must be specified as a string - options are \'mean\', \'median\', \'std\', \'count\', \'sum\', \'min\' or \'max\'")
+    if isinstance(cmap, str) is False:
+        raise TypeError("cmap must be specified as a string")
+
     # ----------------------------------------
     # Configuiring figure dimensions and axes.
     # ----------------------------------------
     # Initialising figure.
-    plt.figure()
+    plt.figure(figsize=(10, 10))
 
     # Find the mean latitude and longitude from our
     # plot data in order to centre our orthographic
@@ -479,7 +514,7 @@ def map_property(self, bin_res, variable, stat, cmap):
     # Computing statistic on binned values.
     # -------------------------------------
     # Using scipy to count the number of particle positions per bin
-    stat = stats.binned_statistic_2d(x=lon.flatten(), y=lat.flatten(), values=var.flatten(), statistic=stat, bins=[bin_x, bin_y])
+    stat = stats.binned_statistic_2d(x=lon.flatten(), y=lat.flatten(), values=var.flatten(), statistic=statistic, bins=[bin_x, bin_y])
 
     # ---------------------------
     # Defining grid for plotting.

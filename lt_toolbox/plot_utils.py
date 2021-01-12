@@ -54,10 +54,10 @@ def normalise(data):
     return data_norm
 
 ##############################################################################
-# Define plot_timeseries() function.
+# Define plot_timeseries() method.
 
 
-def plot_timeseries(self, variable, col_variable):
+def plot_timeseries(self, variable, col_variable=None):
     """
     Plots time series of specified attribute variable as it
     evolves along each particle's trajectory.
@@ -65,6 +65,9 @@ def plot_timeseries(self, variable, col_variable):
     Time series can also be optionally coloured according to
     a specified (1-dimensional) scalar variable given by
     col_variable.
+
+    When col_variable is not specified, the trajectory id of
+    each time series is included in a legend.
 
     Parameters
     ----------
@@ -74,16 +77,26 @@ def plot_timeseries(self, variable, col_variable):
         Name of the variable in the trajectories object.
     col_variable : string
         Name of variable in the trajectories object to colour
-        plotted trajectories - must be 1-dimensional.
+        plotted trajectories - must be 1-dimensional - default
+        is None.
 
     Returns
     -------
     """
+    # -------------------
+    # Raising exceptions.
+    # -------------------
+    if isinstance(variable, str) is False:
+        raise TypeError("variable must be specified as a string")
+
+    if (isinstance(col_variable, str) or col_variable is None) is False:
+        raise TypeError("col_variable must be specified as a string")
+
     # ----------------------------------------
     # Configuiring figure dimensions and axes.
     # ----------------------------------------
     # Initialising figure.
-    plt.figure()
+    plt.figure(figsize=(10, 10))
     ax = plt.axes()
 
     # -----------------------------------------
@@ -186,14 +199,12 @@ def plot_timeseries(self, variable, col_variable):
     # Show plot.
     plt.show()
 
-    # Return figure.
     return
 
 ##############################################################################
-# Define plot_ts_diagram() function.
+# Define plot_ts_diagram() method.
 
-
-def plot_ts_diagram(self, col_variable):
+def plot_ts_diagram(self, col_variable=None):
     """
     Plots temperature-salinity diagram as a scatter plot of
     temp (y) and salinity (x) for every point along each
@@ -212,16 +223,23 @@ def plot_ts_diagram(self, col_variable):
         Trajectories object passed from trajectories class method.
     col_variable : string
         Name of variable in the trajectories object to colour
-        scatter points - must be 1-dimensional.
+        scatter points - must be 1-dimensional - default
+        is None.
 
     Returns
     -------
     """
+    # -------------------
+    # Raising exceptions.
+    # -------------------
+    if (isinstance(col_variable, str) or col_variable is None) is False:
+        raise TypeError("col_variable must be specified as a string")
+
     # ----------------------------------------
     # Configuiring figure dimensions and axes.
     # ----------------------------------------
     # Initialising figure.
-    plt.figure()
+    plt.figure(figsize=(10, 10))
     ax = plt.axes()
     # Adding grid lines.
     plt.grid(zorder=0)
@@ -330,10 +348,10 @@ def plot_ts_diagram(self, col_variable):
     return
 
 ##############################################################################
-# Define plot_variable() function.
+# Define plot_variable() method.
 
 
-def plot_variable(self, variable, plane, seed_level, time_level, cmap):
+def plot_variable(self, variable, plane, seed_level, time_level, cmap='coolwarm'):
     """
     2-dimensional Cartesian contour plot of a specified variable
     at a specific time along particle trajectories.
@@ -341,6 +359,9 @@ def plot_variable(self, variable, plane, seed_level, time_level, cmap):
     Follows the specification of the trajectory map of Betten et
     al. (2017); values of the variable are displayed on particle
     initial grid locations at the time of seeding.
+
+    When cmap is not specified, the default colour map is 'coolwarm'
+    - a diverging colormap.
 
     Parameters
     ----------
@@ -361,11 +382,25 @@ def plot_variable(self, variable, plane, seed_level, time_level, cmap):
     Returns
     -------
     """
+    # -------------------
+    # Raising exceptions.
+    # -------------------
+    if isinstance(variable, str) is False:
+        raise TypeError("variable must be specified as a string")
+    if isinstance(plane, str) is False:
+        raise TypeError("plan must be specified as a string - options are \'xz\' or \'yz\'")
+    if isinstance(seed_level, int) is False:
+        raise TypeError("seed_level must be specified as an integer")
+    if isinstance(time_level, str) is False:
+        raise TypeError("time_level must be specified as a string in the format \'YYYY-MM-DD\'")
+    if isinstance(cmap, str) is False:
+        raise TypeError("cmap must be specified as a string")
+
     # ----------------------------------------
     # Configuiring figure dimensions and axes.
     # ----------------------------------------
     # Initialising figure.
-    fig = plt.figure()
+    fig = plt.figure(figsize=(10, 10))
     ax = plt.axes()
     # Adding grid lines.
     plt.grid(zorder=0)
