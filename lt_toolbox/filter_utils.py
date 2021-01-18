@@ -15,12 +15,13 @@
 
 import numpy as np
 import xarray as xr
+import pygeos
 
 ##############################################################################
 # Define filter_traj() function.
 
 
-def filter_traj(self, filt_type, variable, val, min_val, max_val, drop):
+def filter_traj(self, filt_type, variable, val, min_val, max_val, polygon, drop):
     """
     Filter trajectories using attribute variable.
 
@@ -33,7 +34,7 @@ def filter_traj(self, filt_type, variable, val, min_val, max_val, drop):
     self : trajectories object
         Trajectories object passed from trajectories class method.
     filt_type : string
-        Name of filter method to be used - 'between' or 'equal'.
+        Name of filter method to be used - 'between', 'equal' or 'polygon'.
     variable : string
         Name of the variable in the trajectories object.
     val : numeric
@@ -44,6 +45,9 @@ def filter_traj(self, filt_type, variable, val, min_val, max_val, drop):
     max_val : numeric
         Maximum value variable should equal or be less than
         (using 'between' method).
+    polygon : list
+        List of coordinates, specified as an ordered sequence of tuples
+        (Lon, Lat), representing the boundary of a polygon.
     drop : boolean
         Determines if fitered trajectories should be returned as a
         new Dataset (False) or instead dropped from the existing
@@ -117,7 +121,7 @@ def filter_traj(self, filt_type, variable, val, min_val, max_val, drop):
     # ----------------------------
     # Routine for filter_equal().
     # ----------------------------
-    else:
+    elif filt_type == 'equal':
 
         # --------------------------------
         # Routine for filtering with time.
@@ -170,3 +174,66 @@ def filter_traj(self, filt_type, variable, val, min_val, max_val, drop):
             # Datset.
             else:
                 return self.data.isel(traj=xr.DataArray(~rows, dims=["traj"]))
+
+    # -----------------------------
+    # Routine for filter_polygon().
+    # -----------------------------
+    else:
+        # ------------------------------------------
+        # Defining Latitude and Longitude variables.
+        # ------------------------------------------
+        Lon = np.copy(self.data['lon'].values)
+        Lat = np.copy(self.data['lat'].values)
+
+        # Defining number of trajectories.
+        ntraj = np.shape(Lon)[0]
+        # Defining number of observations.
+        obs = np.shape(Lon)[1]
+
+        # -------------------------------------------
+        # Defining shapes from specified coordinates.
+        # -------------------------------------------
+        # Storing pygeos polygon, poly.
+        poly = pygeos.creation.polygons(polygon)
+
+        # ------------------------------------------------------------
+        # Using pygeos to filter trajectories intersecting a polygon.
+        # ------------------------------------------------------------
+        # Configuiring rows as an array of boolean type (dimensions = traj).
+        rows = np.zeros(ntraj, dtype='bool')
+
+        # Setting NaNs in Lat and Lon to a missing data value (must not be
+        # within range of coordinates -180E to 180E or -90N to 90N).
+        Lon[np.isnan(Lon)] = -99999
+        Lat[np.isnan(Lat)] = -99999
+
+        # Iterating over all trajectories and defining a Point Collection
+        # with trajectory points.
+        for i in np.arange(ntraj):
+            # Storing Lats and Lons for trajectory i.
+            lon = Lon[i, :]
+            lat = Lat[i, :]
+
+            # Defining coordinates as transposed tuple of Lats and Lons.
+            coords = np.array((lon, lat)).T
+
+            # Defining points as a pygeos point collection.
+            trajectory_points = pygeos.creation.points(coords)
+
+            # Defining mask evaluating if every trajectory point is within
+            # the polygon.
+            mask = pygeos.predicates.contains(poly, trajectory_points)
+
+            # Determining (boolean) if any point in trajectory intersects a
+            # given polygon.
+            rows[i] = np.any(mask)
+
+        # Returning the filtered trajectories as a subset of the original
+        # DataSet.
+        if drop is False:
+            return self.data.isel(traj=xr.DataArray(rows, dims=["traj"]))
+
+        # Where drop is True, remove filtered trajectories from original
+        # Datset.
+        else:
+            return self.data.isel(traj=xr.DataArray(~rows, dims=["traj"]))
