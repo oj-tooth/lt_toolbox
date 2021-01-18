@@ -20,7 +20,6 @@ import numpy as np
 from .get_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_minmax, get_val
 from .add_utils import add_seed, add_id, add_var
 from .filter_utils import filter_traj
-from .find_utils import find_traj
 from .compute_utils import compute_displacement, compute_velocity, compute_distance
 
 
@@ -30,6 +29,8 @@ from .compute_utils import compute_displacement, compute_velocity, compute_dista
 
 class trajectories:
 
+    # Importing methods for finding indices in trajectories object.
+    from .find_utils import find_between, find_equal, find_polygon
     # Importing methods for cartesian plotting with matplotlib.
     from .plot_utils import plot_timeseries, plot_ts_diagram, plot_variable
     # Importing methods for geospatial mapping with Cartopy.
@@ -220,101 +221,11 @@ class trajectories:
         # ----------------------------------
         # Defining ds, the filtered DataSet.
         # ----------------------------------
-        ds = filter_traj(self, filt_type='between', variable=variable, val=None, min_val=min_val, max_val=max_val, drop=drop)
+        ds = filter_traj(self, filt_type='between', variable=variable, val=None, min_val=min_val, max_val=max_val, polygon=None, drop=drop)
 
         # Returning the subsetted xarray DataSet as a trajectories object -
         # this enables multiple filtering to take place.
         return trajectories(ds)
-
-##############################################################################
-# Define find_between() method.
-
-    def find_between(self, variable, min_val, max_val):
-        """
-        Finding indices of points within trajectories where a specified
-        attribute variable takes a value between a specified min and
-        max.
-
-        Find returns the indices of trajectory points as a tuple of arrays
-        where the specified attribute variable takes a value between a
-        specified min and max (including these values).
-
-        When variable is specified as 'time' only the indices of observations
-        (obs) equal to and between the specified time-levels are returned for
-        all trajectories.
-
-        Parameters
-        ----------
-        variable : string
-            Name of the variable in the trajectories object.
-        min_val : numeric
-            Minimum value variable should equal or be greater than.
-        max_val : numeric
-            Maximum value variable should equal or be less than.
-
-        Returns
-        -------
-        tuple
-            Indices of trajectory points where condition is satisfied.
-
-        Examples
-        --------
-        Find indices of trajectory points where Latitude is between
-        0 N - 20 N.
-
-        >>> trajectories.find_between('lat', 0, 20)
-
-        Finding indices of trajectory observations between two dates using
-        numpy datetime64.
-
-        >>> tmin = np.datetime64('2000-01-01')
-        >>> tmax = np.datetime64('2000-03-01')
-        >>> trajectories.find_between('time', tmin, tmax)
-
-        Finding indices of trajectory observations with time using numpy
-        timedelta64.
-
-        >>> tmin = np.timedelta64(0, 'D')
-        >>> tmax = np.timedelta64(90, 'D')
-        >>> trajectories.find_between('time', tmin, tmax)
-        """
-        # -------------------
-        # Raising exceptions.
-        # -------------------
-        # Defining list of variables contained in data.
-        variables = list(self.data.variables)
-
-        if isinstance(variable, str) is False:
-            raise TypeError("variable must be specified as a string")
-
-        if variable not in variables:
-            raise ValueError("variable: \'" + variable + "\' not found in Dataset")
-
-        # For non-time variables integers or floats only.
-        if variable != 'time':
-            if isinstance(min_val, (int, float)) is False:
-                raise TypeError("min must be specified as integer or float")
-
-            if isinstance(max_val, (int, float)) is False:
-                raise TypeError("max must be specified as integer or float")
-        # For time variable numpy datetime64 or timedelta64 format only.
-        else:
-            if isinstance(min_val, (np.datetime64, np.timedelta64)) is False:
-                raise TypeError("min must be specified as datetime64 or timedelta64")
-
-            if isinstance(max_val, (np.datetime64, np.timedelta64)) is False:
-                raise TypeError("max must be specified as datetime64 or timedelta64")
-
-        # ----------------------------------------------------
-        # Return indices between min and max with find_traj().
-        # ----------------------------------------------------
-        # Define indices, storing the indices of trajectory points between
-        # min and max.
-        indices = find_traj(self, find_type='between', variable=variable, min_val=min_val, max_val=max_val)
-
-        # Returning the tuple of arrays containing indices
-        # for satisfactory trajectory points.
-        return indices
 
 ##############################################################################
 # Define filter_equal() method.
@@ -392,86 +303,63 @@ class trajectories:
         # ----------------------------------
         # Defining ds, the filtered DataSet.
         # ----------------------------------
-        ds = filter_traj(self, filt_type='equal', variable=variable, val=val, min_val=None, max_val=None, drop=drop)
+        ds = filter_traj(self, filt_type='equal', variable=variable, val=val, min_val=None, max_val=None, polygon=None, drop=drop)
 
         # Returning the subsetted xarray DataSet as a trajectories object -
         # this enables multiple filtering to take place.
         return trajectories(ds)
 
 ##############################################################################
-# Define find_equal() method.
+# Define filter_polygon() method.
 
-    def find_equal(self, variable, val):
+    def filter_polygon(self, polygon, drop=False):
         """
-        Finding indices of points within trajectories where a specified
-        attribute variable takes a value equal to a specified val.
+        Filter trajectories which intersect a specified polygon.
 
-        Find returns the indices of trajectory points as a tuple of arrays
-        where the specified attribute variable takes a value equal to
-        specified val.
+        Filtering returns the complete trajectories of particles
+        which have been inside the boundary of a given polygon at
+        any point in their lifetime.
 
         Parameters
         ----------
-        variable : string
-            Name of the variable in the trajectories object.
-        val : numeric
-            Value variable should equal.
+        polygon : list
+            List of coordinates, specified as an ordered sequence of tuples
+            (Lon, Lat), representing the boundary of the polygon.
+        drop : boolean
+            Determines if fitered trajectories should be returned as a
+            new trajectories object (False) or instead dropped from the
+            existing trajectories object (True).
 
         Returns
         -------
-        tuple
-            Indices of trajectory points where condition is satisfied.
+        trajectories object
+            Complete trajectories, including all attribute variables,
+            which meet the filter specification.
 
         Examples
         --------
-        Find indices of trajectory points where Latitude is equalt to
-        0 N.
+        Filtering all trajectories which intersect a simple polygon, square.
 
-        >>> trajectories.find_equal('lat', 0)
-
-        Finding indices of trajectory observations for one date using
-        numpy datetime64.
-
-        >>> tval = np.datetime64('2000-03-01')
-        >>> trajectories.find_equal('time', tval)
-
-        Finding indices of trajectory observations for one time using
-        numpy timedelta64.
-
-        >>> tval = np.timedelta64(90, 'D')
-        >>> trajectories.find_equal('time', tval)
+        >>> square = [(-40, 30), (-40, 35), (-30, 35), (-30, 30), (-40, 30)]
+        >>> trajectories.filter_polygon(square, drop=False)
         """
         # -------------------
         # Raising exceptions.
         # -------------------
-        # Defining list of variables contained in data.
-        variables = list(self.data.variables)
+        if isinstance(drop, bool) is False:
+            raise TypeError("drop must be specified as a boolean")
 
-        if isinstance(variable, str) is False:
-            raise TypeError("variable must be specified as a string")
+        if isinstance(polygon, list) is False:
+            raise TypeError("polygon must be specified as a list of tuples")
 
-        if variable not in variables:
-            raise ValueError("variable: \'" + variable + "\' not found in Dataset")
+        # ----------------------------------
+        # Defining ds, the filtered DataSet.
+        # ----------------------------------
+        ds = filter_traj(self, filt_type='polygon', variable=None, val=None, min_val=None, max_val=None, polygon=polygon, drop=drop)
 
-        # For non-time variables integers or floats only.
-        if variable != 'time':
-            if isinstance(val, (int, float)) is False:
-                raise TypeError("val must be specified as integer or float")
-        # For time variable numpy datetime64 or timedelta64 format only.
-        else:
-            if isinstance(val, (np.datetime64, np.timedelta64)) is False:
-                raise TypeError("val must be specified as datetime64 or timedelta64")
-
-        # ---------------------------------------------
-        # Return indices equal to val with find_traj().
-        # ----------------------------------------------
-        # Define indices, storing the indices of trajectory points equal to
-        # val.
-        indices = find_traj(self, find_type='equal', variable=variable, val=val)
-
-        # Returning the tuple of arrays containing indices
-        # for satisfactory trajectory points.
-        return indices
+        # Returning the subsetted xarray DataSet as a trajectories object -
+        # this enables multiple filtering to take place.
+        return trajectories(ds)
 
 ##############################################################################
 # Define compute_dx() method.
