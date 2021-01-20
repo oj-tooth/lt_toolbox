@@ -131,24 +131,25 @@ def filter_traj(self, filt_type, variable, val, min_val, max_val, polygon, drop)
             obs = np.shape(self.data[variable].values)[1]
 
             # Finding the observations for a specified time.
-            obs_equal = np.where(self.data[variable].values[0, :] == val)[0]
+            # obs_equal = np.where(self.data[variable].values[0, :] == val)[0]
+            obs_equal = np.isin(self.data[variable].values[0, :], val)
 
             # Defining cols to contain indexes obs_min : obs_max.
-            cols = obs_equal
+            # cols = obs_equal
 
             # Returning the filtered trajectories as a subset of the original
             # DataSet.
             if drop is False:
-                return self.data.isel(obs=xr.DataArray(cols, dims=["obs"]))
+                return self.data.isel(obs=xr.DataArray(obs_equal, dims=["obs"]))
 
             # Where drop is True, remove filtered trajectories from original
             # Datset.
             else:
                 # Defining cols to contain indexes not including obs_min :
                 # obs_max.
-                cols = np.concatenate([np.arange(obs_equal), np.arange(obs_equal + 1, obs)])
+                # cols = np.concatenate([np.arange(obs_equal), np.arange(obs_equal + 1, obs)])
 
-                return self.data.isel(obs=xr.DataArray(cols, dims=["obs"]))
+                return self.data.isel(obs=xr.DataArray(~obs_equal, dims=["obs"]))
 
         else:
             # -------------------------------------------------------
@@ -159,11 +160,12 @@ def filter_traj(self, filt_type, variable, val, min_val, max_val, polygon, drop)
                 # Defining rows as logical vector storing rows where
                 # trajectories meeting conditions will be stored.
                 # Uses numpy vectorisation, np.any().
-                rows = np.any(self.data[variable].values == val, axis=1)
+                # self.data[variable].values == val
+                rows = np.any(np.isin(self.data[variable].values, val), axis=1)
 
             else:
                 # For 1-dimensional array, use logical condition.
-                rows = self.data[variable].values == val
+                rows = np.isin(self.data[variable].values, val)
 
             # Returning the filtered trajectories as a subset of the original
             # DataSet.
