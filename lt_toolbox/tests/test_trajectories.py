@@ -925,3 +925,85 @@ class TestComputeVelocity(object):
     def test_compute_velocity_size(self, test, expected):
         # Test if added u/v/w variable is sized correctly.
         assert test == expected
+
+
+##############################################################################
+# Defining TestFilters class.
+
+# --------------------------------------------------------
+# Filtering trajectories using attribute variable/polygon.
+# --------------------------------------------------------
+# Filtering trajectories object using temp. tracer for testing.
+test_between = traj_datetime.filter_between(variable='temp', min_val=18, max_val=25, drop=False)
+test_equal_single = traj_datetime.filter_equal(variable='temp', val=25, drop=False)
+test_equal_multi = traj_datetime.filter_equal(variable='temp', val=[2, 25], drop=False)
+
+poly = [(-45, 30), (-45, 35), (-35, 35), (-35, 30), (-45, 30)]
+test_polygon = traj_datetime.filter_polygon(polygon=poly, drop=False)
+
+# Storing expected ndarrays of temp to be returned.
+expected_temp_between = np.array([[12, 18, 16, np.nan],
+                                  [np.nan, 14, 17, 25],
+                                  [np.nan, 12, 18, 16]],
+                                 dtype='float64'
+                                 )
+
+expected_temp_equal_single = np.array([[np.nan, 14, 17, 25]], dtype='float64')
+
+expected_temp_equal_multi = np.array([[2, 5, 7, 9],
+                                      [np.nan, 14, 17, 25]],
+                                     dtype='float64'
+                                     )
+
+expected_temp_polygon = np.array([[np.nan, 12, 18, 16]], dtype='float64')
+
+
+class TestFilters(object):
+
+    @pytest.mark.parametrize(
+        "test, expected",
+        [
+            (test_between.temp.values, expected_temp_between),
+            (test_polygon.temp.values, expected_temp_polygon),
+            (test_equal_single.temp.values, expected_temp_equal_single),
+            (test_equal_multi.temp.values, expected_temp_equal_multi)
+        ])
+    def test_filter_values(self, test, expected):
+        # Test if filtered temp values are returned correctly.
+        npt.assert_array_almost_equal(test, expected, decimal=6)
+
+    @pytest.mark.parametrize(
+        "test, expected",
+        [
+            (test_between.temp.values.dtype, np.float64),
+            (test_polygon.temp.values.dtype, np.float64),
+            (test_equal_single.temp.values.dtype, np.float64),
+            (test_equal_multi.temp.values.dtype, np.float64)
+        ])
+    def test_filter_type(self, test, expected):
+        # Test if filtered temp values are float64 type.
+        assert np.issubdtype(test, expected)
+
+    @pytest.mark.parametrize(
+        "test, expected",
+        [
+            (np.ndim(test_between.temp.values), 2),
+            (np.ndim(test_polygon.temp.values), 2),
+            (np.ndim(test_equal_single.temp.values), 2),
+            (np.ndim(test_equal_multi.temp.values), 2)
+        ])
+    def test_filter_dims(self, test, expected):
+        # Test if filtered temp variable has correct no. dimensions.
+        assert test == expected
+
+    @pytest.mark.parametrize(
+        "test, expected",
+        [
+            (np.shape(test_between.temp.values)[0], 3),
+            (np.shape(test_polygon.temp.values)[0], 1),
+            (np.shape(test_equal_single.temp.values)[0], 1),
+            (np.shape(test_equal_multi.temp.values)[0], 2)
+        ])
+    def test_filter_size(self, test, expected):
+        # Test if filtered temp is sized correctly.
+        assert test == expected
