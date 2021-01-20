@@ -20,7 +20,7 @@ import numpy as np
 from .get_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_minmax, get_val
 from .add_utils import add_seed, add_id, add_var
 from .filter_utils import filter_traj
-from .compute_utils import compute_displacement, compute_velocity, compute_distance
+from .compute_utils import compute_displacement, compute_velocity, compute_distance, compute_probability_distribution
 
 
 ##############################################################################
@@ -270,10 +270,10 @@ class trajectories:
         >>> tval = np.datetime64('2000-03-01')
         >>> trajectories.filter_equal('time', tval)
 
-        Filtering trajectory observations for one time using numpy
-        timedelta64.
+        Filtering trajectory observations for multiple times using
+        numpy timedelta64.
 
-        >>> tval = np.timedelta64(90, 'D')
+        >>> tval = [np.timedelta64(10, 'D'), np.timedelta64(20, 'D')]
         >>> trajectories.filter_equal('time', tval)
         """
         # -------------------
@@ -291,14 +291,30 @@ class trajectories:
         if isinstance(drop, bool) is False:
             raise TypeError("drop must be specified as a boolean")
 
-        # For non-time variables integers or floats only.
+        # For non-time variables.
         if variable != 'time':
-            if isinstance(val, (int, float)) is False:
-                raise TypeError("val must be specified as integer or float")
-        # For time variable numpy datetime64 or timedelta64 format only.
+            # For list of values, val, elements must be int or float type.
+            if isinstance(val, list) is True:
+                if all(isinstance(value, (int, float, np.int64, np.float64)) for value in val) is False:
+                    raise TypeError("contents of val must be specified as integers or floats")
+
+            # For single value, val.
+            else:
+                if isinstance(val, (int, float, np.int64, np.float64)) is False:
+                    raise TypeError("val must be specified as integer or float")
+
+        # For time variable.
         else:
-            if isinstance(val, (np.datetime64, np.timedelta64)) is False:
-                raise TypeError("val must be specified as datetime64 or timedelta64")
+            # For list of values, val, elements must be numpy datetime64 or
+            # timedelta64 format only.
+            if isinstance(val, list) is True:
+                if all(isinstance(value, (np.datetime64, np.timedelta64)) for value in val) is False:
+                    raise TypeError("contents of val must be specified as datetime64 or timedelta64")
+
+            # For single value, val.
+            else:
+                if isinstance(val, (np.datetime64, np.timedelta64)) is False:
+                    raise TypeError("val must be specified as datetime64 or timedelta64")
 
         # ----------------------------------
         # Defining ds, the filtered DataSet.
@@ -853,6 +869,171 @@ class trajectories:
                                 'standard_name': "dist",
                                 'units': unit,
                                 }
+
+        # Return trajectories object with updated DataSet.
+        return trajectories(self.data)
+
+##############################################################################
+# Define compute_probability() method.
+
+    def compute_probability(self, bin_res, method, gf_sigma=None, group_by=None):
+        """
+        Compute 2-dimensional binned Lagrangian probability
+        distributions using particle positions or particle
+        pathways.
+
+        Particle positions are binned into a 2-dimensional
+        (x-y) histogram and normalised by the total number
+        of particle positions ('pos') or the total number
+        of particles ('traj').
+
+        A Gaussian filter with a specified radius may also
+        be included to smooth the distribution.
+
+        Parameters
+        ----------
+        self : trajectories object
+            Trajectories object passed from trajectories class method.
+        bin_res : numeric
+            The resolution (degrees) of the grid on to which particle
+            positions will be binned.
+        method : string
+            The type of probability to be computed. 'pos' - particle
+            positions are binned and then normalised by the total number
+            of particle positions. 'traj' - for each particle positions
+            are counted once per bin and then normalised by the total
+            number of particles. To include a Gaussian filter modify the
+            methods above to 'pos-gauss' or 'traj-gauss'.
+        gf_sigma : numeric
+            The standard deviation of the Gaussian filter (degrees) with
+            which to smooth the Lagrangian probability distribution.
+        group_by : string
+            Grouping variable to compute Lagrangian probability
+            distributions - one distribution is computed for every
+            unique member of variable. See example below.
+
+        Returns
+        -------
+        DataSet.
+            Original DataSet is returned with appended attribute
+            variable DataArray containing the binned 2-dimensional
+            Lagrangian probability distribution with
+            dimensions (x - y).
+
+        Examples
+        --------
+        Computing the Lagrangian probability distribution using all
+        particle positions for particles released at seed_level 1.
+
+        >>> trajectories.filter_equal('seed_level', 1).compute_probability(bin_res=1, method='pos')
+
+        Computing the Lagrangian probability density distribution using
+        all particle positions with a Gaussian filter for particles released
+        at seed_levels 1 to 5.
+
+        >>> trajectories.filter_between('seed_level', 1, 5).compute_probability(bin_res=1, method='pos-gauss', gf_sigma=1, group_by='seed_level')
+        """
+        # ------------------
+        # Raise exceptions.
+        # ------------------
+        if group_by is not None:
+            # Defining list of variables contained in data.
+            variables = list(self.data.variables)
+
+            if group_by not in variables:
+                raise ValueError("variable: \'" + group_by + "\' not found in Dataset")
+
+        # ------------------------------------------------
+        # Defining grid domain to determine probabilities.
+        # ------------------------------------------------
+        # Defining lat and lon for trajectories.
+        lat = np.copy(self.data.lat.values)
+        lon = np.copy(self.data.lon.values)
+
+        # Finding the maximum and minimum values of lat and lon
+        # to the nearest degree E/N for all trajectories
+        lat_max = np.ceil(np.nanmax(lat))
+        lat_min = np.floor(np.nanmin(lat))
+        lon_max = np.ceil(np.nanmax(lon))
+        lon_min = np.floor(np.nanmin(lon))
+
+        # Storing min and max latitudes in lat_lims.
+        lat_lims = [lat_min, lat_max]
+        # Storing min and max longitudes in lon_lims.
+        lon_lims = [lon_min, lon_max]
+
+        # -------------------------------------
+        # Subroutine without group_by variable.
+        # -------------------------------------
+        if group_by is None:
+
+            # -----------------------------------------------
+            # Computing Lagrangian Probability Distributions.
+            # -----------------------------------------------
+
+            # Compute probability distribution to return gridded
+            # longitudes, latitudes and probabilities.
+            nav_lon, nav_lat, probability = compute_probability_distribution(self, lat_lims=lat_lims, lon_lims=lon_lims, bin_res=bin_res, method=method, gf_sigma=gf_sigma)
+
+            # Append DataArrays to original DataSet.
+            self.data['nav_lat'] = xr.DataArray(nav_lat, dims=["y", "x"])
+            self.data['nav_lon'] = xr.DataArray(nav_lon, dims=["y", "x"])
+            self.data['probability'] = xr.DataArray(probability, dims=["y", "x"])
+
+        # ----------------------------------
+        # Subroutine with group_by variable.
+        # ----------------------------------
+        else:
+            # Determining the number of unique elements in group_by.
+            vals = np.unique(self.data[group_by].values)
+            # Defining empty list to store probs.
+            probs = []
+
+            # -----------------------------------------------
+            # Computing Lagrangian Probability Distributions.
+            # -----------------------------------------------
+
+            # Iterate over all unique elements in group_by and
+            # compute a Lagrangian probability distribution.
+            for n in vals:
+                # Filter trajectories where group_by equals n.
+                traj = self.filter_equal(group_by, n)
+
+                # Compute probability distribution to return gridded
+                # longitudes, latitudes and probabilities.
+                nav_lon, nav_lat, p = compute_probability_distribution(traj, lat_lims=lat_lims, lon_lims=lon_lims, bin_res=bin_res, method=method, gf_sigma=gf_sigma)
+
+                # Append probability distribution, p, in probability.
+                probs.append(p)
+
+            # ------------------------------------------
+            # Appending data to our trajectories object.
+            # ------------------------------------------
+            # Convert probs to a 3-dimensional ndarray.
+            probability = np.stack(probs)
+
+            # Append DataArrays to original DataSet.
+            self.data['nav_lat'] = xr.DataArray(nav_lat, dims=["y", "x"])
+            self.data['nav_lon'] = xr.DataArray(nav_lon, dims=["y", "x"])
+            self.data['probability'] = xr.DataArray(probability, dims=["sample", "y", "x"])
+
+        # -----------------------------------
+        # Adding variable attributes DataSet.
+        # -----------------------------------
+        self.data.nav_lat.attrs = {
+                            'long_name': "Latitude",
+                            'standard_name': "latitude",
+                            'units': "degrees_north",
+                            }
+        self.data.nav_lon.attrs = {
+                            'long_name': "Longitude",
+                            'standard_name': "longitude",
+                            'units': "degrees_east",
+                            }
+        self.data.probability.attrs = {
+                            'long_name': "Lagrangian probability",
+                            'standard_name': "probability",
+                            }
 
         # Return trajectories object with updated DataSet.
         return trajectories(self.data)

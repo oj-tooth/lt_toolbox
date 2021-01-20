@@ -320,8 +320,8 @@ def map_probability(self, bin_res, prob_type, cmap='coolwarm'):
     # Defining variables from trajectories obj.
     # -----------------------------------------
     # Defining lat and lon for all trajectories.
-    lat = self.data.lat.values
-    lon = self.data.lon.values
+    lat = np.copy(self.data.lat.values)
+    lon = np.copy(self.data.lon.values)
 
     # ---------------------------------------------------------
     # Defining grid on which particle positions will be binned.
@@ -362,20 +362,20 @@ def map_probability(self, bin_res, prob_type, cmap='coolwarm'):
         # Compute probability as a percentage, prob.
         prob = (stat.statistic / npos) * 100
 
-    # ----------------------------------------------
-    # Subroutine for probability with all particles.
-    # ----------------------------------------------
+    # -------------------------------------------------
+    # Subroutine for probability with all trajectories.
+    # -------------------------------------------------
     elif prob_type == 'traj':
 
         # Defining array to store particle density.
         density = np.zeros([len(bin_x) - 1, len(bin_y) - 1])
 
-        # Defining no. particles, ntpart.
-        npart = np.shape(lat)[0]  # lat/lon could be used here.
+        # Defining no. trajectories, ntraj.
+        ntraj = np.shape(lat)[0]  # lat/lon could be used here.
 
-        # Iterate over all particles (trajectories).
-        for i in np.arange(0, npart):
-            # Using scipy to count the number of particles per bin.
+        # Iterate over all trajectories.
+        for i in np.arange(0, ntraj):
+            # Using scipy to count the number of particle per bin.
             stat = stats.binned_statistic_2d(lon[i, :], lat[i, :], None, 'count', bins=[bin_x, bin_y])
             # Where a particle is counted more than once in bin set = 1.
             stat.statistic[stat.statistic > 1] = 1
@@ -389,7 +389,7 @@ def map_probability(self, bin_res, prob_type, cmap='coolwarm'):
         # Computing probability on grid.
         #  ------------------------------
         # Compute probability as a percentage, prob.
-        prob = (density / npart) * 100
+        prob = (density / ntraj) * 100
 
     # ---------------------------
     # Defining grid for plotting.
