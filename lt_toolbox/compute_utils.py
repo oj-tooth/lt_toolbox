@@ -15,6 +15,8 @@
 # Importing relevant packages.
 
 import numpy as np
+import scipy.stats as stats
+from scipy.ndimage import gaussian_filter
 
 ##############################################################################
 # Define haversine_distance() function.
@@ -97,13 +99,12 @@ def compute_displacement(self, axis, unit):
 
     Returns
     -------
-    DataSet.
-        Original DataSet is returned with appended attribute
-        variable DataArray containing particle displacements
-        (m) with dimensions (traj x obs).
+    ndarray
+        Zonal, meridional or vertical displacement from particle
+        trajectories with dimensions (traj x obs).
 
         The first observation (obs) for all trajectories
-        (traj) is NaN since the distance from the origin
+        (traj) is NaN since the meridional distance from the origin
         of a particle at the origin is not defined.
     """
     # -----------------------------------------------
@@ -111,8 +112,8 @@ def compute_displacement(self, axis, unit):
     # -----------------------------------------------
 
     # Transforming lat and lon variables into radians, Lat and Lon.
-    Lat = np.radians(self.data['lat'].values)
-    Lon = np.radians(self.data['lon'].values)
+    Lat = np.radians(np.copy(self.data['lat'].values))
+    Lon = np.radians(np.copy(self.data['lon'].values))
 
     # Store number of trajectories as rows.
     rows = len(Lat)
@@ -292,13 +293,12 @@ def compute_velocity(self, axis, unit):
 
     Returns
     -------
-    DataSet.
-        Original DataSet is returned with appended attribute
-        variable DataArray containing particle displacements
-        with dimensions (traj x obs).
+    ndarray
+        Zonal, meridional or vertical velocity from particle
+        trajectories with dimensions (traj x obs).
 
-        The first observation (obs) for all trajectories
-        (traj) is NaN since the velocity from the origin
+        The first observation (obs) for all trajectories (traj)
+        is NaN since the meridional distance from the origin
         of a particle at the origin is not defined.
     """
     # -----------------------------------------------
@@ -306,8 +306,8 @@ def compute_velocity(self, axis, unit):
     # -----------------------------------------------
 
     # Transforming lat and lon variables into radians, Lat and Lon.
-    Lat = np.radians(self.data['lat'].values)
-    Lon = np.radians(self.data['lon'].values)
+    Lat = np.radians(np.copy(self.data['lat'].values))
+    Lon = np.radians(np.copy(self.data['lon'].values))
 
     # Store number of trajectories as rows.
     rows = len(Lat)
@@ -368,7 +368,7 @@ def compute_velocity(self, axis, unit):
         # -----------------------------------
 
         # Defining time-step, dt.
-        dt = np.diff(self.data.time.values, axis=1)
+        dt = np.diff(np.copy(self.data.time.values), axis=1)
         dt = dt.astype(int)
 
         # Concantenate array of NaNs to start of dt, ensuring
@@ -456,7 +456,7 @@ def compute_velocity(self, axis, unit):
         # ---------------------------------------
 
         # Defining time-step, dt.
-        dt = np.diff(self.data.time.values, axis=1)
+        dt = np.diff(np.copy(self.data.time.values), axis=1)
         dt = dt.astype(int)
 
         # Concantenate array of NaNs to start of dt, ensuring
@@ -506,7 +506,7 @@ def compute_velocity(self, axis, unit):
 
         # Computing vertical distances between trajectory points with
         # np.diff().
-        Z = self.data['z'].values
+        Z = np.copy(self.data['z'].values)
         dz = np.diff(Z, axis=1)
 
         # Concantenate array of NaNs to start of dz, ensuring
@@ -521,7 +521,7 @@ def compute_velocity(self, axis, unit):
         # --------------------------------------
 
         # Defining time-step, dt.
-        dt = np.diff(self.data.time.values, axis=1)
+        dt = np.diff(np.copy(self.data.time.values), axis=1)
         dt = dt.astype(int)
 
         # Concantenate array of NaNs to start of dt, ensuring
@@ -589,24 +589,21 @@ def compute_distance(self, cumsum_dist, unit):
 
     Returns
     -------
-    DataSet.
-        Original DataSet is returned with appended attribute
-        variable DataArray containing the (cumulative) distance
-        travelled by each particle along its trajectory with
-        dimensions (traj x obs).
+    ndarray
+        Distance or cumulative distance from particle
+        trajectories with dimensions (traj x obs).
 
         The first observation (obs) for all trajectories
-        (traj) is NaN since the (cumulative) distance
-        from the origin of a particle at the origin is
-        not defined.
+        (traj) is NaN since the meridional distance from
+        the origin of a particle at the origin is not defined.
     """
     # -----------------------------------------------
     # Transforming Latitude and Longitude variables.
     # -----------------------------------------------
 
     # Transforming lat and lon variables into radians, Lat and Lon.
-    Lat = np.radians(self.data['lat'].values)
-    Lon = np.radians(self.data['lon'].values)
+    Lat = np.radians(np.copy(self.data['lat'].values))
+    Lon = np.radians(np.copy(self.data['lon'].values))
 
     # Store number of trajectories as rows.
     rows = len(Lat)
@@ -647,7 +644,7 @@ def compute_distance(self, cumsum_dist, unit):
 
     # Computing vertical distances between trajectory points with
     # np.diff().
-    Z = self.data['z'].values
+    Z = np.copy(self.data['z'].values)
     dz = abs(np.diff(Z, axis=1))
 
     # Concantenate array of NaNs to start of dz, ensuring
@@ -686,5 +683,196 @@ def compute_distance(self, cumsum_dist, unit):
     else:
         pass
 
-    # Return cumulative distance for each trajectory np.array, dist.
+    # Return cumulative distance for each trajectory ndarray, dist.
     return dist
+
+##############################################################################
+# Define compute_probability_distribution() function.
+
+
+def compute_probability_distribution(self, lat_lims, lon_lims, bin_res, method, gf_sigma=None):
+    """
+    Compute 2-dimensional binned Lagrangian probability
+    distributions using particle positions or particle
+    pathways.
+
+    Particle positions are binned into a 2-dimensional
+    (x-y) histogram and normalised by the total number
+    of particle positions ('pos') or the total number
+    of particles ('traj').
+
+    A Gaussian filter with a specified standard deviation
+    may alsobe included to smooth the distribution.
+
+    Parameters
+    ----------
+    self : trajectories object
+    lat_lims : list
+        List containing [min, max] latitudes defining the grid
+        domain.
+    lon_lims : list
+        List containing [min, max] longitudes defining the grid
+        domain.
+        Trajectories object passed from trajectories class method.
+    bin_res : numeric
+        The resolution (degrees) of the grid on to which particle
+        positions will be binned.
+    method : string
+        The type of probability to be computed. 'pos' - particle
+        positions are binned and then normalised by the total number
+        of particle positions. 'traj' - for each particle positions
+        are counted once per bin and then normalised by the total
+        number of particles. To include a Gaussian filter modify the
+        methods above to 'pos-gauss' or 'traj-gauss'.
+    gf_sigma : numeric
+        The standard deviation of the Gaussian filter (degrees) with
+        which to smooth the Lagrangian probability distribution.
+
+    Returns
+    -------
+    DataSet.
+        Original DataSet is returned with appended attribute
+        variable DataArray containing the binned 2-dimensional
+        Lagrangian probability distribution with
+        dimensions (x - y).
+    """
+    # ---------------------------------------------------------
+    # Defining grid on which particle positions will be binned.
+    # ---------------------------------------------------------
+    # Defining lat and lon for trajectories.
+    lat = np.copy(self.data.lat.values)
+    lon = np.copy(self.data.lon.values)
+
+    # Defining bin size with specified bin_res.
+    dx = dy = bin_res
+
+    # Defining bin edges in 1-dimensional arrays.
+    bin_x = np.arange(lon_lims[0], lon_lims[1] + dx, dx)
+    bin_y = np.arange(lat_lims[0], lat_lims[1] + dy, dy)
+
+    # Defining 2-d grids from 1-d bin edge arrays.
+    lat_grid, lon_grid = np.meshgrid(bin_y, bin_x)
+
+    # Defining the coordinates of centre of each grid cell
+    # with lat_centre, lon_centre.
+    lon_centre = lon_grid[:-1, :] + np.diff(lon_grid, axis=0)/2
+    lat_centre = lat_grid[:, :-1] + np.diff(lat_grid, axis=1)/2
+
+    # Resizing to equal shape of probability array (x-y).
+    lon_centre = lon_centre[:, :-1]
+    lat_centre = lat_centre[:-1, :]
+
+    # ---------------------------------------------------
+    # Subroutine for probability with particle positions.
+    # ---------------------------------------------------
+    if method == 'pos':
+
+        # -----------------------------------
+        # Computing particle density on grid.
+        # -----------------------------------
+        # Using scipy to count the number of particle positions per bin
+        stat = stats.binned_statistic_2d(x=lon.flatten(), y=lat.flatten(), values=None, statistic='count', bins=[bin_x, bin_y])
+        # For empty bin set count value to NaN.
+        stat.statistic[stat.statistic == 0] = np.nan
+
+        # ------------------------------
+        # Computing probability on grid.
+        #  ------------------------------
+        # Defining number of particle positions, npos.
+        npos = len(lon.flatten())  # lon/lat could be used here.
+        # Compute probability as a percentage, prob.
+        probability = stat.statistic / npos
+
+    # ---------------------------------------------------------------
+    # Subroutine for probability with particle positions and gfilter.
+    # ---------------------------------------------------------------
+    elif method == 'pos-gauss':
+
+        # -----------------------------------
+        # Computing particle density on grid.
+        # -----------------------------------
+        # Using scipy to count the number of particle positions per bin
+        stat = stats.binned_statistic_2d(x=lon.flatten(), y=lat.flatten(), values=None, statistic='count', bins=[bin_x, bin_y])
+
+        # ------------------------------
+        # Computing probability on grid.
+        #  ------------------------------
+        # Defining number of particle positions, npos.
+        npos = len(lon.flatten())  # lon/lat could be used here.
+        # Compute probability as a percentage, prob.
+        probability = stat.statistic / npos
+
+        # ----------------------
+        # Apply Gaussian filter.
+        # ----------------------
+        # Spatially filter probability distribution with isotropic
+        # Gaussian filter.
+        probability = gaussian_filter(probability, sigma=gf_sigma, mode="constant")
+
+    # -------------------------------------------------
+    # Subroutine for probability with all trajectories.
+    # -------------------------------------------------
+    elif method == 'traj':
+
+        # Defining array to store particle density.
+        density = np.zeros([len(bin_x) - 1, len(bin_y) - 1])
+
+        # Defining no. trajectories, ntraj.
+        ntraj = np.shape(lat)[0]  # lat/lon could be used here.
+
+        # Iterate over all trajectories.
+        for i in np.arange(0, ntraj):
+            # Using scipy to count the number of particle per bin.
+            stat = stats.binned_statistic_2d(lon[i, :], lat[i, :], None, 'count', bins=[bin_x, bin_y])
+            # Where a particle is counted more than once in bin set = 1.
+            stat.statistic[stat.statistic > 1] = 1
+            # Update density with counts from particle.
+            density = density + stat.statistic
+
+        # For empty bin set density value to NaN.
+        density[density == 0] = np.nan
+
+        # -----------------------------
+        # Computing probability on grid.
+        #  ------------------------------
+        # Compute probability as a percentage, prob.
+        probability = density / ntraj
+
+    # ------------------------------------------------------------
+    # Subroutine for probability with all trajectories and filter.
+    # ------------------------------------------------------------
+    elif method == 'traj-gauss':
+
+        # Defining array to store particle density.
+        density = np.zeros([len(bin_x) - 1, len(bin_y) - 1])
+
+        # Defining no. trajectories, ntraj.
+        ntraj = np.shape(lat)[0]  # lat/lon could be used here.
+
+        # Iterate over all trajectories.
+        for i in np.arange(0, ntraj):
+            # Using scipy to count the number of particle per bin.
+            stat = stats.binned_statistic_2d(lon[i, :], lat[i, :], None, 'count', bins=[bin_x, bin_y])
+            # Where a particle is counted more than once in bin set = 1.
+            stat.statistic[stat.statistic > 1] = 1
+            # Update density with counts from particle.
+            density = density + stat.statistic
+
+        # -----------------------------
+        # Computing probability on grid.
+        #  ------------------------------
+        # Compute probability as a percentage, prob.
+        probability = density / ntraj
+
+        # ----------------------
+        # Apply Gaussian filter.
+        # ----------------------
+        # Spatially filter probability distribution with isotropic
+        # Gaussian filter.
+        probability = gaussian_filter(probability, sigma=gf_sigma, mode="constant")
+
+    # ----------------------------------------------------------------
+    # Returning computed variables to be added to trajectories object.
+    # ----------------------------------------------------------------
+    # Returning the latitude, longitude and probability gridded data.
+    return lon_centre, lat_centre, probability
