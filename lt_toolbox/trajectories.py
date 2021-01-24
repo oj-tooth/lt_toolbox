@@ -19,7 +19,7 @@ import xarray as xr
 import numpy as np
 from .get_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_minmax, get_val
 from .add_utils import add_seed, add_id, add_var
-from .filter_utils import filter_traj
+from .filter_utils import filter_traj_between, filter_traj_equal, filter_traj_polygon
 from .compute_utils import compute_displacement, compute_velocity, compute_distance, compute_probability_distribution
 
 
@@ -35,6 +35,8 @@ class trajectories:
     from .plot_utils import plot_timeseries, plot_ts_diagram, plot_variable
     # Importing methods for geospatial mapping with Cartopy.
     from .map_utils import map_trajectories, map_probability, map_property
+    # Importing methods for sensitivity analysis.
+    from .compute_utils import compute_fuv
 
     def __init__(self, ds):
         """
@@ -221,7 +223,7 @@ class trajectories:
         # ----------------------------------
         # Defining ds, the filtered DataSet.
         # ----------------------------------
-        ds = filter_traj(self, filt_type='between', variable=variable, val=None, min_val=min_val, max_val=max_val, polygon=None, drop=drop)
+        ds = filter_traj_between(self, variable=variable, min_val=min_val, max_val=max_val, drop=drop)
 
         # Returning the subsetted xarray DataSet as a trajectories object -
         # this enables multiple filtering to take place.
@@ -319,7 +321,7 @@ class trajectories:
         # ----------------------------------
         # Defining ds, the filtered DataSet.
         # ----------------------------------
-        ds = filter_traj(self, filt_type='equal', variable=variable, val=val, min_val=None, max_val=None, polygon=None, drop=drop)
+        ds = filter_traj_equal(self, variable=variable, val=val, drop=drop)
 
         # Returning the subsetted xarray DataSet as a trajectories object -
         # this enables multiple filtering to take place.
@@ -328,7 +330,7 @@ class trajectories:
 ##############################################################################
 # Define filter_polygon() method.
 
-    def filter_polygon(self, polygon, drop=False):
+    def filter_polygon(self, polygon, method, drop=False):
         """
         Filter trajectories which intersect a specified polygon.
 
@@ -341,6 +343,10 @@ class trajectories:
         polygon : list
             List of coordinates, specified as an ordered sequence of tuples
             (Lon, Lat), representing the boundary of the polygon.
+        method : string
+            Method to filter trajectories using polygon - 'pos' considers
+            trajectories as a collection of points, 'traj' considers
+            trajectories as connected lines.
         drop : boolean
             Determines if fitered trajectories should be returned as a
             new trajectories object (False) or instead dropped from the
@@ -365,13 +371,16 @@ class trajectories:
         if isinstance(drop, bool) is False:
             raise TypeError("drop must be specified as a boolean")
 
+        if isinstance(method, str) is False:
+            raise TypeError("method must be specified as a string - options: \'pos\' or \'traj\'")
+
         if isinstance(polygon, list) is False:
             raise TypeError("polygon must be specified as a list of tuples")
 
         # ----------------------------------
         # Defining ds, the filtered DataSet.
         # ----------------------------------
-        ds = filter_traj(self, filt_type='polygon', variable=None, val=None, min_val=None, max_val=None, polygon=polygon, drop=drop)
+        ds = filter_traj_polygon(self, polygon=polygon, method=method, drop=drop)
 
         # Returning the subsetted xarray DataSet as a trajectories object -
         # this enables multiple filtering to take place.
@@ -422,7 +431,7 @@ class trajectories:
 
         # Raising exception when unavailable unit is specified.
         if unit not in unit_options:
-            raise ValueError("invalid unit - use \'m\' or \'km\'")
+            raise ValueError("invalid unit - options: \'m\' or \'km\'")
 
         # -----------------------------------------
         # Computing dx with compute_displacement().
@@ -490,7 +499,7 @@ class trajectories:
 
         # Raising exception when unavailable unit is specified.
         if unit not in unit_options:
-            raise ValueError("invalid unit - use \'m\' or \'km\'")
+            raise ValueError("invalid unit - options: \'m\' or \'km\'")
 
         # -----------------------------------------
         # Computing dy with compute_displacement().
@@ -558,7 +567,7 @@ class trajectories:
 
         # Raising exception when unavailable unit is specified.
         if unit not in unit_options:
-            raise ValueError("invalid unit - use \'m\' or \'km\'")
+            raise ValueError("invalid unit - options: \'m\' or \'km\'")
 
         # -----------------------------------------
         # Computing dz with compute_displacement().
@@ -627,7 +636,7 @@ class trajectories:
 
         # Raising exception when unavailable unit is specified.
         if unit not in unit_options:
-            raise ValueError("invalid unit - use \'m/s\', \'m/day\', \'km/day\'")
+            raise ValueError("invalid unit - options: \'m/s\', \'m/day\', \'km/day\'")
 
         # -----------------------------------------
         # Computing u with compute_velocity().
@@ -696,7 +705,7 @@ class trajectories:
 
         # Raising exception when unavailable unit is specified.
         if unit not in unit_options:
-            raise ValueError("invalid unit - use \'m/s\', \'m/day\', \'km/day\'")
+            raise ValueError("invalid unit - options: \'m/s\', \'m/day\', \'km/day\'")
 
         # -----------------------------------------
         # Computing v with compute_velocity().
@@ -765,7 +774,7 @@ class trajectories:
 
         # Raising exception when unavailable unit is specified.
         if unit not in unit_options:
-            raise ValueError("invalid unit - use \'m/s\', \'m/day\', \'km/day\'")
+            raise ValueError("invalid unit - options: \'m/s\', \'m/day\', \'km/day\'")
 
         # -----------------------------------------
         # Computing w with compute_velocity().
@@ -839,7 +848,7 @@ class trajectories:
 
         # Raising exception when unavailable unit is specified.
         if unit not in unit_options:
-            raise ValueError("invalid unit - use \'m\', \'km\'")
+            raise ValueError("invalid unit - options: \'m\', \'km\'")
 
         # -------------------------------------------
         # Computing distance with compute_distance().
@@ -914,11 +923,13 @@ class trajectories:
 
         Returns
         -------
-        DataSet.
-            Original DataSet is returned with appended attribute
-            variable DataArray containing the binned 2-dimensional
-            Lagrangian probability distribution with
-            dimensions (x - y).
+        trajectories object.
+        Original trajectories object is returned with appended attribute
+        variable DataArrays containing the binned 2-dimensional
+        Lagrangian probability distribution and the coordinates of the
+        centre points of the grid with dimensions (x - y). Where group_by
+        is used the Lagrangian probability distributions will have
+        dimensions (samples - x - y).
 
         Examples
         --------
@@ -943,100 +954,19 @@ class trajectories:
             if group_by not in variables:
                 raise ValueError("variable: \'" + group_by + "\' not found in Dataset")
 
-        # ------------------------------------------------
-        # Defining grid domain to determine probabilities.
-        # ------------------------------------------------
-        # Defining lat and lon for trajectories.
-        lat = np.copy(self.data.lat.values)
-        lon = np.copy(self.data.lon.values)
+        if isinstance(method, str) is False:
+            raise TypeError("method must be specified as a string - options: \'pos\', \'traj\', \'pos-gauss\', \'traj-gauss\'")
 
-        # Finding the maximum and minimum values of lat and lon
-        # to the nearest degree E/N for all trajectories
-        lat_max = np.ceil(np.nanmax(lat))
-        lat_min = np.floor(np.nanmin(lat))
-        lon_max = np.ceil(np.nanmax(lon))
-        lon_min = np.floor(np.nanmin(lon))
+        if isinstance(bin_res, (int, float)) is False:
+            raise TypeError("bin_res must be specified as integer or float")
 
-        # Storing min and max latitudes in lat_lims.
-        lat_lims = [lat_min, lat_max]
-        # Storing min and max longitudes in lon_lims.
-        lon_lims = [lon_min, lon_max]
-
-        # -------------------------------------
-        # Subroutine without group_by variable.
-        # -------------------------------------
-        if group_by is None:
-
-            # -----------------------------------------------
-            # Computing Lagrangian Probability Distributions.
-            # -----------------------------------------------
-
-            # Compute probability distribution to return gridded
-            # longitudes, latitudes and probabilities.
-            nav_lon, nav_lat, probability = compute_probability_distribution(self, lat_lims=lat_lims, lon_lims=lon_lims, bin_res=bin_res, method=method, gf_sigma=gf_sigma)
-
-            # Append DataArrays to original DataSet.
-            self.data['nav_lat'] = xr.DataArray(nav_lat, dims=["y", "x"])
-            self.data['nav_lon'] = xr.DataArray(nav_lon, dims=["y", "x"])
-            self.data['probability'] = xr.DataArray(probability, dims=["y", "x"])
-
-        # ----------------------------------
-        # Subroutine with group_by variable.
-        # ----------------------------------
-        else:
-            # Determining the number of unique elements in group_by.
-            vals = np.unique(self.data[group_by].values)
-            # Defining empty list to store probs.
-            probs = []
-
-            # -----------------------------------------------
-            # Computing Lagrangian Probability Distributions.
-            # -----------------------------------------------
-
-            # Iterate over all unique elements in group_by and
-            # compute a Lagrangian probability distribution.
-            for n in vals:
-                # Filter trajectories where group_by equals n.
-                traj = self.filter_equal(group_by, n)
-
-                # Compute probability distribution to return gridded
-                # longitudes, latitudes and probabilities.
-                nav_lon, nav_lat, p = compute_probability_distribution(traj, lat_lims=lat_lims, lon_lims=lon_lims, bin_res=bin_res, method=method, gf_sigma=gf_sigma)
-
-                # Append probability distribution, p, in probability.
-                probs.append(p)
-
-            # ------------------------------------------
-            # Appending data to our trajectories object.
-            # ------------------------------------------
-            # Convert probs to a 3-dimensional ndarray.
-            probability = np.stack(probs)
-
-            # Append DataArrays to original DataSet.
-            self.data['nav_lat'] = xr.DataArray(nav_lat, dims=["y", "x"])
-            self.data['nav_lon'] = xr.DataArray(nav_lon, dims=["y", "x"])
-            self.data['probability'] = xr.DataArray(probability, dims=["sample", "y", "x"])
-
-        # -----------------------------------
-        # Adding variable attributes DataSet.
-        # -----------------------------------
-        self.data.nav_lat.attrs = {
-                            'long_name': "Latitude",
-                            'standard_name': "latitude",
-                            'units': "degrees_north",
-                            }
-        self.data.nav_lon.attrs = {
-                            'long_name': "Longitude",
-                            'standard_name': "longitude",
-                            'units': "degrees_east",
-                            }
-        self.data.probability.attrs = {
-                            'long_name': "Lagrangian probability",
-                            'standard_name': "probability",
-                            }
+        # ----------------------------------------------
+        # Computing Lagrangian probability distribution.
+        # ----------------------------------------------
+        ds = compute_probability_distribution(self, bin_res=bin_res, method=method, gf_sigma=gf_sigma, group_by=group_by)
 
         # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        return trajectories(ds)
 
 ##############################################################################
 # Define get_start_time() method.

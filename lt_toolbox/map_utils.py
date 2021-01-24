@@ -513,7 +513,7 @@ def map_property(self, bin_res, variable, statistic, cmap='coolwarm'):
     # -------------------------------------
     # Computing statistic on binned values.
     # -------------------------------------
-    # Using scipy to count the number of particle positions per bin
+    # Using scipy to compute stat on variable, var, in each bin.
     stat = stats.binned_statistic_2d(x=lon.flatten(), y=lat.flatten(), values=var.flatten(), statistic=statistic, bins=[bin_x, bin_y])
 
     # ---------------------------
