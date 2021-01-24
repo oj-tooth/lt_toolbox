@@ -14,7 +14,9 @@
 ##############################################################################
 # Importing relevant packages.
 
+import random
 import numpy as np
+import xarray as xr
 import scipy.stats as stats
 from scipy.ndimage import gaussian_filter
 
@@ -73,6 +75,194 @@ def haversine_dist(Lat1, Lon1, Lat2, Lon2):
 
     # Returning distance array, d (m).
     return d
+
+##############################################################################
+# Define lagrangian_probability() function.
+
+
+def lagrangian_probability(self, lat_lims, lon_lims, bin_res, method, gf_sigma=None):
+    """
+    Compute 2-dimensional binned Lagrangian probability
+    distributions using particle positions or particle
+    pathways.
+
+    Particle positions are binned into a 2-dimensional
+    (x-y) histogram and normalised by the total number
+    of particle positions ('pos') or the total number
+    of particles ('traj').
+
+    A Gaussian filter with a specified standard deviation
+    may alsobe included to smooth the distribution.
+
+    Parameters
+    ----------
+    self : trajectories object
+    lat_lims : list
+        List containing [min, max] latitudes defining the grid
+        domain.
+    lon_lims : list
+        List containing [min, max] longitudes defining the grid
+        domain.
+        Trajectories object passed from trajectories class method.
+    bin_res : numeric
+        The resolution (degrees) of the grid on to which particle
+        positions will be binned.
+    method : string
+        The type of probability to be computed. 'pos' - particle
+        positions are binned and then normalised by the total number
+        of particle positions. 'traj' - for each particle positions
+        are counted once per bin and then normalised by the total
+        number of particles. To include a Gaussian filter modify the
+        methods above to 'pos-gauss' or 'traj-gauss'.
+    gf_sigma : numeric
+        The standard deviation of the Gaussian filter (degrees) with
+        which to smooth the Lagrangian probability distribution.
+
+    Returns
+    -------
+    lon_centre : ndarray
+        Longitude of the centre points of the grid with dimensions (x - y).
+    lat_centre : ndarray
+        Longitude of the centre points of the grid with dimensions (x - y).
+    p : ndarray
+        Binned 2-dimensional Lagrangian probability distribution with
+        dimensions (x - y).
+    """
+    # ---------------------------------------------------------
+    # Defining grid on which particle positions will be binned.
+    # ---------------------------------------------------------
+    # Defining lat and lon for trajectories.
+    lat = np.copy(self.data.lat.values)
+    lon = np.copy(self.data.lon.values)
+
+    # Defining bin size with specified bin_res.
+    dx = dy = bin_res
+
+    # Defining bin edges in 1-dimensional arrays.
+    bin_x = np.arange(lon_lims[0], lon_lims[1] + dx, dx)
+    bin_y = np.arange(lat_lims[0], lat_lims[1] + dy, dy)
+
+    # Defining 2-d grids from 1-d bin edge arrays.
+    lat_grid, lon_grid = np.meshgrid(bin_y, bin_x)
+
+    # Defining the coordinates of centre of each grid cell
+    # with lat_centre, lon_centre.
+    lon_centre = lon_grid[:-1, :] + np.diff(lon_grid, axis=0)/2
+    lat_centre = lat_grid[:, :-1] + np.diff(lat_grid, axis=1)/2
+
+    # Resizing to equal shape of probability array (x-y).
+    lon_centre = lon_centre[:, :-1]
+    lat_centre = lat_centre[:-1, :]
+
+    # ---------------------------------------------------
+    # Subroutine for probability with particle positions.
+    # ---------------------------------------------------
+    if method == 'pos':
+
+        # -----------------------------------
+        # Computing particle density on grid.
+        # -----------------------------------
+        # Using scipy to count the number of particle positions per bin
+        stat = stats.binned_statistic_2d(x=lon.flatten(), y=lat.flatten(), values=None, statistic='count', bins=[bin_x, bin_y])
+
+        # ------------------------------
+        # Computing probability on grid.
+        #  ------------------------------
+        # Defining number of particle positions, npos.
+        npos = len(lon.flatten())  # lon/lat could be used here.
+        # Compute probability as a percentage, prob.
+        probability = stat.statistic / npos
+
+    # ---------------------------------------------------------------
+    # Subroutine for probability with particle positions and gfilter.
+    # ---------------------------------------------------------------
+    elif method == 'pos-gauss':
+
+        # -----------------------------------
+        # Computing particle density on grid.
+        # -----------------------------------
+        # Using scipy to count the number of particle positions per bin
+        stat = stats.binned_statistic_2d(x=lon.flatten(), y=lat.flatten(), values=None, statistic='count', bins=[bin_x, bin_y])
+
+        # ------------------------------
+        # Computing probability on grid.
+        #  ------------------------------
+        # Defining number of particle positions, npos.
+        npos = len(lon.flatten())  # lon/lat could be used here.
+        # Compute probability as a percentage, prob.
+        probability = stat.statistic / npos
+
+        # ----------------------
+        # Apply Gaussian filter.
+        # ----------------------
+        # Spatially filter probability distribution with isotropic
+        # Gaussian filter.
+        probability = gaussian_filter(probability, sigma=gf_sigma, mode="constant")
+
+    # -------------------------------------------------
+    # Subroutine for probability with all trajectories.
+    # -------------------------------------------------
+    elif method == 'traj':
+
+        # Defining array to store particle density.
+        density = np.zeros([len(bin_x) - 1, len(bin_y) - 1])
+
+        # Defining no. trajectories, ntraj.
+        ntraj = np.shape(lat)[0]  # lat/lon could be used here.
+
+        # Iterate over all trajectories.
+        for i in np.arange(0, ntraj):
+            # Using scipy to count the number of particle per bin.
+            stat = stats.binned_statistic_2d(lon[i, :], lat[i, :], None, 'count', bins=[bin_x, bin_y])
+            # Where a particle is counted more than once in bin set = 1.
+            stat.statistic[stat.statistic > 1] = 1
+            # Update density with counts from particle.
+            density = density + stat.statistic
+
+        # -----------------------------
+        # Computing probability on grid.
+        #  ------------------------------
+        # Compute probability as a percentage, prob.
+        probability = density / ntraj
+
+    # ------------------------------------------------------------
+    # Subroutine for probability with all trajectories and filter.
+    # ------------------------------------------------------------
+    elif method == 'traj-gauss':
+
+        # Defining array to store particle density.
+        density = np.zeros([len(bin_x) - 1, len(bin_y) - 1])
+
+        # Defining no. trajectories, ntraj.
+        ntraj = np.shape(lat)[0]  # lat/lon could be used here.
+
+        # Iterate over all trajectories.
+        for i in np.arange(0, ntraj):
+            # Using scipy to count the number of particle per bin.
+            stat = stats.binned_statistic_2d(lon[i, :], lat[i, :], None, 'count', bins=[bin_x, bin_y])
+            # Where a particle is counted more than once in bin set = 1.
+            stat.statistic[stat.statistic > 1] = 1
+            # Update density with counts from particle.
+            density = density + stat.statistic
+
+        # -----------------------------
+        # Computing probability on grid.
+        #  ------------------------------
+        # Compute probability as a percentage, prob.
+        probability = density / ntraj
+
+        # ----------------------
+        # Apply Gaussian filter.
+        # ----------------------
+        # Spatially filter probability distribution with isotropic
+        # Gaussian filter.
+        probability = gaussian_filter(probability, sigma=gf_sigma, mode="constant")
+
+    # ----------------------------------------------------------------
+    # Returning computed variables to be added to trajectories object.
+    # ----------------------------------------------------------------
+    # Returning the latitude, longitude and probability gridded data.
+    return lon_centre, lat_centre, probability
 
 ##############################################################################
 # Define compute_displacement() function.
@@ -686,11 +876,11 @@ def compute_distance(self, cumsum_dist, unit):
     # Return cumulative distance for each trajectory ndarray, dist.
     return dist
 
+
 ##############################################################################
 # Define compute_probability_distribution() function.
 
-
-def compute_probability_distribution(self, lat_lims, lon_lims, bin_res, method, gf_sigma=None):
+def compute_probability_distribution(self, bin_res, method, gf_sigma=None, group_by=None):
     """
     Compute 2-dimensional binned Lagrangian probability
     distributions using particle positions or particle
@@ -701,18 +891,12 @@ def compute_probability_distribution(self, lat_lims, lon_lims, bin_res, method, 
     of particle positions ('pos') or the total number
     of particles ('traj').
 
-    A Gaussian filter with a specified standard deviation
-    may alsobe included to smooth the distribution.
+    A Gaussian filter with a specified radius may also
+    be included to smooth the distribution.
 
     Parameters
     ----------
     self : trajectories object
-    lat_lims : list
-        List containing [min, max] latitudes defining the grid
-        domain.
-    lon_lims : list
-        List containing [min, max] longitudes defining the grid
-        domain.
         Trajectories object passed from trajectories class method.
     bin_res : numeric
         The resolution (degrees) of the grid on to which particle
@@ -727,6 +911,10 @@ def compute_probability_distribution(self, lat_lims, lon_lims, bin_res, method, 
     gf_sigma : numeric
         The standard deviation of the Gaussian filter (degrees) with
         which to smooth the Lagrangian probability distribution.
+    group_by : string
+        Grouping variable to compute Lagrangian probability
+        distributions - one distribution is computed for every
+        unique member of variable. See example below.
 
     Returns
     -------
@@ -736,143 +924,331 @@ def compute_probability_distribution(self, lat_lims, lon_lims, bin_res, method, 
         Lagrangian probability distribution with
         dimensions (x - y).
     """
-    # ---------------------------------------------------------
-    # Defining grid on which particle positions will be binned.
-    # ---------------------------------------------------------
+    # ------------------------------------------------
+    # Defining grid domain to determine probabilities.
+    # ------------------------------------------------
     # Defining lat and lon for trajectories.
     lat = np.copy(self.data.lat.values)
     lon = np.copy(self.data.lon.values)
 
-    # Defining bin size with specified bin_res.
-    dx = dy = bin_res
+    # Finding the maximum and minimum values of lat and lon
+    # to the nearest degree E/N for all trajectories
+    lat_max = np.ceil(np.nanmax(lat))
+    lat_min = np.floor(np.nanmin(lat))
+    lon_max = np.ceil(np.nanmax(lon))
+    lon_min = np.floor(np.nanmin(lon))
 
-    # Defining bin edges in 1-dimensional arrays.
-    bin_x = np.arange(lon_lims[0], lon_lims[1] + dx, dx)
-    bin_y = np.arange(lat_lims[0], lat_lims[1] + dy, dy)
+    # Storing min and max latitudes in lat_lims.
+    lat_lims = [lat_min, lat_max]
+    # Storing min and max longitudes in lon_lims.
+    lon_lims = [lon_min, lon_max]
 
-    # Defining 2-d grids from 1-d bin edge arrays.
-    lat_grid, lon_grid = np.meshgrid(bin_y, bin_x)
+    # -------------------------------------
+    # Subroutine without group_by variable.
+    # -------------------------------------
+    if group_by is None:
 
-    # Defining the coordinates of centre of each grid cell
-    # with lat_centre, lon_centre.
-    lon_centre = lon_grid[:-1, :] + np.diff(lon_grid, axis=0)/2
-    lat_centre = lat_grid[:, :-1] + np.diff(lat_grid, axis=1)/2
+        # -----------------------------------------------
+        # Computing Lagrangian Probability Distributions.
+        # -----------------------------------------------
 
-    # Resizing to equal shape of probability array (x-y).
-    lon_centre = lon_centre[:, :-1]
-    lat_centre = lat_centre[:-1, :]
+        # Compute probability distribution to return gridded
+        # longitudes, latitudes and probabilities.
+        nav_lon, nav_lat, probability = lagrangian_probability(self, lat_lims=lat_lims, lon_lims=lon_lims, bin_res=bin_res, method=method, gf_sigma=gf_sigma)
 
-    # ---------------------------------------------------
-    # Subroutine for probability with particle positions.
-    # ---------------------------------------------------
-    if method == 'pos':
+        # Append DataArrays to original DataSet.
+        self.data['nav_lat'] = xr.DataArray(nav_lat, dims=["y", "x"])
+        self.data['nav_lon'] = xr.DataArray(nav_lon, dims=["y", "x"])
+        self.data['probability'] = xr.DataArray(probability, dims=["y", "x"])
 
-        # -----------------------------------
-        # Computing particle density on grid.
-        # -----------------------------------
-        # Using scipy to count the number of particle positions per bin
-        stat = stats.binned_statistic_2d(x=lon.flatten(), y=lat.flatten(), values=None, statistic='count', bins=[bin_x, bin_y])
-        # For empty bin set count value to NaN.
-        stat.statistic[stat.statistic == 0] = np.nan
+    # ----------------------------------
+    # Subroutine with group_by variable.
+    # ----------------------------------
+    else:
+        # Determining the number of unique elements in group_by.
+        vals = np.unique(self.data[group_by].values)
+        # Defining empty list to store probs.
+        probs = []
 
-        # ------------------------------
-        # Computing probability on grid.
-        #  ------------------------------
-        # Defining number of particle positions, npos.
-        npos = len(lon.flatten())  # lon/lat could be used here.
-        # Compute probability as a percentage, prob.
-        probability = stat.statistic / npos
+        # -----------------------------------------------
+        # Computing Lagrangian Probability Distributions.
+        # -----------------------------------------------
 
-    # ---------------------------------------------------------------
-    # Subroutine for probability with particle positions and gfilter.
-    # ---------------------------------------------------------------
-    elif method == 'pos-gauss':
+        # Iterate over all unique elements in group_by and
+        # compute a Lagrangian probability distribution.
+        for n in vals:
+            # Filter trajectories where group_by equals n.
+            traj = self.filter_equal(group_by, n)
 
-        # -----------------------------------
-        # Computing particle density on grid.
-        # -----------------------------------
-        # Using scipy to count the number of particle positions per bin
-        stat = stats.binned_statistic_2d(x=lon.flatten(), y=lat.flatten(), values=None, statistic='count', bins=[bin_x, bin_y])
+            # Compute probability distribution to return gridded
+            # longitudes, latitudes and probabilities.
+            nav_lon, nav_lat, p = lagrangian_probability(traj, lat_lims=lat_lims, lon_lims=lon_lims, bin_res=bin_res, method=method, gf_sigma=gf_sigma)
 
-        # ------------------------------
-        # Computing probability on grid.
-        #  ------------------------------
-        # Defining number of particle positions, npos.
-        npos = len(lon.flatten())  # lon/lat could be used here.
-        # Compute probability as a percentage, prob.
-        probability = stat.statistic / npos
+            # Append probability distribution, p, in probability.
+            probs.append(p)
 
-        # ----------------------
-        # Apply Gaussian filter.
-        # ----------------------
-        # Spatially filter probability distribution with isotropic
-        # Gaussian filter.
-        probability = gaussian_filter(probability, sigma=gf_sigma, mode="constant")
+        # ------------------------------------------
+        # Appending data to our trajectories object.
+        # ------------------------------------------
+        # Convert probs to a 3-dimensional ndarray.
+        probability = np.stack(probs)
 
-    # -------------------------------------------------
-    # Subroutine for probability with all trajectories.
-    # -------------------------------------------------
-    elif method == 'traj':
+        # Append DataArrays to original DataSet.
+        self.data['nav_lat'] = xr.DataArray(nav_lat, dims=["y", "x"])
+        self.data['nav_lon'] = xr.DataArray(nav_lon, dims=["y", "x"])
+        self.data['probability'] = xr.DataArray(probability, dims=["sample", "y", "x"])
 
-        # Defining array to store particle density.
-        density = np.zeros([len(bin_x) - 1, len(bin_y) - 1])
+    # -----------------------------------
+    # Adding variable attributes DataSet.
+    # -----------------------------------
+    self.data.nav_lat.attrs = {
+                        'long_name': "Latitude",
+                        'standard_name': "latitude",
+                        'units': "degrees_north",
+                        }
+    self.data.nav_lon.attrs = {
+                        'long_name': "Longitude",
+                        'standard_name': "longitude",
+                        'units': "degrees_east",
+                        }
+    self.data.probability.attrs = {
+                        'long_name': "Lagrangian probability",
+                        'standard_name': "probability",
+                        }
 
-        # Defining no. trajectories, ntraj.
-        ntraj = np.shape(lat)[0]  # lat/lon could be used here.
+    # Return updated DataSet.
+    return self.data
 
-        # Iterate over all trajectories.
-        for i in np.arange(0, ntraj):
-            # Using scipy to count the number of particle per bin.
-            stat = stats.binned_statistic_2d(lon[i, :], lat[i, :], None, 'count', bins=[bin_x, bin_y])
-            # Where a particle is counted more than once in bin set = 1.
-            stat.statistic[stat.statistic > 1] = 1
-            # Update density with counts from particle.
-            density = density + stat.statistic
 
-        # For empty bin set density value to NaN.
-        density[density == 0] = np.nan
+##############################################################################
+# Define compute_fuv() method.
 
-        # -----------------------------
-        # Computing probability on grid.
-        #  ------------------------------
-        # Compute probability as a percentage, prob.
-        probability = density / ntraj
+def compute_fuv(self, bin_res, method, resample, repeats, gf_sigma=None, group_by=None):
+    """
+    Compute fraction of unexplained variance (FUV)
+    between a series of 2-dimensional binned Lagrangian
+    probability distributions and a reference distribution.
 
-    # ------------------------------------------------------------
-    # Subroutine for probability with all trajectories and filter.
-    # ------------------------------------------------------------
-    elif method == 'traj-gauss':
+    Particle positions are binned into a 2-dimensional
+    (x-y) histogram and normalised by the total number
+    of particle positions ('pos') or the total number
+    of particles ('traj').
 
-        # Defining array to store particle density.
-        density = np.zeros([len(bin_x) - 1, len(bin_y) - 1])
+    A Gaussian filter with a specified radius may also
+    be included to smooth the distribution.
 
-        # Defining no. trajectories, ntraj.
-        ntraj = np.shape(lat)[0]  # lat/lon could be used here.
+    Parameters
+    ----------
+    self : trajectories object
+        Trajectories object passed from trajectories class method.
+    bin_res : numeric
+        The resolution (degrees) of the grid on to which particle
+        positions will be binned.
+    method : string
+        The type of probability to be computed. 'pos' - particle
+        positions are binned and then normalised by the total number
+        of particle positions. 'traj' - for each particle positions
+        are counted once per bin and then normalised by the total
+        number of particles. To include a Gaussian filter modify the
+        methods above to 'pos-gauss' or 'traj-gauss'.
+    gf_sigma : numeric
+        The standard deviation of the Gaussian filter (degrees) with
+        which to smooth the Lagrangian probability distribution.
+    resample : list
+        A list of integers containing the number of trajectories to
+        randomly resample from the reference simulation.
+    repeats : numeric
+        Number of times to repeat each random resampling of the
+        reference simulation.
+    group_by : string
+        Grouping variable to compute reference Lagrangian probability
+        distributions - one distribution is computed for every
+        unique member of variable. See example below.
 
-        # Iterate over all trajectories.
-        for i in np.arange(0, ntraj):
-            # Using scipy to count the number of particle per bin.
-            stat = stats.binned_statistic_2d(lon[i, :], lat[i, :], None, 'count', bins=[bin_x, bin_y])
-            # Where a particle is counted more than once in bin set = 1.
-            stat.statistic[stat.statistic > 1] = 1
-            # Update density with counts from particle.
-            density = density + stat.statistic
+    Returns
+    -------
+    ndarray.
+        The 95% upper bound FUV values for each resample (N) of the
+        reference simulation are returned in a (1 x N) array. Where
+        group_by to identify multiple reference simulations a (r x N)
+        array will be returned, where r is equal to the number of
+        reference simulations.
+    """
+    # ------------------------------------------------
+    # Defining grid domain to determine probabilities.
+    # ------------------------------------------------
+    # Defining lat and lon for trajectories.
+    lat = np.copy(self.data.lat.values)
+    lon = np.copy(self.data.lon.values)
 
-        # -----------------------------
-        # Computing probability on grid.
-        #  ------------------------------
-        # Compute probability as a percentage, prob.
-        probability = density / ntraj
+    # Finding the maximum and minimum values of lat and lon
+    # to the nearest degree E/N for all trajectories
+    lat_max = np.ceil(np.nanmax(lat))
+    lat_min = np.floor(np.nanmin(lat))
+    lon_max = np.ceil(np.nanmax(lon))
+    lon_min = np.floor(np.nanmin(lon))
 
-        # ----------------------
-        # Apply Gaussian filter.
-        # ----------------------
-        # Spatially filter probability distribution with isotropic
-        # Gaussian filter.
-        probability = gaussian_filter(probability, sigma=gf_sigma, mode="constant")
+    # Storing min and max latitudes in lat_lims.
+    lat_lims = [lat_min, lat_max]
+    # Storing min and max longitudes in lon_lims.
+    lon_lims = [lon_min, lon_max]
 
-    # ----------------------------------------------------------------
-    # Returning computed variables to be added to trajectories object.
-    # ----------------------------------------------------------------
-    # Returning the latitude, longitude and probability gridded data.
-    return lon_centre, lat_centre, probability
+    # -------------------------------------
+    # Subroutine without group_by variable.
+    # -------------------------------------
+    if group_by is None:
+
+        # --------------------------------
+        # Defining number of trajectories.
+        # --------------------------------
+        # Any (traj x obs) variable could be used here.
+        ntraj = np.shape(self.data.lat)[0]
+
+        # -----------------------------------------------
+        # Computing Lagrangian probability distribution.
+        # -----------------------------------------------
+        # Compute reference probability distribution.
+        _, _, reference_p = lagrangian_probability(self, lat_lims=lat_lims, lon_lims=lon_lims, bin_res=bin_res, method=method, gf_sigma=gf_sigma)
+
+        # ----------------------------------------------------
+        # Resample trajectories from the reference simulation.
+        # ----------------------------------------------------
+        # Defining fuv to store FUV values from repeats.
+        fuv = np.zeros(repeats)
+
+        # Defining fuv_upper_bound to store 95% upper bound of
+        # FUV values for each resample.
+        nsample = len(resample)
+        fuv_upper_bound = np.zeros(nsample)
+
+        for N in np.arange(nsample):
+            for rep in np.arange(repeats):
+                # Randomly sample indices of N trajectories.
+                ind = random.sample(range(0, ntraj), resample[N])
+                # Use indices to create list of ids to resample.
+                sample_id = list(self.id.values[ind])
+                # Store resample N trajectories by id.
+                traj = self.filter_equal('id', sample_id)
+
+                # ----------------------------------------------
+                # Computing Lagrangian probability distribution.
+                # ----------------------------------------------
+                # Compute resampled Lagrangian probability distribution.
+                _, _, resample_p = lagrangian_probability(traj, lat_lims=lat_lims, lon_lims=lon_lims, bin_res=bin_res, method=method, gf_sigma=gf_sigma)
+
+                # -------------------------------------------
+                # Compute FUV from reference and sample LPDs.
+                # -------------------------------------------
+                # Flatten probability 2-d arrays for comparison.
+                reference_p = reference_p.flatten()
+                resample_p = resample_p.flatten()
+
+                # Find indices of NaN values in probability arrays.
+                nan_vals = ~np.logical_or(np.isnan(reference_p), np.isnan(resample_p))
+
+                # Extract only elements where reference/resample_p
+                # have values to compare, x and y.
+                x = np.compress(nan_vals, reference_p)
+                y = np.compress(nan_vals, resample_p)
+
+                # Compute the pearson correlation coefficient (r).
+                r, _ = stats.pearsonr(x, y)
+
+                # Compute Fraction of Unexplained Variance, fuv.
+                fuv[rep] = (1 - r**2)
+
+            # -------------------------------
+            # Compute 95% upper bound of FUV.
+            # -------------------------------
+            # Finding the 95% percentile of the FUV distribution
+            # stored in fuv.
+            fuv_upper_bound[N] = np.percentile(fuv, 95)
+
+    # ----------------------------------
+    # Subroutine with group_by variable.
+    # ----------------------------------
+    else:
+        # Determining the number of unique elements in group_by.
+        vals = np.unique(self.data[group_by].values)
+
+        # Defining number of reference simulations.
+        nval = len(vals)
+        # Defining number of resamples.
+        nsample = len(resample)
+
+        # -----------------------------------------------
+        # Computing Lagrangian Probability Distributions.
+        # -----------------------------------------------
+        # Defining fuv_upper_bound to store 95% upper bound of
+        # FUV values for each resample for each reference sim.
+        fuv_upper_bound = np.zeros([nval, nsample])
+
+        # Iterate over all unique elements in group_by and
+        # compute a Lagrangian probability distribution.
+        for n in np.arange(nval):
+            # Filter trajectories where group_by equals n.
+            traj = self.filter_equal(group_by, vals[n])
+
+            # ----------------------------------------
+            # Defining number of trajectories in traj.
+            # ----------------------------------------
+            # Any (traj x obs) variable could be used here.
+            ntraj = np.shape(traj.data.lat)[0]
+
+            # -----------------------------------------------
+            # Computing Lagrangian probability distribution.
+            # -----------------------------------------------
+            # Compute reference probability distribution.
+            _, _, reference_p = lagrangian_probability(traj, lat_lims=lat_lims, lon_lims=lon_lims, bin_res=bin_res, method=method, gf_sigma=gf_sigma)
+
+            # ----------------------------------------------------
+            # Resample trajectories from the reference simulation.
+            # ----------------------------------------------------
+            # Defining fuv to store FUV values from repeats.
+            fuv = np.zeros(repeats)
+
+            for N in np.arange(nsample):
+                for rep in np.arange(repeats):
+                    # Randomly generate indices of N trajectories.
+                    ind = random.sample(range(0, ntraj), resample[N])
+                    # Use indices to create list of ids to resample.
+                    sample_id = list(traj.id.values[ind])
+                    # Store resample N trajectories by id.
+                    traj_resample = traj.filter_equal('id', sample_id)
+
+                    # ----------------------------------------------
+                    # Computing Lagrangian probability distribution.
+                    # ----------------------------------------------
+                    # Compute resampled Lagrangian probability distribution.
+                    _, _, resample_p = lagrangian_probability(traj_resample, lat_lims=lat_lims, lon_lims=lon_lims, bin_res=bin_res, method=method, gf_sigma=gf_sigma)
+
+                    # -------------------------------------------
+                    # Compute FUV from reference and sample LPDs.
+                    # -------------------------------------------
+                    # Flatten probability 2-d arrays for comparison.
+                    reference_p = reference_p.flatten()
+                    resample_p = resample_p.flatten()
+
+                    # Find indices of NaN values in probability arrays.
+                    nan_vals = ~np.logical_or(np.isnan(reference_p), np.isnan(resample_p))
+
+                    # Extract only elements where reference/resample_p
+                    # have values to compare, x and y.
+                    x = np.compress(nan_vals, reference_p)
+                    y = np.compress(nan_vals, resample_p)
+
+                    # Compute the pearson correlation coefficient (r).
+                    r, _ = stats.pearsonr(x, y)
+
+                    # Compute Fraction of Unexplained Variance, fuv.
+                    fuv[rep] = (1 - r**2)
+
+                # -------------------------------
+                # Compute 95% upper bound of FUV.
+                # -------------------------------
+                # Finding the 95% percentile of the FUV distribution
+                # stored in fuv.
+                fuv_upper_bound[n, N] = np.percentile(fuv, 95)
+
+    # Return updated DataSet.
+    return fuv_upper_bound
