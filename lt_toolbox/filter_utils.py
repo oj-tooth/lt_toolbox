@@ -17,6 +17,7 @@ import numpy as np
 import xarray as xr
 import pygeos
 
+
 ##############################################################################
 # Define filter_traj_between() function.
 
@@ -125,6 +126,8 @@ def filter_traj_equal(self, variable, val, drop):
 
     Parameters
     ----------
+    self : trajectories object
+        Trajectories object passed from trajectories class method.
     variable : string
         Name of the variable in the trajectories object.
     val : numeric
@@ -202,6 +205,8 @@ def filter_traj_polygon(self, polygon, method, drop):
 
     Parameters
     ----------
+    self : trajectories object
+        Trajectories object passed from trajectories class method.
     polygon : list
         List of coordinates, specified as an ordered sequence of tuples
         (Lon, Lat), representing the boundary of the polygon.

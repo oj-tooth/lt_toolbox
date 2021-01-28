@@ -15,10 +15,12 @@
 # Importing relevant packages.
 
 import random
+import pygeos
 import numpy as np
-import xarray as xr
 import scipy.stats as stats
 from scipy.ndimage import gaussian_filter
+from .get_utils import get_start_time
+from .find_utils import find_equal
 
 ##############################################################################
 # Define haversine_distance() function.
@@ -878,6 +880,198 @@ def compute_distance(self, cumsum_dist, unit):
 
 
 ##############################################################################
+# Define compute_res_time() function.
+
+
+def compute_res_time(self, polygon):
+    """
+    Compute the maximum duration (days) that particles spend
+    within a specified polygon (residence time).
+
+    Residence time is defined as the longest continuous
+    period of time that a particle is contained within the
+    limits of the specified polygon/s.
+
+    Parameters
+    ----------
+    self : trajectories object
+        Trajectories object passed from trajectories class method.
+    polygon : list
+        List of coordinates, specified as an ordered sequence of tuples
+        (Lon, Lat), representing the boundary of the polygon.
+
+    Returns
+    -------
+    ndarray
+        Residence time (days) with dimensions (traj).
+
+    """
+    # ------------------------------------------
+    # Defining Latitude and Longitude variables.
+    # ------------------------------------------
+    Lon = np.copy(self.data['lon'].values)
+    Lat = np.copy(self.data['lat'].values)
+
+    # Defining number of trajectories.
+    ntraj = np.shape(Lon)[0]
+
+    # Defining nanoseconds in 1 day.
+    ns_per_day = (24*3600*1E9)
+
+    # Finding the start time of the first trajectory.
+    t_start = get_start_time(self)[0]
+    # Find index of t_start for first trajectory.
+    ind_start = find_equal(self, 'time', t_start)[1][0]
+
+    # Compute time-step, dt, (nanoseconds) using start time of
+    # first trajectory.
+    dt = self.data['time'].values[0, ind_start + 1] - self.data['time'].values[0, ind_start]
+    # Converting dt to units of days.
+    dt = dt.astype('int64') / ns_per_day
+
+    # -------------------------------------------
+    # Defining shapes from specified coordinates.
+    # -------------------------------------------
+    # Storing pygeos polygon, poly.
+    poly = pygeos.creation.polygons(polygon)
+
+    # -----------------------------------------------------------
+    # Using pygeos to filter trajectories intersecting a polygon.
+    # -----------------------------------------------------------
+    # Configuiring max_residence as an array of integer type
+    # (dimensions = traj).
+    max_residence = np.zeros(ntraj, dtype='int64')
+
+    # Setting NaNs in Lat and Lon to a missing data value (must not be
+    # within range of coordinates -180E to 180E or -90N to 90N).
+    Lon[np.isnan(Lon)] = -99999
+    Lat[np.isnan(Lat)] = -99999
+
+    # Iterating over all trajectories and defining a Point Collection
+    # with trajectory points.
+    for i in np.arange(ntraj):
+        # Storing Lats and Lons for trajectory i.
+        lon = Lon[i, :]
+        lat = Lat[i, :]
+
+        # Defining coordinates as transposed tuple of Lats and Lons.
+        coords = np.array((lon, lat)).T
+
+        # Defining points as a pygeos point collection.
+        trajectory_points = pygeos.creation.points(coords)
+
+        # Defining mask evaluating if each trajectory point is contained
+        # within the polygon.
+        mask = pygeos.predicates.contains(poly, trajectory_points)
+        # Insert a False value at the start of the mask array.
+        mask = np.insert(mask, [0], [False])
+
+        # Finding largest number of consecutive True values - where
+        # a particle is contained within the specified polygon.
+        max_residence[i] = np.max(np.diff(np.where(mask == False)) - 1)
+
+    # Compute maximum residence time.
+    max_residence_time = max_residence * dt
+
+    # Return max residence time ndarray.
+    return max_residence_time
+
+
+##############################################################################
+# Define compute_trans_time() function.
+
+def compute_trans_time(self, polygon):
+    """
+    Compute the time taken (days) for filtered particles
+    to first intersect a specified polygon (transit time).
+
+    Transit time is defined as the time taken for each
+    particle to enter the limits of the specified polygon/s.
+
+    Parameters
+    ----------
+    self : trajectories object
+        Trajectories object passed from trajectories class method.
+    polygon : list
+        List of coordinates, specified as an ordered sequence of tuples
+        (Lon, Lat), representing the boundary of the polygon.
+
+    Returns
+    -------
+    ndarray
+        Transit time (days) with dimensions (traj).
+
+    """
+    # ------------------------------------------
+    # Defining Latitude and Longitude variables.
+    # ------------------------------------------
+    Lon = np.copy(self.data['lon'].values)
+    Lat = np.copy(self.data['lat'].values)
+
+    # Defining number of trajectories.
+    ntraj = np.shape(Lon)[0]
+
+    # Defining indexes for trajectories, transit_row.
+    transit_row = np.arange(np.shape(Lon)[0])
+
+    # Finding the start times of trajectories.
+    t_start = get_start_time(self)
+
+    # Defining nanoseconds in 1 day.
+    ns_per_day = (24*3600*1E9)
+
+    # -------------------------------------------
+    # Defining shapes from specified coordinates.
+    # -------------------------------------------
+    # Storing pygeos polygon, poly.
+    poly = pygeos.creation.polygons(polygon)
+
+    # -----------------------------------------------------------
+    # Using pygeos to filter trajectories intersecting a polygon.
+    # -----------------------------------------------------------
+    # Configuiring transit_col as an array of integer type
+    # (dimensions = traj).
+    transit_col = np.zeros(ntraj, dtype='int64')
+
+    # Setting NaNs in Lat and Lon to a missing data value (must not be
+    # within range of coordinates -180E to 180E or -90N to 90N).
+    Lon[np.isnan(Lon)] = -99999
+    Lat[np.isnan(Lat)] = -99999
+
+    # Iterating over all trajectories and defining a Point Collection
+    # with trajectory points.
+    for i in np.arange(ntraj):
+        # Storing Lats and Lons for trajectory i.
+        lon = Lon[i, :]
+        lat = Lat[i, :]
+
+        # Defining coordinates as transposed tuple of Lats and Lons.
+        coords = np.array((lon, lat)).T
+
+        # Defining points as a pygeos point collection.
+        trajectory_points = pygeos.creation.points(coords)
+
+        # Defining mask evaluating if each trajectory point is contained
+        # within the polygon.
+        mask = pygeos.predicates.contains(poly, trajectory_points)
+
+        # Raising a RuntimeError where a unfiltered trajectories object is
+        # used.
+        mask_true = np.where(mask == True)[0]
+        if len(mask_true) > 0:
+            transit_col[i] = np.min(mask_true)
+        else:
+            raise RuntimeError('Contains trajectories which do not intersect the specified polygon/s. Use filter_polygon() to return trajectories which intersect the specified polygon/s prior to calling .compute_transit_time().')
+
+    # Compute the transit times from time values (nanoseconds).
+    transit_time = self.data['time'].values[transit_row, transit_col] - t_start
+    # Convert transit time to units of days.
+    transit_time = transit_time.astype('int64') / ns_per_day
+
+    # Return transit time ndarray.
+    return transit_time
+
+##############################################################################
 # Define compute_probability_distribution() function.
 
 def compute_probability_distribution(self, bin_res, method, gf_sigma=None, group_by=None):
@@ -956,11 +1150,6 @@ def compute_probability_distribution(self, bin_res, method, gf_sigma=None, group
         # longitudes, latitudes and probabilities.
         nav_lon, nav_lat, probability = lagrangian_probability(self, lat_lims=lat_lims, lon_lims=lon_lims, bin_res=bin_res, method=method, gf_sigma=gf_sigma)
 
-        # Append DataArrays to original DataSet.
-        self.data['nav_lat'] = xr.DataArray(nav_lat, dims=["y", "x"])
-        self.data['nav_lon'] = xr.DataArray(nav_lon, dims=["y", "x"])
-        self.data['probability'] = xr.DataArray(probability, dims=["y", "x"])
-
     # ----------------------------------
     # Subroutine with group_by variable.
     # ----------------------------------
@@ -987,37 +1176,14 @@ def compute_probability_distribution(self, bin_res, method, gf_sigma=None, group
             # Append probability distribution, p, in probability.
             probs.append(p)
 
-        # ------------------------------------------
-        # Appending data to our trajectories object.
-        # ------------------------------------------
+        # ---------------------------
+        # Returning data as ndarrays.
+        # ---------------------------
         # Convert probs to a 3-dimensional ndarray.
         probability = np.stack(probs)
 
-        # Append DataArrays to original DataSet.
-        self.data['nav_lat'] = xr.DataArray(nav_lat, dims=["y", "x"])
-        self.data['nav_lon'] = xr.DataArray(nav_lon, dims=["y", "x"])
-        self.data['probability'] = xr.DataArray(probability, dims=["sample", "y", "x"])
-
-    # -----------------------------------
-    # Adding variable attributes DataSet.
-    # -----------------------------------
-    self.data.nav_lat.attrs = {
-                        'long_name': "Latitude",
-                        'standard_name': "latitude",
-                        'units': "degrees_north",
-                        }
-    self.data.nav_lon.attrs = {
-                        'long_name': "Longitude",
-                        'standard_name': "longitude",
-                        'units': "degrees_east",
-                        }
-    self.data.probability.attrs = {
-                        'long_name': "Lagrangian probability",
-                        'standard_name': "probability",
-                        }
-
-    # Return updated DataSet.
-    return self.data
+    # Return nav_lon, nav_lat, probability as ndarray.
+    return nav_lon, nav_lat, probability
 
 
 ##############################################################################
