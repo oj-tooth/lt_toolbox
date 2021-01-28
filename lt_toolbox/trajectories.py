@@ -20,7 +20,7 @@ import numpy as np
 from .get_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_minmax, get_val
 from .add_utils import add_seed, add_id, add_var
 from .filter_utils import filter_traj_between, filter_traj_equal, filter_traj_polygon
-from .compute_utils import compute_displacement, compute_velocity, compute_distance, compute_probability_distribution
+from .compute_utils import compute_displacement, compute_velocity, compute_distance, compute_probability_distribution, compute_res_time, compute_trans_time
 
 
 ##############################################################################
@@ -66,6 +66,26 @@ class trajectories:
         For NCEI trajectory template see:
         https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/trajectoryIncomplete.cdl
         """
+        # -------------------
+        # Raising exceptions.
+        # -------------------
+        # Raise error if ds is not an xarray DataSet.
+        if (str(type(ds)) == "<class 'xarray.core.dataset.Dataset'>") is False:
+            raise TypeError("ds must be specified as an xarray DataSet")
+
+        # Defining list of variables contained in DataSet.
+        ds_variables = list(ds.variables)
+
+        # Raise error if the any required variable is absent from DataSet.
+        if 'time' not in ds_variables:
+            raise ValueError("required variable missing from Dataset: \'time\'")
+        if 'lat' not in ds_variables:
+            raise ValueError("required variable missing from Dataset: \'lat\'")
+        if 'lon' not in ds_variables:
+            raise ValueError("required variable missing from Dataset: \'lon\'")
+        if 'z' not in ds_variables:
+            raise ValueError("required variable missing from Dataset: \'z\'")
+
         # ----------------------------------------
         # Storing input Dataset as data attribute.
         # ----------------------------------------
@@ -85,6 +105,21 @@ class trajectories:
         # variables of trajectories object.
         for var in variables:
             setattr(self, var, getattr(self.data, var))
+
+##############################################################################
+# Define print() method.
+
+    def __str__(self):
+        # Return Dimension and Data Variables contained within
+        # trajectories object.
+        return "<trajectories object>\n\n------------------------------------------\nDimensions:  {2}\n\nTrajectories: {0}\nObservations: {1}\n------------------------------------------ \n{3}".format(np.shape(self.data['time'].values)[0], np.shape(self.data['time'].values)[1], list(self.data.dims), self.data.data_vars)
+
+##############################################################################
+# Define len() method.
+
+    def __len__(self):
+        # Return the no. trajectories containined in trajectories object.
+        return np.shape(self.data['time'].values)[0]
 
 ##############################################################################
 # Define use_datetime.
@@ -360,10 +395,12 @@ class trajectories:
 
         Examples
         --------
-        Filtering all trajectories which intersect a simple polygon, square.
+        Filtering all trajectories which intersect a simple polygon, square,
+        using 'pos' method to consider each trajectory as a collection of
+        points.
 
         >>> square = [(-40, 30), (-40, 35), (-30, 35), (-30, 30), (-40, 30)]
-        >>> trajectories.filter_polygon(square, drop=False)
+        >>> trajectories.filter_polygon(square, method='pos' drop=False)
         """
         # -------------------
         # Raising exceptions.
@@ -883,6 +920,129 @@ class trajectories:
         return trajectories(self.data)
 
 ##############################################################################
+# Define compute_residence_time() method.
+
+    def compute_residence_time(self, polygon):
+        """
+        Compute the maximum duration (days) that particles spend
+        within a specified polygon (residence time).
+
+        Residence time is defined as the longest continuous
+        period of time that a particle is contained within the
+        limits of the specified polygon/s.
+
+        Parameters
+        ----------
+        self : trajectories object
+            Trajectories object passed from trajectories class method.
+        polygon : list
+            List of coordinates, specified as an ordered sequence of tuples
+            (Lon, Lat), representing the boundary of the polygon.
+
+        Returns
+        -------
+        trajectories object.
+        Original trajectories object is returned with appended attribute
+        variable DataArray containing the residence time (days) of each
+        trajectory with dimensions (traj).
+
+        Examples
+        --------
+        Computing the residence time of trajectories which intersect a simple
+        polygon, square. Below we filter trajectories using 'pos' method to
+        consider each trajectory as a collection of points.
+
+        >>> square = [(-40, 30), (-40, 35), (-30, 35), (-30, 30), (-40, 30)]
+        >>> trajectories.filter_polygon(square, method='pos', drop=False).compute_residence_time(polygon=square)
+        """
+        # ------------------
+        # Raise exceptions.
+        # ------------------
+        if isinstance(polygon, list) is False:
+            raise TypeError("polygon must be specified as a list of tuples")
+
+        # --------------------------------------------------
+        # Computing residence times with .compute_res_time().
+        # --------------------------------------------------
+        max_residence_time = compute_res_time(self, polygon)
+
+        # Append DataArray to original DataSet.
+        self.data['residence_time'] = xr.DataArray(max_residence_time, dims=["traj"])
+
+        # -----------------------------------
+        # Adding variable attributes DataSet.
+        # -----------------------------------
+        self.data.residence_time.attrs = {
+                            'long_name': "maximum residence time",
+                            'standard_name': "residence_time",
+                            'units': "days",
+                            }
+
+        # Return trajectories object with updated DataSet.
+        return trajectories(self.data)
+
+##############################################################################
+# Define compute_transit_time() method.
+
+    def compute_transit_time(self, polygon):
+        """
+        Compute the time taken (days) for filtered particles
+        to first intersect a specified polygon (transit time).
+
+        Transit time is defined as the time taken for each
+        particle to enter the limits of the specified polygon/s.
+
+        Parameters
+        ----------
+        self : trajectories object
+            Trajectories object passed from trajectories class method.
+        polygon : list
+            List of coordinates, specified as an ordered sequence of tuples
+            (Lon, Lat), representing the boundary of the polygon.
+
+        Returns
+        -------
+        trajectories object.
+        Original trajectories object is returned with appended attribute
+        variable DataArray containing the transit time (days) of each
+        trajectory with dimensions (traj).
+
+        Examples
+        --------
+        Computing the transit time of trajectories which intersect a simple
+        polygon, square. Below we filter trajectories using 'pos' method to
+        consider each trajectory as a collection of points.
+
+        >>> square = [(-40, 30), (-40, 35), (-30, 35), (-30, 30), (-40, 30)]
+        >>> trajectories.filter_polygon(square, method='pos', drop=False).compute_transit_time(polygon=square)
+        """
+        # ------------------
+        # Raise exceptions.
+        # ------------------
+        if isinstance(polygon, list) is False:
+            raise TypeError("polygon must be specified as a list of tuples")
+
+        # -----------------------------------------------------
+        # Computing residence times with .compute_trans_time().
+        # -----------------------------------------------------
+        transit_time = compute_trans_time(self, polygon)
+
+        # Append DataArray to original DataSet.
+        self.data['transit_time'] = xr.DataArray(transit_time, dims=["traj"])
+
+        # -----------------------------------
+        # Adding variable attributes DataSet.
+        # -----------------------------------
+        self.data.transit_time.attrs = {
+                            'long_name': "transit time",
+                            'standard_name': "transit_time",
+                            'units': "days",
+                            }
+
+        # Return trajectories object with updated DataSet.
+        return trajectories(self.data)
+
+##############################################################################
 # Define compute_probability() method.
 
     def compute_probability(self, bin_res, method, gf_sigma=None, group_by=None):
@@ -963,10 +1123,37 @@ class trajectories:
         # ----------------------------------------------
         # Computing Lagrangian probability distribution.
         # ----------------------------------------------
-        ds = compute_probability_distribution(self, bin_res=bin_res, method=method, gf_sigma=gf_sigma, group_by=group_by)
+        nav_lon, nav_lat, probability = compute_probability_distribution(self, bin_res=bin_res, method=method, gf_sigma=gf_sigma, group_by=group_by)
+
+        # Append DataArrays to original DataSet.
+        self.data['nav_lat'] = xr.DataArray(nav_lat, dims=["y", "x"])
+        self.data['nav_lon'] = xr.DataArray(nav_lon, dims=["y", "x"])
+
+        if group_by is not None:
+            self.data['probability'] = xr.DataArray(probability, dims=["sample", "y", "x"])
+        else:
+            self.data['probability'] = xr.DataArray(probability, dims=["y", "x"])
+
+        # -----------------------------------
+        # Adding variable attributes DataSet.
+        # -----------------------------------
+        self.data.nav_lat.attrs = {
+                            'long_name': "Latitude",
+                            'standard_name': "latitude",
+                            'units': "degrees_north",
+                            }
+        self.data.nav_lon.attrs = {
+                            'long_name': "Longitude",
+                            'standard_name': "longitude",
+                            'units': "degrees_east",
+                            }
+        self.data.probability.attrs = {
+                            'long_name': "Lagrangian probability",
+                            'standard_name': "probability",
+                            }
 
         # Return trajectories object with updated DataSet.
-        return trajectories(ds)
+        return trajectories(self.data)
 
 ##############################################################################
 # Define get_start_time() method.
