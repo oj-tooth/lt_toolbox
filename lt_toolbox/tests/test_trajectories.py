@@ -940,9 +940,15 @@ test_between = traj_datetime.filter_between(variable='temp', min_val=18, max_val
 test_equal_single = traj_datetime.filter_equal(variable='temp', val=25, drop=False)
 test_equal_multi = traj_datetime.filter_equal(variable='temp', val=[2, 25], drop=False)
 
+# Filtering trajectories object using time for testing.
+test_between_time = traj_datetime.filter_between(variable='time', min_val=np.datetime64('2000-01-01'), max_val=np.datetime64('2000-01-06'), drop=False)
+test_equal_single_time = traj_datetime.filter_equal(variable='time', val=np.datetime64('2000-01-01'), drop=False)
+test_equal_multi_time = traj_datetime.filter_equal(variable='time', val=[np.datetime64('2000-01-01'), np.datetime64('2000-01-06')], drop=False)
+
+# Filtering trajectories object using polygon, poly, for testing.
 poly = [[[-45, 30], [-45, 35], [-35, 35], [-35, 30], [-45, 30]]]
-test_polygon_single = traj_datetime.filter_polygon(polygon=poly, method='pos', drop=False)
-test_polygon_multi = traj_datetime.filter_polygon(polygon=[poly[0], poly[0], poly[0], poly[0]], method='pos', drop=False)
+test_polygon_single_pos = traj_datetime.filter_polygon(polygon=poly, method='pos', drop=False)
+test_polygon_multi_pos = traj_datetime.filter_polygon(polygon=[poly[0], poly[0], poly[0], poly[0]], method='pos', drop=False)
 
 # Storing expected ndarrays of temp to be returned.
 expected_temp_between = np.array([[12, 18, 16, np.nan],
@@ -958,6 +964,25 @@ expected_temp_equal_multi = np.array([[2, 5, 7, 9],
                                      dtype='float64'
                                      )
 
+expected_time_between = np.array([[2, 5],
+                                  [12, 18],
+                                  [np.nan, 14],
+                                  [np.nan, 12]],
+                                 dtype='float64'
+                                 )
+
+expected_time_equal_single = np.array([[2],
+                                       [12],
+                                       [np.nan],
+                                       [np.nan]],
+                                      dtype='float64')
+
+expected_time_equal_multi = np.array([[2, 5],
+                                      [12, 18],
+                                      [np.nan, 14],
+                                      [np.nan, 12]],
+                                     dtype='float64')
+
 expected_temp_polygon = np.array([[np.nan, 12, 18, 16]], dtype='float64')
 
 
@@ -967,10 +992,13 @@ class TestFilters(object):
         "test, expected",
         [
             (test_between.temp.values, expected_temp_between),
-            (test_polygon_single.temp.values, expected_temp_polygon),
-            (test_polygon_multi.temp.values, expected_temp_polygon),
+            (test_polygon_single_pos.temp.values, expected_temp_polygon),
+            (test_polygon_multi_pos.temp.values, expected_temp_polygon),
             (test_equal_single.temp.values, expected_temp_equal_single),
-            (test_equal_multi.temp.values, expected_temp_equal_multi)
+            (test_equal_multi.temp.values, expected_temp_equal_multi),
+            (test_between_time.temp.values, expected_time_between),
+            (test_equal_single_time.temp.values, expected_time_equal_single),
+            (test_equal_multi_time.temp.values, expected_time_equal_multi)
         ])
     def test_filter_values(self, test, expected):
         # Test if filtered temp values are returned correctly.
@@ -980,40 +1008,17 @@ class TestFilters(object):
         "test, expected",
         [
             (test_between.temp.values.dtype, np.float64),
-            (test_polygon_single.temp.values.dtype, np.float64),
-            (test_polygon_multi.temp.values.dtype, np.float64),
+            (test_polygon_single_pos.temp.values.dtype, np.float64),
+            (test_polygon_multi_pos.temp.values.dtype, np.float64),
             (test_equal_single.temp.values.dtype, np.float64),
-            (test_equal_multi.temp.values.dtype, np.float64)
+            (test_equal_multi.temp.values.dtype, np.float64),
+            (test_between_time.temp.values.dtype, np.float64),
+            (test_equal_single_time.temp.values.dtype, np.float64),
+            (test_equal_multi_time.temp.values.dtype, np.float64)
         ])
     def test_filter_type(self, test, expected):
         # Test if filtered temp values are float64 type.
         assert np.issubdtype(test, expected)
-
-    @pytest.mark.parametrize(
-        "test, expected",
-        [
-            (np.ndim(test_between.temp.values), 2),
-            (np.ndim(test_polygon_single.temp.values), 2),
-            (np.ndim(test_polygon_multi.temp.values), 2),
-            (np.ndim(test_equal_single.temp.values), 2),
-            (np.ndim(test_equal_multi.temp.values), 2)
-        ])
-    def test_filter_dims(self, test, expected):
-        # Test if filtered temp variable has correct no. dimensions.
-        assert test == expected
-
-    @pytest.mark.parametrize(
-        "test, expected",
-        [
-            (np.shape(test_between.temp.values)[0], 3),
-            (np.shape(test_polygon_single.temp.values)[0], 1),
-            (np.shape(test_polygon_multi.temp.values)[0], 1),
-            (np.shape(test_equal_single.temp.values)[0], 1),
-            (np.shape(test_equal_multi.temp.values)[0], 2)
-        ])
-    def test_filter_size(self, test, expected):
-        # Test if filtered temp is sized correctly.
-        assert test == expected
 
 ##############################################################################
 # Defining TestTimes class.
@@ -1059,27 +1064,3 @@ class TestTimes(object):
     def test_time_type(self, test, expected):
         # Test if returned time array elements are float64 type.
         assert np.issubdtype(test, expected)
-
-    @pytest.mark.parametrize(
-        "test, expected",
-        [
-            (np.ndim(test_residence_time_dt.residence_time.values), 1),
-            (np.ndim(test_residence_time_td.residence_time.values), 1),
-            (np.ndim(test_transit_time_dt.transit_time.values), 1),
-            (np.ndim(test_transit_time_td.transit_time.values), 1),
-        ])
-    def test_time_dims(self, test, expected):
-        # Test if returned time array has correct no. dimensions.
-        assert test == expected
-
-    @pytest.mark.parametrize(
-        "test, expected",
-        [
-            (np.shape(test_residence_time_dt.residence_time.values)[0], 4),
-            (np.shape(test_residence_time_td.residence_time.values)[0], 4),
-            (np.shape(test_transit_time_dt.transit_time.values)[0], 1),
-            (np.shape(test_transit_time_td.transit_time.values)[0], 1),
-        ])
-    def test_time_size(self, test, expected):
-        # Test if returned time array is sized correctly.
-        assert test == expected
