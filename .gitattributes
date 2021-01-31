@@ -1,4 +1,4 @@
 # File to give attributes to pathnames in GitHub.
 
 # Consider jupyter notebooks as documentation - excluded from language statistics.
-.ipynb linguist-documentation
+tutorials/*.ipynb linguist-documentation
