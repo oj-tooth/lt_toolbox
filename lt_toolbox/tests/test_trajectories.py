@@ -53,6 +53,8 @@ test_lon = np.array([[-40, -40, -40, -40],
                     dtype="float64"
                     )
 
+poly = [[[-45, 30], [-45, 35], [-35, 35], [-35, 30], [-45, 30]]]
+
 # Depth variable.
 test_z = np.array([[-0.5, -1, -1.5, -2],
                   [-0.5, -1, -1.5, np.nan],
@@ -938,8 +940,9 @@ test_between = traj_datetime.filter_between(variable='temp', min_val=18, max_val
 test_equal_single = traj_datetime.filter_equal(variable='temp', val=25, drop=False)
 test_equal_multi = traj_datetime.filter_equal(variable='temp', val=[2, 25], drop=False)
 
-poly = [(-45, 30), (-45, 35), (-35, 35), (-35, 30), (-45, 30)]
-test_polygon = traj_datetime.filter_polygon(polygon=poly, drop=False)
+poly = [[[-45, 30], [-45, 35], [-35, 35], [-35, 30], [-45, 30]]]
+test_polygon_single = traj_datetime.filter_polygon(polygon=poly, method='pos', drop=False)
+test_polygon_multi = traj_datetime.filter_polygon(polygon=[poly[0], poly[0], poly[0], poly[0]], method='pos', drop=False)
 
 # Storing expected ndarrays of temp to be returned.
 expected_temp_between = np.array([[12, 18, 16, np.nan],
@@ -964,7 +967,8 @@ class TestFilters(object):
         "test, expected",
         [
             (test_between.temp.values, expected_temp_between),
-            (test_polygon.temp.values, expected_temp_polygon),
+            (test_polygon_single.temp.values, expected_temp_polygon),
+            (test_polygon_multi.temp.values, expected_temp_polygon),
             (test_equal_single.temp.values, expected_temp_equal_single),
             (test_equal_multi.temp.values, expected_temp_equal_multi)
         ])
@@ -976,7 +980,8 @@ class TestFilters(object):
         "test, expected",
         [
             (test_between.temp.values.dtype, np.float64),
-            (test_polygon.temp.values.dtype, np.float64),
+            (test_polygon_single.temp.values.dtype, np.float64),
+            (test_polygon_multi.temp.values.dtype, np.float64),
             (test_equal_single.temp.values.dtype, np.float64),
             (test_equal_multi.temp.values.dtype, np.float64)
         ])
@@ -988,7 +993,8 @@ class TestFilters(object):
         "test, expected",
         [
             (np.ndim(test_between.temp.values), 2),
-            (np.ndim(test_polygon.temp.values), 2),
+            (np.ndim(test_polygon_single.temp.values), 2),
+            (np.ndim(test_polygon_multi.temp.values), 2),
             (np.ndim(test_equal_single.temp.values), 2),
             (np.ndim(test_equal_multi.temp.values), 2)
         ])
@@ -1000,10 +1006,80 @@ class TestFilters(object):
         "test, expected",
         [
             (np.shape(test_between.temp.values)[0], 3),
-            (np.shape(test_polygon.temp.values)[0], 1),
+            (np.shape(test_polygon_single.temp.values)[0], 1),
+            (np.shape(test_polygon_multi.temp.values)[0], 1),
             (np.shape(test_equal_single.temp.values)[0], 1),
             (np.shape(test_equal_multi.temp.values)[0], 2)
         ])
     def test_filter_size(self, test, expected):
         # Test if filtered temp is sized correctly.
+        assert test == expected
+
+##############################################################################
+# Defining TestTimes class.
+
+# ------------------------------------------
+# Computing residence time and transit time.
+# ------------------------------------------
+# Computing residence / transit times for testing.
+poly = [[[-45, 30], [-45, 35], [-35, 35], [-35, 30], [-45, 30]]]
+
+test_residence_time_dt = traj_datetime.compute_residence_time(polygon=poly)
+test_residence_time_td = traj_timedelta.compute_residence_time(polygon=poly)
+test_transit_time_dt = traj_datetime.filter_polygon(polygon=poly, method='pos').compute_transit_time(polygon=poly)
+test_transit_time_td = traj_timedelta.filter_polygon(polygon=poly, method='pos').compute_transit_time(polygon=poly)
+
+# Storing expected ndarrays of temp to be returned.
+expected_residence_time = np.array([0, 0, 0, 5])
+expected_transit_time = np.array([0])
+
+
+class TestTimes(object):
+
+    @pytest.mark.parametrize(
+        "test, expected",
+        [
+            (test_residence_time_dt.residence_time.values, expected_residence_time),
+            (test_residence_time_td.residence_time.values, expected_residence_time),
+            (test_transit_time_dt.transit_time.values, expected_transit_time),
+            (test_transit_time_td.transit_time.values, expected_transit_time),
+        ])
+    def test_time_values(self, test, expected):
+        # Test if time array elements are returned correctly.
+        npt.assert_array_almost_equal(test, expected, decimal=6)
+
+    @pytest.mark.parametrize(
+        "test, expected",
+        [
+            (test_residence_time_dt.residence_time.values.dtype, np.float64),
+            (test_residence_time_td.residence_time.values.dtype, np.float64),
+            (test_transit_time_dt.transit_time.values.dtype, np.float64),
+            (test_transit_time_td.transit_time.values.dtype, np.float64),
+        ])
+    def test_time_type(self, test, expected):
+        # Test if returned time array elements are float64 type.
+        assert np.issubdtype(test, expected)
+
+    @pytest.mark.parametrize(
+        "test, expected",
+        [
+            (np.ndim(test_residence_time_dt.residence_time.values), 1),
+            (np.ndim(test_residence_time_td.residence_time.values), 1),
+            (np.ndim(test_transit_time_dt.transit_time.values), 1),
+            (np.ndim(test_transit_time_td.transit_time.values), 1),
+        ])
+    def test_time_dims(self, test, expected):
+        # Test if returned time array has correct no. dimensions.
+        assert test == expected
+
+    @pytest.mark.parametrize(
+        "test, expected",
+        [
+            (np.shape(test_residence_time_dt.residence_time.values)[0], 4),
+            (np.shape(test_residence_time_td.residence_time.values)[0], 4),
+            (np.shape(test_transit_time_dt.transit_time.values)[0], 1),
+            (np.shape(test_transit_time_td.transit_time.values)[0], 1),
+        ])
+    def test_time_size(self, test, expected):
+        # Test if returned time array is sized correctly.
         assert test == expected
