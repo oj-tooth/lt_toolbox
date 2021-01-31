@@ -932,8 +932,20 @@ def compute_res_time(self, polygon):
     # -------------------------------------------
     # Defining shapes from specified coordinates.
     # -------------------------------------------
-    # Storing pygeos polygon, poly.
-    poly = pygeos.creation.polygons(polygon)
+    # Where multiple polygons are specified:
+    if len(polygon) > 1:
+        polygons = []
+        # Iterate over polygons to create linearrings.
+        for i in range(len(polygon)):
+            shapes = list(shape for shape in polygon[i])
+            polygons.append(pygeos.creation.linearrings(shapes))
+
+        # Storing pygeos polygons, poly.
+        poly = pygeos.creation.polygons(polygons)
+
+    else:
+        # Storing pygeos polygon, poly.
+        poly = pygeos.creation.polygons(polygon)
 
     # -----------------------------------------------------------
     # Using pygeos to filter trajectories intersecting a polygon.
@@ -1023,8 +1035,20 @@ def compute_trans_time(self, polygon):
     # -------------------------------------------
     # Defining shapes from specified coordinates.
     # -------------------------------------------
-    # Storing pygeos polygon, poly.
-    poly = pygeos.creation.polygons(polygon)
+    # Where multiple polygons are specified:
+    if len(polygon) > 1:
+        polygons = []
+        # Iterate over polygons to create linearrings.
+        for i in range(len(polygon)):
+            shapes = list(shape for shape in polygon[i])
+            polygons.append(pygeos.creation.linearrings(shapes))
+
+        # Storing pygeos polygons, poly.
+        poly = pygeos.creation.polygons(polygons)
+
+    else:
+        # Storing pygeos polygon, poly.
+        poly = pygeos.creation.polygons(polygon)
 
     # -----------------------------------------------------------
     # Using pygeos to filter trajectories intersecting a polygon.
@@ -1189,7 +1213,7 @@ def compute_probability_distribution(self, bin_res, method, gf_sigma=None, group
 ##############################################################################
 # Define compute_fuv() method.
 
-def compute_fuv(self, bin_res, method, resample, repeats, gf_sigma=None, group_by=None):
+def compute_fuv(self, bin_res, method, resample, repeats, upper_bound=None, gf_sigma=None, group_by=None):
     """
     Compute fraction of unexplained variance (FUV)
     between a series of 2-dimensional binned Lagrangian
@@ -1226,6 +1250,10 @@ def compute_fuv(self, bin_res, method, resample, repeats, gf_sigma=None, group_b
     repeats : numeric
         Number of times to repeat each random resampling of the
         reference simulation.
+    upper_bound : numeric
+        Percentile of the FUV distribution generated from repeated random
+        resampling of the trajectories of a given reference simulation -
+        typically 0.95 (95%) is used.
     group_by : string
         Grouping variable to compute reference Lagrangian probability
         distributions - one distribution is computed for every
@@ -1234,11 +1262,13 @@ def compute_fuv(self, bin_res, method, resample, repeats, gf_sigma=None, group_b
     Returns
     -------
     ndarray.
-        The 95% upper bound FUV values for each resample (N) of the
-        reference simulation are returned in a (1 x N) array. Where
-        group_by to identify multiple reference simulations a (r x N)
-        array will be returned, where r is equal to the number of
-        reference simulations.
+        Where an upper_bound is specified the upper bounds of FUV values
+        for each resample (N) of the reference simulation are returned in
+        a (1 x N) array. Where group_by is used to identify multiple reference
+        simulations a (ref x N) array will be returned, where ref is equal to
+        the number of reference simulations. Otherwise, an (ref x rep x N)
+        array is returned with all FUV values for each reference simulation
+        (ref), includng all repeats (rep) for every resample (N).
     """
     # ------------------------------------------------
     # Defining grid domain to determine probabilities.
@@ -1279,13 +1309,21 @@ def compute_fuv(self, bin_res, method, resample, repeats, gf_sigma=None, group_b
         # ----------------------------------------------------
         # Resample trajectories from the reference simulation.
         # ----------------------------------------------------
-        # Defining fuv to store FUV values from repeats.
-        fuv = np.zeros(repeats)
-
-        # Defining fuv_upper_bound to store 95% upper bound of
-        # FUV values for each resample.
+        # Defining number of resamples.
         nsample = len(resample)
-        fuv_upper_bound = np.zeros(nsample)
+
+        # If no upper_bound is specfied.
+        if upper_bound is None:
+            # Defining fuv to store FUV values from repeats for
+            # each resample.
+            fuv = np.zeros([repeats, nsample])
+
+        else:
+            # Defining fuv to store FUV values from repeats.
+            fuv = np.zeros(repeats)
+            # Defining fuv_upper_bound to store upper bound of
+            # FUV values for each resample.
+            fuv_upper_bound = np.zeros(nsample)
 
         for N in np.arange(nsample):
             for rep in np.arange(repeats):
@@ -1320,15 +1358,21 @@ def compute_fuv(self, bin_res, method, resample, repeats, gf_sigma=None, group_b
                 # Compute the pearson correlation coefficient (r).
                 r, _ = stats.pearsonr(x, y)
 
-                # Compute Fraction of Unexplained Variance, fuv.
-                fuv[rep] = (1 - r**2)
+                if upper_bound is None:
+                    # Compute Fraction of Unexplained Variance, fuv.
+                    fuv[rep, N] = (1 - r**2)
 
-            # -------------------------------
-            # Compute 95% upper bound of FUV.
-            # -------------------------------
-            # Finding the 95% percentile of the FUV distribution
-            # stored in fuv.
-            fuv_upper_bound[N] = np.percentile(fuv, 95)
+                else:
+                    # Compute Fraction of Unexplained Variance, fuv.
+                    fuv[rep] = (1 - r**2)
+
+            # ---------------------------
+            # Compute upper bound of FUV.
+            # ---------------------------
+            if upper_bound is not None:
+                # Finding the specified percentile of the FUV distribution
+                # stored in fuv.
+                fuv_upper_bound[N] = np.percentile(fuv, upper_bound)
 
     # ----------------------------------
     # Subroutine with group_by variable.
@@ -1345,9 +1389,18 @@ def compute_fuv(self, bin_res, method, resample, repeats, gf_sigma=None, group_b
         # -----------------------------------------------
         # Computing Lagrangian Probability Distributions.
         # -----------------------------------------------
-        # Defining fuv_upper_bound to store 95% upper bound of
-        # FUV values for each resample for each reference sim.
-        fuv_upper_bound = np.zeros([nval, nsample])
+        # If no upper_bound is specfied.
+        if upper_bound is None:
+            # Defining fuv to store FUV values from repeats for
+            # each resample for each reference simulation.
+            fuv = np.zeros([nval, repeats, nsample])
+
+        else:
+            # Defining fuv to store FUV values from repeats.
+            fuv = np.zeros(repeats)
+            # Defining fuv_upper_bound to store upper bound of
+            # FUV values for each resample for each reference sim.
+            fuv_upper_bound = np.zeros([nval, nsample])
 
         # Iterate over all unique elements in group_by and
         # compute a Lagrangian probability distribution.
@@ -1406,15 +1459,24 @@ def compute_fuv(self, bin_res, method, resample, repeats, gf_sigma=None, group_b
                     # Compute the pearson correlation coefficient (r).
                     r, _ = stats.pearsonr(x, y)
 
-                    # Compute Fraction of Unexplained Variance, fuv.
-                    fuv[rep] = (1 - r**2)
+                    if upper_bound is None:
+                        # Compute Fraction of Unexplained Variance, fuv.
+                        fuv[n, rep, N] = (1 - r**2)
+                    else:
+                        # Compute Fraction of Unexplained Variance, fuv.
+                        fuv[rep] = (1 - r**2)
 
-                # -------------------------------
-                # Compute 95% upper bound of FUV.
-                # -------------------------------
-                # Finding the 95% percentile of the FUV distribution
-                # stored in fuv.
-                fuv_upper_bound[n, N] = np.percentile(fuv, 95)
+                # ---------------------------
+                # Compute upper bound of FUV.
+                # ---------------------------
+                if upper_bound is not None:
+                    # Finding the specified percentile of the FUV distribution
+                    # stored in fuv.
+                    fuv_upper_bound[n, N] = np.percentile(fuv, upper_bound)
 
-    # Return updated DataSet.
-    return fuv_upper_bound
+    # Without upper_bound return fuv values array.
+    if upper_bound is None:
+        return fuv
+    # Otherwise return upper bound of FUV distribution.
+    else:
+        return fuv_upper_bound
