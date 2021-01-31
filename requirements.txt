@@ -1,19 +1,16 @@
-Cartopy @ file:///Users/runner/miniforge3/conda-bld/cartopy_1608589940255/work
-certifi==2020.12.5
+Cartopy==0.18.0
 cycler==0.10.0
-kiwisolver @ file:///Users/runner/miniforge3/conda-bld/kiwisolver_1610099839286/work
-matplotlib @ file:///Users/runner/miniforge3/conda-bld/matplotlib-suite_1611858902074/work
-numpy @ file:///Users/runner/miniforge3/conda-bld/numpy_1610324567119/work
-olefile @ file:///home/conda/feedstock_root/build_artifacts/olefile_1602866521163/work
+kiwisolver==1.3.1
+matplotlib==3.3.4
+numpy==1.20.0
 pandas==1.2.1
-Pillow @ file:///Users/runner/miniforge3/conda-bld/pillow_1610407579717/work
-pygeos @ file:///Users/runner/miniforge3/conda-bld/pygeos_1602548277579/work
+Pillow==8.1.0
+pygeos==0.9
 pyparsing==2.4.7
-pyshp @ file:///home/conda/feedstock_root/build_artifacts/pyshp_1610646860606/work
+pyshp==2.1.3
 python-dateutil==2.8.1
-pytz @ file:///home/conda/feedstock_root/build_artifacts/pytz_1608904108784/work
-scipy @ file:///Users/runner/miniforge3/conda-bld/scipy_1609457874711/work
-Shapely @ file:///Users/runner/miniforge3/conda-bld/shapely_1611317108550/work
-six @ file:///home/conda/feedstock_root/build_artifacts/six_1590081179328/work
-tornado @ file:///Users/runner/miniforge3/conda-bld/tornado_1610094708534/work
-xarray @ file:///home/conda/feedstock_root/build_artifacts/xarray_1606798576866/work
+pytz==2020.5
+scipy==1.6.0
+Shapely==1.7.1
+six==1.15.0
+xarray==0.16.2
