@@ -1,0 +1,14 @@
+name: lt_toolbox
+channels:
+  - conda-forge
+  - default
+dependencies:
+  - python=3.7
+  - numpy
+  - cython
+  - matplotlib
+  - xarray
+  - scipy
+  - pygeos
+  - proj
+  - cartopy
