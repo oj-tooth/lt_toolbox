@@ -399,7 +399,7 @@ class trajectories:
         using 'pos' method to consider each trajectory as a collection of
         points.
 
-        >>> square = [[-40, 30], [-40, 35], [-30, 35], [-30, 30], [-40, 30]]
+        >>> square = [[[-40, 30], [-40, 35], [-30, 35], [-30, 30], [-40, 30]]]
         >>> trajectories.filter_polygon(square, method='pos' drop=False)
         """
         # -------------------
@@ -956,7 +956,7 @@ class trajectories:
         polygon, square. Below we filter trajectories using 'pos' method to
         consider each trajectory as a collection of points.
 
-        >>> square = [[-40, 30], [-40, 35], [-30, 35], [-30, 30], [-40, 30]]
+        >>> square = [[[-40, 30], [-40, 35], [-30, 35], [-30, 30], [-40, 30]]]
         >>> trajectories.filter_polygon(square, method='pos', drop=False).compute_residence_time(polygon=square)
         """
         # ------------------
@@ -1021,7 +1021,7 @@ class trajectories:
         polygon, square. Below we filter trajectories using 'pos' method to
         consider each trajectory as a collection of points.
 
-        >>> square = [[-40, 30], [-40, 35], [-30, 35], [-30, 30], [-40, 30]]
+        >>> square = [[[-40, 30], [-40, 35], [-30, 35], [-30, 30], [-40, 30]]]
         >>> trajectories.filter_polygon(square, method='pos', drop=False).compute_transit_time(polygon=square)
         """
         # ------------------
