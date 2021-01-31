@@ -222,7 +222,11 @@ def find_polygon(self, polygon):
     # Raising exceptions.
     # -------------------
     if isinstance(polygon, list) is False:
-        raise TypeError("polygon must be specified as a list of tuples")
+        raise TypeError("polygon must be specified as a list of lists")
+
+    if len(polygon) > 1:
+        if len(polygon) != np.shape(self.data['time'].values)[1]:
+            raise ValueError("one polygon must be specified per observation (obs) when find is used with multiple polygons")
 
     # ------------------------------------------
     # Defining Latitude and Longitude variables.
@@ -238,8 +242,20 @@ def find_polygon(self, polygon):
     # -------------------------------------------
     # Defining shapes from specified coordinates.
     # -------------------------------------------
-    # Storing pygeos polygon, poly.
-    poly = pygeos.creation.polygons(polygon)
+    # Where multiple polygons are specified:
+    if len(polygon) > 1:
+        polygons = []
+        # Iterate over polygons to create linearrings.
+        for i in range(len(polygon)):
+            shapes = list(shape for shape in polygon[i])
+            polygons.append(pygeos.creation.linearrings(shapes))
+
+        # Storing pygeos polygons, poly.
+        poly = pygeos.creation.polygons(polygon)
+
+    else:
+        # Storing pygeos polygon, poly.
+        poly = pygeos.creation.polygons(polygon)
 
     # ---------------------------------------------------------------
     # Using pygeos to find trajectory points intersecting a polygon.

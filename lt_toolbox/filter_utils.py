@@ -237,8 +237,20 @@ def filter_traj_polygon(self, polygon, method, drop):
     # -------------------------------------------
     # Defining shapes from specified coordinates.
     # -------------------------------------------
-    # Storing pygeos polygon, poly.
-    poly = pygeos.creation.polygons(polygon)
+    # Where multiple polygons are specified:
+    if len(polygon) > 1:
+        polygons = []
+        # Iterate over polygons to create linearrings.
+        for i in range(len(polygon)):
+            shapes = list(shape for shape in polygon[i])
+            polygons.append(pygeos.creation.linearrings(shapes))
+
+        # Storing pygeos polygons, poly.
+        poly = pygeos.creation.polygons(polygons)
+
+    else:
+        # Storing pygeos polygon, poly.
+        poly = pygeos.creation.polygons(polygon)
 
     # ------------------------------------------------------------
     # Using pygeos to filter trajectories intersecting a polygon.
