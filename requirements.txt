@@ -1,63 +1,19 @@
-# This file may be used to create an environment using:
-# $ conda create --name <env> --file <this file>
-# platform: osx-64
-c-ares=1.17.1=hc929b4f_0
-ca-certificates=2020.12.5=h033912b_0
-cartopy=0.18.0=py39hd012398_8
-certifi=2020.12.5=py39h6e9494a_1
-cycler=0.10.0=py_2
-freetype=2.10.4=h4cff582_1
-geos=3.8.1=h4a8c4bd_0
-jpeg=9d=hbcb3906_0
-kiwisolver=1.3.1=py39hedf5dff_1
-krb5=1.17.2=h60d9502_0
-lcms2=2.11=h11f7e16_1
-libblas=3.9.0=7_openblas
-libcblas=3.9.0=7_openblas
-libcurl=7.71.1=h9bf37e3_8
-libcxx=11.0.1=habf9029_0
-libedit=3.1.20191231=h0678c8f_2
-libev=4.33=haf1e3a3_1
-libffi=3.3=h046ec9c_2
-libgfortran=5.0.0=9_3_0_h6c81a4c_17
-libgfortran5=9.3.0=h6c81a4c_17
-liblapack=3.9.0=7_openblas
-libnghttp2=1.41.0=h7580e61_2
-libopenblas=0.3.12=openmp_h54245bb_1
-libpng=1.6.37=h7cec526_2
-libssh2=1.9.0=h8a08a2b_5
-libtiff=4.2.0=h355d032_0
-libwebp-base=1.2.0=hbcf498f_0
-llvm-openmp=11.0.1=h7c73e74_0
-lz4-c=1.9.3=h046ec9c_0
-matplotlib=3.3.4=py39h6e9494a_0
-matplotlib-base=3.3.4=py39hc986735_0
-ncurses=6.2=h2e338ed_4
-numpy=1.19.5=py39he588a01_1
-olefile=0.46=pyh9f0ad1d_1
-openssl=1.1.1i=h35c211d_0
-pandas=1.2.1=py39h089d6f7_0
-pillow=8.1.0=py39hc06e9b5_1
-pip=21.0.1=pyhd8ed1ab_0
-proj=7.2.0=h19c2039_1
-pygeos=0.8=py39h7edaf14_1
-pyparsing=2.4.7=pyh9f0ad1d_0
-pyshp=2.1.3=pyh44b312d_0
-python=3.9.1=h2502468_5_cpython
-python-dateutil=2.8.1=py_0
-python_abi=3.9=1_cp39
-pytz=2020.5=pyhd8ed1ab_0
-readline=8.0=h0678c8f_2
-scipy=1.6.0=py39hca3e1c3_0
-setuptools=49.6.0=py39h6e9494a_3
-shapely=1.7.1=py39h47b9eb6_1
-six=1.15.0=pyh9f0ad1d_0
-sqlite=3.34.0=h17101e1_0
-tk=8.6.10=h0419947_1
-tornado=6.1=py39hcbf5805_1
-tzdata=2021a=he74cb21_0
-wheel=0.36.2=pyhd3deb0d_0
-xarray=0.16.2=pyhd8ed1ab_0
-xz=5.2.5=haf1e3a3_1
-zlib=1.2.11=h7795811_1010
-zstd=1.4.8=hf387650_1
+Cartopy @ file:///Users/runner/miniforge3/conda-bld/cartopy_1608589940255/work
+certifi==2020.12.5
+cycler==0.10.0
+kiwisolver @ file:///Users/runner/miniforge3/conda-bld/kiwisolver_1610099839286/work
+matplotlib @ file:///Users/runner/miniforge3/conda-bld/matplotlib-suite_1611858902074/work
+numpy @ file:///Users/runner/miniforge3/conda-bld/numpy_1610324567119/work
+olefile @ file:///home/conda/feedstock_root/build_artifacts/olefile_1602866521163/work
+pandas==1.2.1
+Pillow @ file:///Users/runner/miniforge3/conda-bld/pillow_1610407579717/work
+pygeos @ file:///Users/runner/miniforge3/conda-bld/pygeos_1602548277579/work
+pyparsing==2.4.7
+pyshp @ file:///home/conda/feedstock_root/build_artifacts/pyshp_1610646860606/work
+python-dateutil==2.8.1
+pytz @ file:///home/conda/feedstock_root/build_artifacts/pytz_1608904108784/work
+scipy @ file:///Users/runner/miniforge3/conda-bld/scipy_1609457874711/work
+Shapely @ file:///Users/runner/miniforge3/conda-bld/shapely_1611317108550/work
+six @ file:///home/conda/feedstock_root/build_artifacts/six_1590081179328/work
+tornado @ file:///Users/runner/miniforge3/conda-bld/tornado_1610094708534/work
+xarray @ file:///home/conda/feedstock_root/build_artifacts/xarray_1606798576866/work
