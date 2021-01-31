@@ -399,7 +399,7 @@ class trajectories:
         using 'pos' method to consider each trajectory as a collection of
         points.
 
-        >>> square = [(-40, 30), (-40, 35), (-30, 35), (-30, 30), (-40, 30)]
+        >>> square = [[-40, 30], [-40, 35], [-30, 35], [-30, 30], [-40, 30]]
         >>> trajectories.filter_polygon(square, method='pos' drop=False)
         """
         # -------------------
@@ -412,7 +412,11 @@ class trajectories:
             raise TypeError("method must be specified as a string - options: \'pos\' or \'traj\'")
 
         if isinstance(polygon, list) is False:
-            raise TypeError("polygon must be specified as a list of tuples")
+            raise TypeError("polygon must be specified as a list of lists")
+
+        if len(polygon) > 1:
+            if len(polygon) != np.shape(self.data['time'].values)[1]:
+                raise ValueError("one polygon must be specified per observation (obs) when filtering with multiple polygons")
 
         # ----------------------------------
         # Defining ds, the filtered DataSet.
@@ -952,14 +956,18 @@ class trajectories:
         polygon, square. Below we filter trajectories using 'pos' method to
         consider each trajectory as a collection of points.
 
-        >>> square = [(-40, 30), (-40, 35), (-30, 35), (-30, 30), (-40, 30)]
+        >>> square = [[-40, 30], [-40, 35], [-30, 35], [-30, 30], [-40, 30]]
         >>> trajectories.filter_polygon(square, method='pos', drop=False).compute_residence_time(polygon=square)
         """
         # ------------------
         # Raise exceptions.
         # ------------------
         if isinstance(polygon, list) is False:
-            raise TypeError("polygon must be specified as a list of tuples")
+            raise TypeError("polygon must be specified as a list of lists")
+
+        if len(polygon) > 1:
+            if len(polygon) != np.shape(self.data['time'].values)[1]:
+                raise ValueError("one polygon must be specified per observation (obs) when filtering with multiple polygons")
 
         # --------------------------------------------------
         # Computing residence times with .compute_res_time().
@@ -1013,14 +1021,18 @@ class trajectories:
         polygon, square. Below we filter trajectories using 'pos' method to
         consider each trajectory as a collection of points.
 
-        >>> square = [(-40, 30), (-40, 35), (-30, 35), (-30, 30), (-40, 30)]
+        >>> square = [[-40, 30], [-40, 35], [-30, 35], [-30, 30], [-40, 30]]
         >>> trajectories.filter_polygon(square, method='pos', drop=False).compute_transit_time(polygon=square)
         """
         # ------------------
         # Raise exceptions.
         # ------------------
         if isinstance(polygon, list) is False:
-            raise TypeError("polygon must be specified as a list of tuples")
+            raise TypeError("polygon must be specified as a list of lists")
+
+        if len(polygon) > 1:
+            if len(polygon) != np.shape(self.data['time'].values)[1]:
+                raise ValueError("one polygon must be specified per observation (obs) when filtering with multiple polygons")
 
         # -----------------------------------------------------
         # Computing residence times with .compute_trans_time().
