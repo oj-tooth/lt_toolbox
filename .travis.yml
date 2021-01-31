@@ -12,7 +12,7 @@ install:
   - conda info
 
   # Install dependencies
-  - conda env create --file=environment.yml
+  - conda env create --file=lt_toolbox-environment.yml
   - source activate lt_toolbox
   - conda install pytest-cov
   - conda install codecov 
