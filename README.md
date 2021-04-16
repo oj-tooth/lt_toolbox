@@ -39,9 +39,8 @@
 
 The Lagrangian Trajectories Toolbox is a Python library dedicated to the post-processing, visualisation and analysis of Lagrangian water parcel trajectories. 
 
-Users are able to:
+The library utilises href=http://xarray.pydata.org/en/stable/#>xarray</a> multidimensional data arrays to store the attribute variables (e.g. lat, lon, in-situ temperature etc.) evaluated along trajectories in a trajectories object. Beyond simply storing Lagrangian data, the trajectories object contains a wide range of built-in methods to enable efficiently post-process and visualise thousands of trajectories with both matplotlib and href=https://scitools.org.uk/cartopy/docs/latest/>Cartopy</a>.
 
-* 
 
 ### Background
 
@@ -59,9 +58,9 @@ Below are our simple installation intructions to quickly get started with the LT
 
 ### Installation
 
-Pip install the LT Toolbox.
+The LT Toolbox is currently under development and is awaiting packaging for formal release.
+
 ```sh 
-pip install -i 
 ```
 
 <!-- Usage -->
@@ -69,7 +68,7 @@ pip install -i
 
 The LT Toolbox is structured as follows:
     
-For further details on each of the modules included in the PK Toolbox view our [docs](https://lt_toolbox.readthedocs.io).
+For further details on each of the modules included in the LT Toolbox view our [docs](https://lt_toolbox.readthedocs.io).
 
 ## Example
 
