@@ -170,8 +170,8 @@ def map_trajectories(self, col_variable=None):
         # Defining Scalar Mappable object for colorbar.
         sm = plt.cm.ScalarMappable(cmap=cm.coolwarm, norm=norm)
 
-        # Defining colorbar, cbar, to be 0.9 of the fig height.
-        cbar = plt.colorbar(sm, shrink=0.9)
+        # Defining colorbar, cbar, to be 0.6 of the fig height.
+        cbar = plt.colorbar(sm, shrink=0.6)
         cbar.ax.get_yaxis().labelpad = 15
 
         # Creating colorbar label with col_variable attributes.
@@ -299,7 +299,7 @@ def map_probability(self, bin_res, prob_type, cmap='coolwarm'):
     # Configuiring figure dimensions and axes.
     # ----------------------------------------
     # Initialising figure.
-    plt.figure(figsize=(10, 10))
+    plt.figure(figsize=(12, 12))
 
     # Find the mean latitude and longitude from our
     # plot data in order to centre our orthographic
@@ -401,8 +401,8 @@ def map_probability(self, bin_res, prob_type, cmap='coolwarm'):
     # Plotting with matplotlib and Cartopy.
     # -------------------------------------
     plt.pcolormesh(x, y, prob, transform=ccrs.PlateCarree(), cmap=cm.get_cmap(cmap), zorder=0)
-    # Adding colorbar to plot, 0.9 of the fig height
-    cbar = plt.colorbar(shrink=0.9)
+    # Adding colorbar to plot, 0.6 of the fig height
+    cbar = plt.colorbar(shrink=0.6)
     cbar.ax.get_yaxis().labelpad = 15
     # Creating colorbar label with col_variable attributes.
     col_label = 'Probability (%)'
@@ -526,8 +526,8 @@ def map_property(self, bin_res, variable, statistic, cmap='coolwarm'):
     # Plotting with matplotlib and Cartopy.
     # -------------------------------------
     plt.pcolormesh(x, y, stat.statistic, transform=ccrs.PlateCarree(), cmap=cm.get_cmap(cmap), zorder=0)
-    # Adding colorbar to plot, 0.9 of the fig height
-    cbar = plt.colorbar(shrink=0.9)
+    # Adding colorbar to plot, 0.6 of the fig height
+    cbar = plt.colorbar(shrink=0.6)
     cbar.ax.get_yaxis().labelpad = 15
 
     # Creating colorbar label with variable attributes.

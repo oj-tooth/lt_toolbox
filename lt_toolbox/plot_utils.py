@@ -96,7 +96,7 @@ def plot_timeseries(self, variable, col_variable=None):
     # Configuiring figure dimensions and axes.
     # ----------------------------------------
     # Initialising figure.
-    plt.figure(figsize=(10, 10))
+    plt.figure(figsize=(8, 4))
     ax = plt.axes()
 
     # -----------------------------------------
@@ -125,13 +125,22 @@ def plot_timeseries(self, variable, col_variable=None):
         # ------------------------------------------------------
         # Plotting time series of variable for all trajectories.
         # ------------------------------------------------------
-        # Plot time series for all trajectories, traj.
-        for n in np.arange(0, traj-1):
+        # Plot time series for a single trajectory.
+        if traj == 1:
             # Defining trajectory id, i.
-            i = self.data.id.values[n]
+            i = self.data.id.values[0]
             # Plot time series of var with default colours specififed
             # by matplotlib.
-            ax.plot(time[n, :], var[n, :], linewidth=2, label='$%i$' % i)
+            ax.plot(time[0, :], var[0, :], linewidth=2, label='$%i$' % i)
+
+        # Plot time series for all trajectories, traj.
+        else:
+            for n in np.arange(0, traj-1):
+                # Defining trajectory id, i.
+                i = self.data.id.values[n]
+                # Plot time series of var with default colours specififed
+                # by matplotlib.
+                ax.plot(time[n, :], var[n, :], linewidth=2, label='$%i$' % i)
 
         # Return current axes positions.
         box = ax.get_position()
