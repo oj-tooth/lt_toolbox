@@ -104,7 +104,7 @@ def map_trajectories(self, col_variable=None):
     ax = plt.axes(projection=ccrs.Orthographic(lon_mean, lat_mean))
 
     # Add land and coastlines to trajectory plot.
-    ax.add_feature(cartopy.feature.LAND, zorder=0, edgecolor='black', facecolor='white')
+    ax.add_feature(cartopy.feature.LAND, zorder=4, edgecolor='black', facecolor='grey')
     # Add grid lines of constant latitude and longitude.
     ax.gridlines()
 
@@ -312,7 +312,7 @@ def map_probability(self, bin_res, prob_type, cmap='coolwarm'):
     ax = plt.axes(projection=ccrs.Orthographic(lon_mean, lat_mean))
 
     # Add land and coastlines to trajectory plot.
-    ax.add_feature(cartopy.feature.LAND, zorder=4, edgecolor='black', facecolor='white')
+    ax.add_feature(cartopy.feature.LAND, zorder=4, edgecolor='black', facecolor='grey')
     # Add grid lines of constant latitude and longitude.
     ax.gridlines()
 
@@ -479,7 +479,7 @@ def map_property(self, bin_res, variable, statistic, cmap='coolwarm'):
     ax = plt.axes(projection=ccrs.Orthographic(lon_mean, lat_mean))
 
     # Add land and coastlines to trajectory plot.
-    ax.add_feature(cartopy.feature.LAND, zorder=4, edgecolor='black', facecolor='white')
+    ax.add_feature(cartopy.feature.LAND, zorder=4, edgecolor='black', facecolor='grey')
     # Add grid lines of constant latitude and longitude.
     ax.gridlines()
 
