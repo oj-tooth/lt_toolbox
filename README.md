@@ -62,7 +62,7 @@ The library utilises [xarray](http://xarray.pydata.org/en/stable/#) multidimensi
 At the centre of the LT Toolbox is the trajectories object. The trajectories object is, at its simplest, a container for an xarray DataSet, allowing the user complete access to the original DataSet and hence all of xarray's existing functionality. By looking at an example trajectories object (Fig. 1), we can see that our original DataSet must be 2-dimensional with dimensions traj (trajectory - representing one particle / float) and obs (observation - representing one time-level). This formatting follows the [NCEI template](https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/trajectoryIncomplete.cdl) for trajectory data, in which attribute variables for each particle / float are stored as a function of a series of observations (obs).
 
 <p align="centre">
-    <img src="docs/images/Figure1_Background.png" alt="Logo" width="220" height="150"> 
+    <img src="" alt="Logo" width="220" height="150"> 
  </a>
 <p
 
@@ -81,7 +81,7 @@ traj.add_id().filter_between('id', 1, 100).map_trajectories()
 ```
 
 <p align="center">
-    <img src="docs/images/Figure2_Background.png" alt="Logo" width="250" height="200"> 
+    <img src="" alt="Logo" width="250" height="200"> 
  </a>
 <p
 
