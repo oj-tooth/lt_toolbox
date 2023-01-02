@@ -1,174 +1,114 @@
 ################################################################
-# export_tracmass_to_nc.py
+# export_tracmass_to_netCDF.py
 # --------------------------------------------------------------
-# Description: Script to transform TRACMASS model
-# output to standard NCEI_NetCDF_Trajectory format.
+# Description: Script to transform TRACMASS Lagrangian particle
+# tracking output to standard NCEI_NetCDF_Trajectory format.
 #
 # User Input: Locations where user modification is required
 # are indicated beneath NOTE statements in the script.
 #
 # --------------------------------------------------------------
-# Date Created: 2021-01-03
+# Date Created: 2023-01-02
 #
 # Author: Ollie Tooth
 ###############################################################
 
 # Import packages.
-import os
 import numpy as np
+import polars as pl
 import pandas as pd
 import xarray as xr
-from scipy import interpolate
 from tqdm import tqdm
-from export_utils import add_seed
+from scipy import interpolate
 
-# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# Stage 0:
+# User Input: Directories, Filenames and Offsets.
 
-# Stage 1:
-# Opening the raw ouput files from TRACMASS.
+# -- Defining TRACMASS output data directories --
+# ---------------------------------------------------------------------
+# NOTE: Modify the following directory paths and filenames as required:
+# Directory to TRACMASS _ini.csv (uncompressed) file.
+iniDir = '/home/ocean_shared_data1/TRACMASS/ORCA025/Sim03/FinT/ini/'
+# Name of TRACMASS _ini.csv (uncompressed) file.
+iniFile = 'ORCA025_Sim03_East_1976_1981_ini.csv'
 
-# NOTE: change directory path to TRACMASS output data as required.
-# os.chdir('OUTPUT_DIR_PATH')
-os.chdir('/Users/ollietooth/Desktop/D.Phil./Tracmass/projects/NEMO/data/output/')
+# Directory to TRACMASS _run.csv file (uncompressed).
+runDir = '/home/ocean_shared_data1/TRACMASS/ORCA025/Sim03/FinT/raw/'
+# Name of TRACMASS _run.csv (uncompressed) file.
+runFile = 'ORCA025_Sim03_East_Testing_FinT_1976_1981_run.csv'
+# ---------------------------------------------------------------------
+# -- Defining .nc file output directory and filename --
+# ---------------------------------------------------------------------
+# NOTE: Modify directory path to where we would like output .nc file
+# to be located:
+outDir = '/home/ocean_shared_data1/TRACMASS/ORCA025/Sim03/FinT/'
+# NOTE: Modify the output file name prefix as required for your
+# simulation. The final output data store will take the form:
+#
+# {outFile_YYYY_MM_DD.nc}
+#
+outFile = "ORCA025-GJM189_"
+# ---------------------------------------------------------------------
+# -- Defining column names and types --
+# ---------------------------------------------------------------------
+# NOTE: Modify the following list and dictionaries as required:
+# List of variables (columns) in both _ini.csv and _run.csv files output
+# from TRACMASS.
+col_names = ['id', 'x', 'y', 'z', 'vol', 't', 'boxface', 'temp', 'sal', 'sigma0', 'mld']
+# Dictionary of dtypes for each variable (column) in both the _ini.csv
+# and _run.csv files output by TRACMASS.
+col_dtypes = {'id': np.int64,
+              'x': np.float64,
+              'y': np.float64,
+              'z': np.float64,
+              'vol': np.float64,
+              't': np.float64,
+              'boxface': np.int64,
+              'temp': np.float64,
+              'sal': np.float64,
+              'sigma0': np.float64,
+              'mld': np.float64
+              }
+# ---------------------------------------------------------------------
+# -- Define offsets for particle ID and Time (s) --
+# ---------------------------------------------------------------------
+# Use this to rebase all particle IDs and Times against a single date
+# marking the start of an experiment composed of multiple simulations.
+# For example, consider a 10-yr experiment starting in 1970-01-01
+# consisting of two 5-yr TRACMASS simulations. To rebase the second
+# experiment's particle IDs and times, we could do the following:
+#
+# date_ini_str = '1970-01-01'
+# id_offset = id_max_1970_1974_experiment
+# t_offset = (np.datetime64('1975-01-01') - np.datetime64('1970-01-01')) / np.timedelta64(1, 's')
+#
+# NOTE: Modify the following variables as required:
+# Defining the initial date of this simulation (not the overall experiment).
+# When using the multifile = False option, date_ini_str YYYY is used for
+# the output file name following the user specified file prefix.
+date_ini_str = '1976-01-01'
+id_offset = 0
+t_offset = 0
+# ---------------------------------------------------------------------
+# -- Define model grid data directories --
+# ---------------------------------------------------------------------
+# Defining path and file containing model grid lat/lon/depth arrays.
+# NOTE: change directory path and field file name as required.
+gridDir = '/home/ocean_shared_data1/DRAKKAR/ORCA025.L75-GJM189-S/GRID/'
+gridFile = "ORCA025.L75-GJM189_mesh_mask_merged_dep3d.nc"
 
-# Read Tracmass output_run.csv output file to pandas DataFrame
-# with specified headers.
+# Import depth (1D) variable of numerical model grid.
+# NOTE: change the depth variable as required - e.g. deptht.
+depth = xr.open_dataset(gridDir+gridFile).nav_lev
 
-# NOTE: change the raw data file name and variable names to
-# correspond with your run as required. 'FILENAME_run.csv'
-df_run = pd.read_csv('ORCA1_output_run.csv',
-                     names=[
-                        'ntrac',        # Trajectory no.
-                        'x',            # Position in zonal direction.
-                        'y',            # Position in meridional direction.
-                        'z',            # Position in the vertical direction.
-                        'subvol',       # Transport of particle.
-                        'time_s',       # Time since start of simulation (s).
-                        'To_C',         # Temperature (read - degrees C) .
-                        'S_psu',        # Salinity (read - g per kg).
-                        'sigma0_kgm-3'  # Density (computed - kg per m3).
-                        ])
-
-# Read Tracmass output_out.csv output file to pandas DataFrame
-# with specified headers.
-
-# NOTE: change the raw data file name and variable names to
-# correspond with your run as required. 'FILENAME_out.csv'
-df_out = pd.read_csv('ORCA1_output_out.csv',
-                     names=[
-                        'ntrac',        # Trajectory no.
-                        'x',            # Position in zonal direction.
-                        'y',            # Position in meridional direction.
-                        'z',            # Position in the vertical direction.
-                        'subvol',       # Transport of particle.
-                        'time_s',       # Time since start of simulation (s).
-                        'To_C',         # Temperature (read - degrees C) .
-                        'S_psu',        # Salinity (read - g per kg).
-                        'sigma0_kgm-3'  # Density (computed - kg per m3).
-                        ])
-
-# Concantenate pandas DataFrames, df_run and df_out.
-# Since indexes overlap, ignore index in concantenation.
-df = pd.concat([df_run, df_out], ignore_index=True, sort=False)
-df.drop_duplicates()
-
-# Update user at command line.
-print("Completed: Loading and Concantenating DataFrames.")
-
-# ---------------------------------------------------------------------------
-
-# Stage 2:
-# Defining time and obs variables.
-
-# Create new time column where time_s is stored in timedelta64 format.
-# timedelta64 has units of nanoseconds.
-df['time'] = pd.to_timedelta(df['time_s'], unit='s')
-
-# NOTE: specify TRACMASS output time step for your simulation -
-# modify unit to min/hours/days as required.
-t_step = pd.Timedelta(30, unit='D').total_seconds()
-
-# Create obs variable to store the observation no., equivalent
-# to the time-level of output in the model.
-df['obs'] = np.ceil((df['time_s']/t_step))
-# Ensure obs variable is of in64 type.
-df = df.astype({'obs': 'int64'})
-
-# Update user at command line.
-print("Completed: Added time variable.")
-
-# ---------------------------------------------------------------------------
-
-# Stage 3:
-# Transform output variables to numpy arrays with dimensions traj x obs.
-
-# Transform particle positions into (traj x obs) pandas DataFrames.
-X = df.pivot(index='ntrac', columns='obs', values='x')
-Y = df.pivot(index='ntrac', columns='obs', values='y')
-Z = df.pivot(index='ntrac', columns='obs', values='z')
-
-# Transform subvol into (traj x obs) pandas DataFrames.
-Volume = df.pivot(index='ntrac', columns='obs', values='subvol')
-
-# Transform tracers into (traj x obs) pandas DataFrames.
-# NOTE: modify the number of tracers as required.
-Temp = df.pivot(index='ntrac', columns='obs', values='To_C')
-Sal = df.pivot(index='ntrac', columns='obs', values='S_psu')
-Sigma0 = df.pivot(index='ntrac', columns='obs', values='sigma0_kgm-3')
-
-# Transform time and ntrac into (traj x obs) pandas DataFrames.
-Time = df.pivot(index='ntrac', columns='obs', values='time')
-Traj = df.pivot(index='ntrac', columns='obs', values='ntrac')
-
-# Update user at command line.
-print("Completed: Pivoted output variables into (traj x obs) DataFrames.")
-
-# ---------------------------------------------------------------------------
-
-# Stage 4:
-# Converting all of our pandas DataFrames to np arrays.
-
-# Position arrays.
-# The suffix _index is included to differentiate the position
-# arrays of grid indexes from those of latitude, longitude and depth.
-x_index = X.to_numpy()
-y_index = Y.to_numpy()
-z_index = Z.to_numpy()
-
-# Transport arrays.
-vol = Volume.to_numpy()
-
-# Tracer arrays.
-# NOTE: modify the number of tracers as required.
-temp = Temp.to_numpy()
-sal = Sal.to_numpy()
-sigma0 = Sigma0.to_numpy()
-
-# Time/ID arrays.
-time = Time.to_numpy()
-trajectory = Traj.to_numpy()
-
-# Update user at command line.
-print("Completed: Converted DataFrames to arrays.")
-
-# ---------------------------------------------------------------------------
-
-# Stage 5:
-# Interpolating depth using deptht field from NEMO input data and z_index.
-
-# Move to fields input data directory.
-# NOTE: change directory path to lat/lon/depth files as required.
-# os.chdir('FIELD_DIR_PATH')
-os.chdir('/Users/ollietooth/Desktop/D.Phil./Tracmass/projects/NEMO/data/fields/')
-
-# Set field file name containing nav_lat/nav_lon/depth data.
-# NOTE: change field file name as required.
-field_file = "ORCA1-N406_2000T.nc4"  # 'FIELD_FILE.nc'
-
-# Import deptht/u/v variable from input fields to TRACMASS.
-# NOTE: change the depth variable as required - deptht/u/v.
-depth = xr.open_dataset(field_file).deptht
-
+# Import longitude and latitude (2D) variables from input gridFile.
+# NOTE: change the lon/lat variable as required.
+lat_mdl = xr.open_dataset(gridDir+gridFile).nav_lat
+lon_mdl = xr.open_dataset(gridDir+gridFile).nav_lon
+# ---------------------------------------------------------------------
+# -- Linear interpolation of particle depth from model coordinates --
+# ---------------------------------------------------------------------
 # Inserting a value for the sea surface (0 m) for use with
 # interpolation indexes < 1.
 depth = np.insert(depth, 0, 0)
@@ -178,232 +118,263 @@ index = np.arange(0, len(depth))
 
 # Utilise Scipy interp1d for linear interpolation function of depth.
 f_depth = interpolate.interp1d(index, depth)
+# ---------------------------------------------------------------------
 
-# Store the dimension sizes of our output matrix, equal to z_index.
-nrows, ncols = np.shape(z_index)
+# ---------------------------------------------------------------------
+# Stage 1:
+# Opening the raw ouput files from TRACMASS.
 
-# Configuiring the size of our empty array for z, particle depths.
-z = np.zeros([nrows, ncols])
+# Read Lagrangian particle inflow positions and properties
+# files stored in _ini.csv file.
+df_ini = pd.read_csv(iniDir+iniFile, names=col_names, dtype=col_dtypes)
 
-# For loop to use interpolate the particle depth from f_depth using z_index.
-for i in np.arange(0, nrows):
-    # Defining z to be negative since the z-axis is traditionally
-    # positive-upwards in physical oceanography.
-    z[i, :] = - f_depth(z_index[i, :])
+# Defining time-levels associated with each particle seeding step.
+tlevels = np.unique(df_ini.t)
+# Defining total number of seeding steps in _ini/run.csv.
+nsteps = len(tlevels)
+# Defining minimum particle ID for seeding step 1.
+id_min = 0
 
-# Update user at command line.
-print("Completed: Depth interpolation.")
+# ------------- Header to Script -------------
+print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+print('==== Exporting TRACMASS Output from csv to nc ====')
+print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+print('-- Description --')
+print('Script to transform TRACMASS Lagrangian particle')
+print('tracking output to standard NCEI_NetCDF_Trajectory,')
+print('format storing trajectories released at each seeding')
+print('step in a netCDF file.')
+print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+print('-- Info --')
+print('Simulation Start Date:', np.datetime64(date_ini_str))
+print('Total No. Seeding Steps:', nsteps)
+print('Total No. Trajectories:', len(np.unique(df_ini.id)))
+print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+print('In Progress: Extracting and exporting trajectories')
+# ------------- Header to Script -------------
 
-# ---------------------------------------------------------------------------
+# Extract Lagrangian particle positions and properties stored in _run.csv file
+# for each seeding step, post-process and store in .zarr data store.
+for n in tqdm(range(nsteps)):
+    # Defining maximum particle ID within this seeding step:
+    id_max = np.max(df_ini[df_ini.t == tlevels[n]].id)
+    # Use Polars to extract Lagrangian particle trajectories released in
+    # current seeding step. Implement parallel query using scan_csv()
+    # to extract particle trajectories by seeding step:
+    ds_scan = (
+               pl.scan_csv(runDir+runFile, has_header=False)
+               .filter((pl.col("column_1") <= id_max) & (pl.col("column_1") > id_min))
+               .collect(streaming=True)
+              )
 
-# Stage 6:
-# Interpolating particle latitudes and longtidues using position indexes.
+    # Redefining id_min to previous id_max for next seeding step:
+    id_min = id_max
 
-# Import nav_lat and nav_lon variables from input field_file.
-lat_mdl = xr.open_dataset(field_file).nav_lat
-lon_mdl = xr.open_dataset(field_file).nav_lon
+    # Transform polars lazy DataFrame to eager pandas DataFrame:
+    df_run = ds_scan.to_pandas()
+    # Reassign column header with col_names list:
+    df_run.columns = col_names
+    # Reassign column dtypes with col_dtypes dictionary:
+    df_run.astype(col_dtypes)
 
-# Configuiring the size of our empty array for lat and lon.
+    # Apply particle ID and time offsets:
+    df_run.id = df_run.id + id_offset
+    df_run.t = df_run.t + t_offset
 
-# Since all output data are stored in traj x obs,
-# nrows and ncols are consistent across all arrays.
-lat = np.zeros([nrows, ncols])
-lon = np.zeros([nrows, ncols])
+    # Determine date of seeding step:
+    date = np.datetime64(date_ini_str) + np.timedelta64(1, 's') * tlevels[n]
+    # Export date of seeding step to string in YYYY_MM_DD format.
+    date_str = pd.to_datetime(date).strftime('%Y_%m_%d')
 
-# For loop to interpolate particle poisitions in lat/lon space from
-# (x_index, y_index) pairs.
-print("Position Interpolation Progress:")
-# Uses tqdm package for progress bar of linear interpolation loop.
-for i in tqdm(np.arange(0, nrows)):
-    lat[i, :] = lat_mdl.interp(
-                                x=xr.DataArray(x_index[i, :], dims="z"),
-                                y=xr.DataArray(y_index[i, :], dims="z")
-                                )
+    # ---------------------------------------------------------------------------
+    # Stage 2:
+    # Defining and allocating obs variables.
 
-    lon[i, :] = lon_mdl.interp(
-                                x=xr.DataArray(x_index[i, :], dims="z"),
-                                y=xr.DataArray(y_index[i, :], dims="z")
-                                )
-# Update user at command line.
-print("Completed: Position interpolation.")
+    # Create new column 'obs' to store the observation number associated with
+    # each particle position/properties:
+    df_run['obs'] = np.zeros(len(df_run.id))
 
-# ---------------------------------------------------------------------------
+    # Defining a utility function to allocate the observation numbers as an
+    # array (0, N) where N is the total number of observations associated
+    # with each particle:
+    def allocate_obs(x):
+        # For the DataFrame subset x, allocate observation numbers (0, N).
+        x['obs'] = np.arange(len(x.id))
+        return x
 
-# Stage 7:
-# Creating a NCEI_NetCDF_Trajectory file storing our transformed
-# TRACMASS output.
+    # Apply allocate_obs() to each particle stored in DataFrame.
+    df = df_run.groupby('id').apply(allocate_obs)
 
-# Using xarray to generate a DataSet with data variables and attributes.
-dataset = xr.Dataset(
-    data_vars={
-         "trajectory": (["traj", "obs"], trajectory),
-         "time": (["traj", "obs"], time),
-         "lat": (["traj", "obs"], lat),
-         "lon": (["traj", "obs"], lon),
-         "z": (["traj", "obs"], z),
-         "vol": (["traj", "obs"], vol),
-         "temp": (["traj", "obs"], temp),
-         "sal": (["traj", "obs"], sal),
-         "sigma0": (["traj", "obs"], sigma0),
-         },
+    # ---------------------------------------------------------------------------
+    # Stage 3:
+    # Interpolating particle depth from model vertical coordinate, z.
 
-    # NOTE: modify dataset attributes below to include important features
-    # of your simulation.
-    attrs={
-        "ncei_template_version": "NCEI_NetCDF_Trajectory_Template_v2.0",
-        "featureType": "trajectory",
-        "title": "ORCA1 Trial Sim",
-        "summary": "Trial simulation of ORCA1 - seeding particles southwards on x-z plane at ~70N",
-        "TRACMASS_version": "v7 (2020-10-28)",
-        "Conventions": "CF-1.6/CF-1.7",
-        "date_created": "2020-12-29",  # Use ISO 8601:2004 for date.
-        "creator_name": "Ollie Tooth",
-        "creator_email": "oliver_tooth@env-res.ox.ac.uk",
-        "project": "ORCA1_Sim01",
-        "creator_type": "person",
-        "creator_institution": "University of Oxford",
-        "product_version": "1.0",
-        "references": "TRACMASS - https://github.com/TRACMASS",
-        }
-)
+    # Reassign z as interpolated particle depth from model vertical
+    # coordinate.
+    df_run['z'] = f_depth(df_run['z'])
 
-# Specifying variable attributes according to the NCEI_NetCDF_Trajectory_Template_v2.0.
-# See: https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/trajectoryIncomplete.cdl
+    # ---------------------------------------------------------------------------
+    # Stage 4:
+    # Interpolating particle latitudes and longtidues using position indexes.
 
-# trajectory
-dataset.trajectory.attrs = {
-    'long_name': "Unique identifier for each particle",
-    'cf_role': "trajectory_id"
-}
-# time
-dataset.time.attrs = {
-    'long_name': "time since begining of the simulation",
-    'standard_name': "time",
-    'unit': 'nanoseconds',
-    'calendar': "none"
-}
+    # Transform particle positions in model coordinates to latitudes
+    # and longitudes, storing values in temporary DataArrays.
+    temp_lat = lat_mdl.interp(x=xr.DataArray(df_run['x'].values, dims="z"), y=xr.DataArray(df_run['y'].values, dims="z"))
+    temp_lon = lon_mdl.interp(x=xr.DataArray(df_run['x'].values, dims="z"), y=xr.DataArray(df_run['y'].values, dims="z"))
 
-# lat
-dataset.lat.attrs = {
-    'long_name': "latitude",
-    'standard_name': "latitude",
-    'units': "degrees_north"
-}
-# lon
-dataset.lon.attrs = {
-    'long_name': "longitude",
-    'standard_name': "longitude",
-    'units': "degrees_east"
-}
-# z
-dataset.z.attrs = {
-    'long_name': "depth",
-    'standard_name': "depth",
-    'units': "meters",
-    "positive": "upward"
-}
-# vol
-dataset.vol.attrs = {
-    'long_name': "particle transport",
-    'standard_name': "volume",
-    'units': "m3"
-}
-# NOTE: modify tracer attributes below as required.
-# temp
-dataset.temp.attrs = {
-    'long_name': "temperature",
-    'standard_name': "temperature",
-    'units': "C"
-}
-# sal
-dataset.sal.attrs = {
-    'long_name': "salinity",
-    'standard_name': "salinity",
-    'units': "PSU"
-}
-# sigma0
-dataset.sigma0.attrs = {
-    'long_name': "sigma0",
-    'standard_name': "sigma0",
-    'units': "kg/m3"
-}
+    # Reassign x, y in DataFrame to particle longitudes and latitudes.
+    df_run['x'] = temp_lat.values
+    df_run['y'] = temp_lon.values
 
-# Update user at command line.
-print("Completed: Generated output DataSet.")
+    # ---------------------------------------------------------------------------
+    # Stage 5:
+    # Transform output variables to numpy arrays with dimensions (traj x obs).
 
-# ---------------------------------------------------------------------------
+    # Transform particle positions into (traj x obs) pandas DataFrames.
+    X = df.pivot(index='id', columns='obs', values='x')
+    Y = df.pivot(index='id', columns='obs', values='y')
+    Z = df.pivot(index='id', columns='obs', values='z')
 
-# Stage 8:
-# Saving our NCEI_NetCDF_Trajectory file as a netCDF file.
+    # Transform tracers into (traj x obs) pandas DataFrames.
+    # NOTE: modify the number of tracers as required.
+    Temp = df.pivot(index='id', columns='obs', values='temp')
+    Sal = df.pivot(index='id', columns='obs', values='sal')
 
-# NOTE: change directory path to where we would like output .nc
-# files to be stored.
-# os.chdir('OUTPUT_DIR_PATH')
-os.chdir('/Users/ollietooth/Desktop/D.Phil./PrelimPhase/data/')
+    # Transform time into (traj x obs) pandas DataFrames.
+    Time = df.pivot(index='id', columns='obs', values='t')
 
-# NOTE: modify multifile variable (logical) as True for multiple
-# .nc output files, one file per seed-level, or False for a single
-# .nc output file.
-multifile = False
+    # Transform IDs and volume transport into (traj) pandas DataSeries.
+    Traj = df.pivot(index='id', columns='obs', values='id')
+    Volume = df.pivot(index='id', columns='obs', values='vol')
 
-if multifile is True:
-    # -----------------------------------------
-    # Subroutine for multiple .nc output files.
-    # -----------------------------------------
-    # Defining output file name prefix and suffix.
-    fn_prefix = "ORCA1-N406_TRACMASS_seed"
-    fn_suffix = ".nc"
+    # ---------------------------------------------------------------------------
+    # Stage 6:
+    # Converting all of our pandas DataFrames to ndarrays.
 
-    # -----------------------------
-    # Adding seed_level to DataSet.
-    # -----------------------------
-    # Returning the seed-levels with add_seed().
-    seed_level = add_seed(dataset)
+    # ID & Transport arrays.
+    trajectory = Traj.to_numpy()
+    vol = Volume.to_numpy()
 
-    # Append seed_level DataArray to original DataSet.
-    dataset['seed_level'] = xr.DataArray(seed_level, dims=["traj"])
-    # Adding attributes to seed_level DataArray.
-    dataset.seed_level.attrs = {'long_name': "seeding level",
-                                'standard_name': "seed_level",
-                                'units': "none"
-                                }
+    # Time array.
+    time = Time.to_numpy()
 
-    # --------------------------------------------------------
-    # Subsetting dataset by seed_level and saving as .nc file.
-    # --------------------------------------------------------
-    # Minimum seed_level.
-    min_seed = np.min(seed_level)
-    # Maximum seed_level.
-    max_seed = np.max(seed_level)
+    # Position arrays.
+    # The suffix _index is included to differentiate the position
+    # arrays of grid indexes from those of latitude, longitude and depth.
+    lon = X.to_numpy()
+    lat = Y.to_numpy()
+    z = Z.to_numpy()
 
-    # Iterate over seed-levels - subset and save DataSet to .nc files.
-    print("Saving Files Progress:")
-    # Uses tqdm package for progress bar of linear interpolation loop.
-    for seed in tqdm(np.arange(min_seed, max_seed + 1)):
+    # Tracer arrays.
+    # NOTE: modify the number of tracers as required.
+    temp = Temp.to_numpy()
+    sal = Sal.to_numpy()
 
-        # Find rows where seed-level equals seed.
-        rows = np.where(seed_level == seed)[0]
-        # Subset the DataSet with rows and return as output_data.
-        output_data = dataset.isel(traj=xr.DataArray(rows, dims=["traj"]))
+    # ---------------------------------------------------------------------------
+    # Stage 7:
+    # Creating a NCEI_NetCDF_Trajectory file storing our transformed
+    # TRACMASS output.
 
-        # Save dataset to netCDF format -
-        # Defining out_filename with prefix and suffix specififed above.
-        output_filename = fn_prefix + str(seed) + fn_suffix
-        # Use loseless compression for .nc files by updating encoding.
-        output_data.to_netcdf(output_filename,encoding=output_data.encoding.update({'zlib': True, 'complevel': 4}), format="NETCDF4")
+    # Using xarray to generate a DataSet with data variables and attributes.
+    # For trajectory ID (trajectory) and volume transport (vol), data is
+    # stored as 1-dimensional arrays. The obs dimension is not needed
+    # since the trajectory ID and volume transport of each particle is
+    # conserved throughout our simulations.
+    dataset = xr.Dataset(
+        data_vars={
+            "trajectory": (["traj"], trajectory[:, 0]),
+            "vol": (["traj"], vol[:, 0]),
+            "time": (["traj", "obs"], time),
+            "lat": (["traj", "obs"], lat),
+            "lon": (["traj", "obs"], lon),
+            "z": (["traj", "obs"], z),
+            "temp": (["traj", "obs"], temp),
+            "sal": (["traj", "obs"], sal),
+            },
 
-        # Update user at command line.
-        print("Completed: Saved Dataset in multiple .nc files.")
+        # NOTE: modify dataset attributes below to include important features
+        # of your simulation.
+        attrs={
+               "ncei_template_version": "NCEI_NetCDF_Trajectory_Template_v2.0",
+               "featureType": "trajectory",
+               "title": "ORCA025-GJM189 OSNAP East FinT Lagrangian Overturning " + date_str,
+               "summary": "Simulation 1 ORCA025-GJM189 - seeding particles northwards across OSNAP East",
+               "TRACMASS_version": "v7 (2020-10-28)",
+               "Conventions": "CF-1.6/CF-1.7",
+               "date_created": "2023-01-02",  # Use ISO 8601:2004 for date.
+               "creator_name": "Ollie Tooth",
+               "creator_email": "oliver.tooth@seh.ox.ac.uk",
+               "project": "ORCA025_Sim03",
+               "creator_type": "person",
+               "creator_institution": "University of Oxford",
+               "product_version": "1.0",
+               "references": "TRACMASS - https://github.com/TRACMASS",
+              }
+    )
 
-else:
-    # ---------------------------------------
-    # Subroutine for single .nc output file.
-    # ---------------------------------------
-    # Save dataset to netCDF format -
-    #  NOTE: modify the output file name as required for your simulation.
-    # dataset.to_netcdf('OUTPUT_FILENAME', format="NETCDF4")
-    # Use loseless compression for .nc files by updating encoding.
-    dataset.to_netcdf('ORCA1-N406_TRACMASS_complete.nc', encoding=dataset.encoding.update({'zlib': True, 'complevel': 4}), format="NETCDF4")
+    # Specifying variable attributes according to the NCEI_NetCDF_Trajectory_Template_v2.0.
+    # See: https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/trajectoryIncomplete.cdl
 
-    # Update user at command line.
-    print("Completed: Saved Dataset in single .nc file.")
+    # trajectory
+    dataset.trajectory.attrs = {
+                               'long_name': "water parcel ID",
+                               'cf_role': "trajectory_id"
+                               }
+    # time
+    dataset.time.attrs = {
+                         'long_name': "time since begining of the simulation",
+                         'standard_name': "time",
+                         'unit': 'nanoseconds',
+                         'calendar': "none"
+                         }
+
+    # lat
+    dataset.lat.attrs = {
+                        'long_name': "latitude",
+                        'standard_name': "latitude",
+                        'units': "degrees_north"
+                        }
+    # lon
+    dataset.lon.attrs = {
+                        'long_name': "longitude",
+                        'standard_name': "longitude",
+                        'units': "degrees_east"
+                        }
+    # z
+    dataset.z.attrs = {
+                      'long_name': "depth",
+                      'standard_name': "depth",
+                      'units': "meters",
+                      }
+    # vol
+    dataset.vol.attrs = {
+                        'long_name': "volume transport",
+                        'standard_name': "volume",
+                        'units': "meters^3"
+                        }
+    # NOTE: modify tracer attributes below as required.
+    # temp
+    dataset.temp.attrs = {
+                         'long_name': "temperature",
+                         'standard_name': "temperature",
+                         'units': "C"
+                         }
+    # sal
+    dataset.sal.attrs = {
+                        'long_name': "salinity",
+                        'standard_name': "salinity",
+                        'units': "PSU"
+                        }
+
+    # ---------------------------------------------------------------------------
+    # Stage 8:
+    # Saving our NCEI_NetCDF_Trajectory file as a zarr data store.
+
+    # Save dataset to netCDF format:
+    # Using loseless compression for .nc files by updating encoding.
+    dataset.to_netcdf(outDir+"ORCA025-GJM189_" + date_str +'.nc', encoding=dataset.encoding.update({'zlib': True, 'complevel': 4}), format="NETCDF4")
+
+# ------------- Footer to Script -------------
+print('Completed: Exported TRACMASS .csv to .nc')
+print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+# ------------- Footer to Script -------------
