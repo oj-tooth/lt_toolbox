@@ -9,3 +9,6 @@
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+
+# Testing / Development .ipynb files.
+/tutorials/LT_Toolbox_Testing.ipynb
