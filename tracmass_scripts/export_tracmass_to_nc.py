@@ -372,7 +372,7 @@ for n in tqdm(range(nsteps)):
 
     # Save dataset to netCDF format:
     # Using loseless compression for .nc files by updating encoding.
-    dataset.to_netcdf(outDir+"ORCA025-GJM189_" + date_str +'.nc', encoding=dataset.encoding.update({'zlib': True, 'complevel': 4}), format="NETCDF4")
+    dataset.to_netcdf(outDir+outFile+ date_str +'.nc', encoding=dataset.encoding.update({'zlib': True, 'complevel': 4}), format="NETCDF4")
 
 # ------------- Footer to Script -------------
 print('Completed: Exported TRACMASS .csv to .nc')
