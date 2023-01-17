@@ -390,17 +390,17 @@ for n in tqdm(range(nsteps)):
     if multistore is False:
         if n == 0:
             # Save initial seeding step DataSet to zarr data store format:
-            dataset.to_zarr(outDir+"ORCA025-GJM189_" + date_ini_str[:4] + ".zarr", encoding=enc)
+            dataset.to_zarr(outDir+outFile+ date_ini_str[:4] + ".zarr", encoding=enc)
         else:
             # Append subsequent DataSets to existing zarr data store:
-            dataset.to_zarr(outDir+"ORCA025-GJM189_" + date_ini_str[:4]  + ".zarr", append_dim="traj")
+            dataset.to_zarr(outDir+outFile+ date_ini_str[:4]  + ".zarr", append_dim="traj")
 
     # -----------------------
     # (2) Multistore Option: [A single .zarr data store per seeding step]
     # -----------------------
     elif multistore is True:
         # Save DataSet to zarr data store format:
-        dataset.to_zarr(outDir+"ORCA025-GJM189_" + date_str + ".zarr", encoding=enc)
+        dataset.to_zarr(outDir+outFile+ date_str + ".zarr", encoding=enc)
 
 # ------------- Footer to Script -------------
 print('Completed: Exported TRACMASS .csv to .zarr')
