@@ -341,8 +341,8 @@ def plot_ts_diagram(self, col_variable=None):
         # Defining Scalar Mappable object for colorbar.
         sm = plt.cm.ScalarMappable(cmap=cm.coolwarm, norm=norm)
 
-        # Defining colorbar, cbar, to be 0.9 of the fig height.
-        cbar = plt.colorbar(sm, shrink=0.9)
+        # Defining colorbar, cbar, to be 0.6 of the fig height.
+        cbar = plt.colorbar(sm, shrink=0.6)
         cbar.ax.get_yaxis().labelpad = 15
 
         # Creating colorbar label with col_variable attributes.
@@ -496,8 +496,8 @@ def plot_variable(self, variable, plane, seed_level, time_level, cmap='coolwarm'
     # ------------------------------
     # Adding colorbar to the figure.
     # ------------------------------
-    # Defining colorbar, cbar, to be 0.9 of the fig height.
-    cbar = fig.colorbar(cplot, shrink=0.9)
+    # Defining colorbar, cbar, to be 0.6 of the fig height.
+    cbar = fig.colorbar(cplot, shrink=0.6)
     cbar.ax.get_yaxis().labelpad = 15
 
     # Add colobar label with SI units.
