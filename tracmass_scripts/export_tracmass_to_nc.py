@@ -211,7 +211,7 @@ for n in tqdm(range(nsteps)):
 
     # Reassign z as interpolated particle depth from model vertical
     # coordinate.
-    df_run['z'] = f_depth(df_run['z'])
+    df['z'] = f_depth(df['z'])
 
     # ---------------------------------------------------------------------------
     # Stage 4:
@@ -219,12 +219,12 @@ for n in tqdm(range(nsteps)):
 
     # Transform particle positions in model coordinates to latitudes
     # and longitudes, storing values in temporary DataArrays.
-    temp_lat = lat_mdl.interp(x=xr.DataArray(df_run['x'].values, dims="z"), y=xr.DataArray(df_run['y'].values, dims="z"))
-    temp_lon = lon_mdl.interp(x=xr.DataArray(df_run['x'].values, dims="z"), y=xr.DataArray(df_run['y'].values, dims="z"))
+    temp_lat = lat_mdl.interp(x=xr.DataArray(df['x'].values, dims="z"), y=xr.DataArray(df['y'].values, dims="z"))
+    temp_lon = lon_mdl.interp(x=xr.DataArray(df['x'].values, dims="z"), y=xr.DataArray(df['y'].values, dims="z"))
 
     # Reassign x, y in DataFrame to particle longitudes and latitudes.
-    df_run['x'] = temp_lat.values
-    df_run['y'] = temp_lon.values
+    df['x'] = temp_lat.values
+    df['y'] = temp_lon.values
 
     # ---------------------------------------------------------------------------
     # Stage 5:
