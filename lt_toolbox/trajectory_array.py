@@ -17,10 +17,10 @@
 
 import xarray as xr
 import numpy as np
-from .get_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_minmax, get_val
-from .add_utils import add_seed, add_id, add_var
-from .filter_utils import filter_traj_between, filter_traj_equal, filter_traj_polygon
-from .compute_utils import compute_displacement, compute_velocity, compute_distance, compute_probability_distribution, compute_res_time, compute_trans_time
+from .get_array_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_minmax, get_val
+from .add_array_utils import add_seed, add_id, add_var
+from .filter_array_utils import filter_traj_between, filter_traj_equal, filter_traj_polygon
+from .compute_array_utils import compute_displacement, compute_velocity, compute_distance, compute_probability_distribution, compute_res_time, compute_trans_time
 
 
 ##############################################################################
@@ -36,7 +36,7 @@ class TrajArray:
     # Importing methods for geospatial mapping with Cartopy.
     from .map_utils import map_trajectories, map_probability, map_property
     # Importing methods for sensitivity analysis.
-    from .compute_utils import compute_fuv
+    from .compute_array_utils import compute_fuv
 
     def __init__(self, ds):
         """
