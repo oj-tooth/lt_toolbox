@@ -19,7 +19,7 @@ import pygeos
 import numpy as np
 import scipy.stats as stats
 from scipy.ndimage import gaussian_filter
-from .get_utils import get_start_time
+from .get_array_utils import get_start_time
 from .find_utils import find_equal
 
 ##############################################################################
