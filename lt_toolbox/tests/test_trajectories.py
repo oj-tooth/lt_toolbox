@@ -17,7 +17,7 @@ import pytest
 import numpy as np
 import numpy.testing as npt
 import xarray as xr
-from lt_toolbox.trajectories import trajectories
+from lt_toolbox.trajectory_array import trajectories
 
 ##############################################################################
 # Defining test DataSet and trajectories object.
