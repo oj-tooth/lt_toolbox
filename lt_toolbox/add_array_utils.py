@@ -16,7 +16,7 @@
 
 import numpy as np
 import xarray as xr
-from .get_utils import get_start_time
+from .get_array_utils import get_start_time
 
 ##############################################################################
 # Define add_seed() function.
