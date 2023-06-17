@@ -1,13 +1,13 @@
 ##############################################################################
-# trajectories.py
+# trajectory_array.py
 #
 # Description:
-# Defines the trajectories Class from a .nc file containing atmosphere
+# Defines the TrajArray Class from a .nc or .zarr file containing atmosphere
 # ocean parcel trajectories (and accompanying tracers), stored following
 # CF-conventions implemented with the NCEI trajectory template.
 #
 # Last Edited:
-# 2021/01/06
+# 2023/17/06
 #
 # Created By:
 # Ollie Tooth
@@ -24,12 +24,12 @@ from .compute_utils import compute_displacement, compute_velocity, compute_dista
 
 
 ##############################################################################
-# Define trajectories Class.
+# Define TrajArray Class.
 
 
-class trajectories:
+class TrajArray:
 
-    # Importing methods for finding indices in trajectories object.
+    # Importing methods for finding indices in TrajArray object.
     from .find_utils import find_between, find_equal, find_polygon
     # Importing methods for cartesian plotting with matplotlib.
     from .plot_utils import plot_timeseries, plot_ts_diagram, plot_variable
@@ -40,7 +40,7 @@ class trajectories:
 
     def __init__(self, ds):
         """
-        Create a trajectories object from an xarray DataSet.
+        Create a TrajArray object from an xarray DataSet.
 
         Parameters
         ----------
@@ -51,15 +51,15 @@ class trajectories:
 
         Returns
         --------
-        trajectories object
+        TrajArray object
             Complete trajectories, including all attribute variables
             contained in DataSet, ds.
 
         Examples
         --------
-        Creating trajectories object, traj, with output_file.nc file.
+        Creating TrajArray object, traj, with output_file.nc file.
 
-        >>> trajectories = trajectories(xr.open_dataset('output_file.nc'))
+        >>> trajectories = TrajArray(xr.open_dataset('output_file.nc'))
 
         Note
         ----
@@ -93,7 +93,7 @@ class trajectories:
         self.data = ds
 
         # --------------------------------------------
-        # Define trajectories obj attribute variables.
+        # Define TrajArray obj attribute variables.
         # --------------------------------------------
         # For improved useability, extract variables from data,
         # storing them as variables in the class.
@@ -102,7 +102,7 @@ class trajectories:
         variables = list(self.data.variables)
 
         # Set all variables in DataSet to attribute
-        # variables of trajectories object.
+        # variables of TrajArray object.
         for var in variables:
             setattr(self, var, getattr(self.data, var))
 
@@ -111,14 +111,14 @@ class trajectories:
 
     def __str__(self):
         # Return Dimension and Data Variables contained within
-        # trajectories object.
-        return "<trajectories object>\n\n------------------------------------------\nDimensions:  {2}\n\nTrajectories: {0}\nObservations: {1}\n------------------------------------------ \n{3}".format(np.shape(self.data['time'].values)[0], np.shape(self.data['time'].values)[1], list(self.data.dims), self.data.data_vars)
+        # TrajArray object.
+        return "<TrajArray object>\n\n------------------------------------------\nDimensions:  {2}\n\nTrajectories: {0}\nObservations: {1}\n------------------------------------------ \n{3}".format(np.shape(self.data['time'].values)[0], np.shape(self.data['time'].values)[1], list(self.data.dims), self.data.data_vars)
 
 ##############################################################################
 # Define len() method.
 
     def __len__(self):
-        # Return the no. trajectories containined in trajectories object.
+        # Return the no. trajectories containined in TrajArray object.
         return np.shape(self.data['time'].values)[0]
 
 ##############################################################################
@@ -136,14 +136,14 @@ class trajectories:
 
         Returns
         --------
-        trajectories object
-            Original trajectories object is returned with transformed
+        TrajArray object
+            Original TrajArray object is returned with transformed
             time attribute variable DataArray containing datetimes
             with dimensions (traj x obs).
 
         Examples
         --------
-        Convert time in trajectories object to datetime with start
+        Convert time in TrajArray object to datetime with start
         date '2000-01-01.
 
         >>> trajectories.use_datetime('2000-01-01')
@@ -168,8 +168,8 @@ class trajectories:
         # Redefining time variable in datetime64 format.
         self.data.time.values = start_date + self.data.time.values
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define filter_between() method.
@@ -189,19 +189,19 @@ class trajectories:
         Parameters
         ----------
         variable : string
-            Name of the variable in the trajectories object.
+            Name of the variable in the TrajArray object.
         min_val : numeric
             Minimum value variable should equal or be greater than.
         max_val : numeric
             Maximum value variable should equal or be less than.
         drop : boolean
             Determines if fitered trajectories should be returned as a
-            new trajectories object (False) or instead dropped from the
-            existing trajectories object (True).
+            new TrajArray object (False) or instead dropped from the
+            existing TrajArray object (True).
 
         Returns
         -------
-        trajectories object
+        TrajArray object
             Complete trajectories, including all attribute variables,
             which meet the filter specification.
 
@@ -260,9 +260,9 @@ class trajectories:
         # ----------------------------------
         ds = filter_traj_between(self, variable=variable, min_val=min_val, max_val=max_val, drop=drop)
 
-        # Returning the subsetted xarray DataSet as a trajectories object -
+        # Returning the subsetted xarray DataSet as a TrajArray object -
         # this enables multiple filtering to take place.
-        return trajectories(ds)
+        return TrajArray(ds)
 
 ##############################################################################
 # Define filter_equal() method.
@@ -281,17 +281,17 @@ class trajectories:
         Parameters
         ----------
         variable : string
-            Name of the variable in the trajectories object.
+            Name of the variable in the TrajArray object.
         val : numeric
             Value variable should equal.
         drop : boolean
             Determines if fitered trajectories should be returned as a
-            new trajectories object (False) or instead dropped from the
-            existing trajectories object (True).
+            new TrajArray object (False) or instead dropped from the
+            existing TrajArray object (True).
 
         Returns
         -------
-        trajectories object
+        TrajArray object
             Complete trajectories, including all attribute variables,
             which meet the filter specification.
 
@@ -358,9 +358,9 @@ class trajectories:
         # ----------------------------------
         ds = filter_traj_equal(self, variable=variable, val=val, drop=drop)
 
-        # Returning the subsetted xarray DataSet as a trajectories object -
+        # Returning the subsetted xarray DataSet as a TrajArray object -
         # this enables multiple filtering to take place.
-        return trajectories(ds)
+        return TrajArray(ds)
 
 ##############################################################################
 # Define filter_polygon() method.
@@ -384,12 +384,12 @@ class trajectories:
             trajectories as connected lines.
         drop : boolean
             Determines if fitered trajectories should be returned as a
-            new trajectories object (False) or instead dropped from the
-            existing trajectories object (True).
+            new TrajArray object (False) or instead dropped from the
+            existing TrajArray object (True).
 
         Returns
         -------
-        trajectories object
+        TrajArray object
             Complete trajectories, including all attribute variables,
             which meet the filter specification.
 
@@ -423,9 +423,9 @@ class trajectories:
         # ----------------------------------
         ds = filter_traj_polygon(self, polygon=polygon, method=method, drop=drop)
 
-        # Returning the subsetted xarray DataSet as a trajectories object -
+        # Returning the subsetted xarray DataSet as a TrajArray object -
         # this enables multiple filtering to take place.
-        return trajectories(ds)
+        return TrajArray(ds)
 
 ##############################################################################
 # Define compute_dx() method.
@@ -436,20 +436,20 @@ class trajectories:
 
         Zonal (x) displacements between particle positions for
         all trajectories are returned as a new DataArray, dx,
-        within the trajectories object.
+        within the TrajArray object.
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
         unit : string
             Unit for particle displacement output - default 'km' -
             alternative option - 'm'.
 
         Returns
         -------
-        trajectories object
-            Original trajectories object is returned with appended attribute
+        TrajArray object
+            Original TrajArray object is returned with appended attribute
             variable DataArray containing particle zonal displacements
             with dimensions (traj x obs).
 
@@ -492,8 +492,8 @@ class trajectories:
                              'positive': "eastward"
                              }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define compute_dy() method.
@@ -504,20 +504,20 @@ class trajectories:
 
         Meridional (y) displacements between particle positions for
         all trajectories are returned as a new DataArray, dy,
-        within the trajectories object.
+        within the TrajArray object.
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
         unit : string
             Unit for particle displacement output - default 'km' -
             alternative option - 'm'.
 
         Returns
         -------
-        trajectories object
-            Original trajectories object is returned with appended attribute
+        TrajArray object
+            Original TrajArray object is returned with appended attribute
             variable DataArray containing particle meridional displacements
             with dimensions (traj x obs).
 
@@ -560,8 +560,8 @@ class trajectories:
                                 'positive': "northward"
                                 }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define compute_dz() method.
@@ -576,16 +576,16 @@ class trajectories:
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
         unit : string
             Unit for particle displacement output - default 'm' -
             alternative option - 'km'.
 
         Returns
         -------
-        trajectories object.
-        Original trajectories object is returned with appended attribute
+        TrajArray object.
+        Original TrajArray object is returned with appended attribute
         variable DataArray containing particle vertical displacements
         with dimensions (traj x obs).
 
@@ -628,8 +628,8 @@ class trajectories:
                              'positive': "upward"
                              }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define compute_u() method.
@@ -645,16 +645,16 @@ class trajectories:
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
         unit : string
             Unit for Lagrangian velocity output - default 'm/s' -
             alternative options - 'm/day', 'km/day'.
 
         Returns
         -------
-        trajectories object.
-        Original trajectories object is returned with appended attribute
+        TrajArray object.
+        Original TrajArray object is returned with appended attribute
         variable DataArray containing the zonal component of each particle's
         Lagrangian velocity with dimensions (traj x obs).
 
@@ -697,8 +697,8 @@ class trajectories:
                              'positive': "eastward"
                              }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define compute_v() method.
@@ -710,20 +710,20 @@ class trajectories:
 
         Lagrangian meridional (y) velocity components for
         all trajectories are returned as a new DataArray, v,
-        within the trajectories object.
+        within the TrajArray object.
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
         unit : string
             Unit for Lagrangian velocity output - default 'm/s' -
             alternative options - 'm/day', 'km/day'.
 
         Returns
         -------
-        trajectories object.
-        Original trajectories object is returned with appended attribute
+        TrajArray object.
+        Original TrajArray object is returned with appended attribute
         variable DataArray containing the meridional component of each
         particle's Lagrangian velocity with dimensions (traj x obs).
 
@@ -766,8 +766,8 @@ class trajectories:
                              'positive': "northward"
                              }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define compute_w() method.
@@ -779,20 +779,20 @@ class trajectories:
 
         Lagrangian vertical (z) velocity components for
         all trajectories are returned as a new DataArray, w,
-        within the trajectories object.
+        within the TrajArray object.
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
         unit : string
             Unit for Lagrangian velocity output - default 'm/s' -
             alternative options - 'm/day', 'km/day'.
 
         Returns
         -------
-        trajectories object.
-        Original trajectories object is returned with appended attribute
+        TrajArray object.
+        Original TrajArray object is returned with appended attribute
         variable DataArray containing the vertical component of each
         particle's Lagrangian velocity with dimensions (traj x obs).
 
@@ -835,8 +835,8 @@ class trajectories:
                              'positive': "upwards"
                              }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define compute_distance() method.
@@ -852,8 +852,8 @@ class trajectories:
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
         cumsum_dist : logical
             Compute the cumulative distance travelled by each particle -
             default is False.
@@ -863,8 +863,8 @@ class trajectories:
 
         Returns
         -------
-        trajectories object.
-        Original trajectories object is returned with appended attribute
+        TrajArray object.
+        Original TrajArray object is returned with appended attribute
         variable DataArray containing the distance travelled by each
         particle along it's trajectory with dimensions (traj x obs).
 
@@ -920,8 +920,8 @@ class trajectories:
                                 'units': unit,
                                 }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define compute_residence_time() method.
@@ -937,16 +937,16 @@ class trajectories:
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
         polygon : list
             List of coordinates, specified as an ordered sequence of tuples
             (Lon, Lat), representing the boundary of the polygon.
 
         Returns
         -------
-        trajectories object.
-        Original trajectories object is returned with appended attribute
+        TrajArray object.
+        Original TrajArray object is returned with appended attribute
         variable DataArray containing the residence time (days) of each
         trajectory with dimensions (traj).
 
@@ -986,8 +986,8 @@ class trajectories:
                             'units': "days",
                             }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define compute_transit_time() method.
@@ -1002,16 +1002,16 @@ class trajectories:
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
         polygon : list
             List of coordinates, specified as an ordered sequence of tuples
             (Lon, Lat), representing the boundary of the polygon.
 
         Returns
         -------
-        trajectories object.
-        Original trajectories object is returned with appended attribute
+        TrajArray object.
+        Original TrajArray object is returned with appended attribute
         variable DataArray containing the transit time (days) of each
         trajectory with dimensions (traj).
 
@@ -1051,8 +1051,8 @@ class trajectories:
                             'units': "days",
                             }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define compute_probability() method.
@@ -1073,8 +1073,8 @@ class trajectories:
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
         bin_res : numeric
             The resolution (degrees) of the grid on to which particle
             positions will be binned.
@@ -1095,8 +1095,8 @@ class trajectories:
 
         Returns
         -------
-        trajectories object.
-        Original trajectories object is returned with appended attribute
+        TrajArray object.
+        Original TrajArray object is returned with appended attribute
         variable DataArrays containing the binned 2-dimensional
         Lagrangian probability distribution and the coordinates of the
         centre points of the grid with dimensions (x - y). Where group_by
@@ -1164,8 +1164,8 @@ class trajectories:
                             'standard_name': "probability",
                             }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define get_start_time() method.
@@ -1180,13 +1180,13 @@ class trajectories:
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
 
         Returns
         -------
-        DataSet.
-            Original DataSet is returned with appended attribute
+        TrajArray.
+            Original TrajArray is returned with appended attribute
             variable t_start (ns) DataArray containing the
             release time of each particle with dimension (traj).
 
@@ -1213,8 +1213,8 @@ class trajectories:
                              'units': "ns"
                              }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define get_start_loc() method.
@@ -1228,13 +1228,13 @@ class trajectories:
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
 
         Returns
         -------
-        DataSet.
-            Original DataSet is returned with appended attribute
+        TrajArray.
+            Original TrajArray is returned with appended attribute
             variables lat_start, lon_start, z_start DataArray containing
             the release latitude, longitude and depth of each particle
             with dimension (traj).
@@ -1281,8 +1281,8 @@ class trajectories:
                              'positive': "upwards"
                              }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define get_end_time() method.
@@ -1297,8 +1297,8 @@ class trajectories:
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
 
         Returns
         -------
@@ -1330,8 +1330,8 @@ class trajectories:
                              'units': "ns"
                              }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define get_end_loc() method.
@@ -1347,13 +1347,13 @@ class trajectories:
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
 
         Returns
         -------
-        DataSet.
-            Original DataSet is returned with appended attribute
+        TrajArray.
+            Original TrajArray is returned with appended attribute
             variables lat_end, lon_end and z_end DataArray containing
             the exit latitude, longitude and depth of each particle
             with dimension (traj).
@@ -1400,8 +1400,8 @@ class trajectories:
                              'positive': "upwards"
                              }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define get_duration() method.
@@ -1417,8 +1417,8 @@ class trajectories:
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
 
         Returns
         -------
@@ -1451,8 +1451,8 @@ class trajectories:
                              'units': "ns"
                              }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define get_value() function.
@@ -1468,15 +1468,15 @@ class trajectories:
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
         variable : string
-            Name of the variable in the trajectories object.
+            Name of the variable in the TrajArray object.
 
         Returns
         -------
-        DataSet.
-            Original DataSet is returned with appended attribute
+        TrajArray.
+            Original TrajArray is returned with appended attribute
             variable {variable}_max DataArray containing the min
             values along each trajectory, with dimension (traj).
 
@@ -1524,8 +1524,8 @@ class trajectories:
                                 'units': self.data[variable].attrs['units']
                                 }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define get_max() function.
@@ -1539,15 +1539,15 @@ class trajectories:
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
         variable : string
-            Name of the variable in the trajectories object.
+            Name of the variable in the TrajArray object.
 
         Returns
         -------
-        DataSet.
-            Original DataSet is returned with appended attribute
+        TrajArray.
+            Original TrajArray is returned with appended attribute
             variable {variable}_max DataArray containing the max
             values along each trajectory, with dimension (traj).
 
@@ -1590,8 +1590,8 @@ class trajectories:
                                 'units': self.data[variable].attrs['units']
                                 }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define get_min() function.
@@ -1605,15 +1605,15 @@ class trajectories:
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
         variable : string
-            Name of the variable in the trajectories object.
+            Name of the variable in the TrajArray object.
 
         Returns
         -------
-        DataSet.
-            Original DataSet is returned with appended attribute
+        TrajArray.
+            Original TrajArray is returned with appended attribute
             variable {variable}_max DataArray containing the min
             values along each trajectory, with dimension (traj).
 
@@ -1656,8 +1656,8 @@ class trajectories:
                                 'units': self.data[variable].attrs['units']
                                 }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define add_seed() method.
@@ -1673,13 +1673,13 @@ class trajectories:
 
         Parameters
         ----------
-        self : trajectories object
-        Trajectories object passed from trajectories class method.
+        self : TrajArray object
+        TrajArray object passed from TrajArray class method.
 
         Returns
         -------
-        DataSet.
-            Original DataSet is returned with appended attribute
+        TrajArray.
+            Original TrajArray is returned with appended attribute
             variable seed_level DataArray containing the seed
             level for each particle released, with dimension (traj).
 
@@ -1706,8 +1706,8 @@ class trajectories:
                              'units': "none"
                              }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define add_id() method.
@@ -1722,13 +1722,13 @@ class trajectories:
 
         Parameters
         ----------
-        self : trajectories object
-        Trajectories object passed from trajectories class method.
+        self : TrajArray object
+        TrajArray object passed from TrajArray class method.
 
         Returns
         -------
-        DataSet.
-            Original DataSet is returned with appended attribute
+        TrajArray.
+            Original TrajArray is returned with appended attribute
             variable seed_level DataArray containing the id
             for each particle released, with dimension (traj).
 
@@ -1755,8 +1755,8 @@ class trajectories:
                              'units': "none"
                              }
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
 
 ##############################################################################
 # Define add_variable() method.
@@ -1771,10 +1771,10 @@ class trajectories:
 
         Parameters
         ----------
-        self : trajectories object
-            Trajectories object passed from trajectories class method.
+        self : TrajArray object
+            TrajArray object passed from TrajArray class method.
         data : ndarray
-            values of new variable to be added to the trajectories object
+            values of new variable to be added to the TrajArray object
             DataSet.
         attributes : dict
             the attributes of the new variable, at a minimum -'long_name',
@@ -1783,8 +1783,8 @@ class trajectories:
 
         Returns
         -------
-        trajectories object
-            Original trajectories object is returned with new attribute
+        TrajArray object
+            Original TrajArray object is returned with new attribute
             variable DataArray appended, dimensions are either (traj) /
             (obs) / (traj x obs).
         """
@@ -1801,5 +1801,5 @@ class trajectories:
         # -----------------------------------------
         self.data = add_var(self=self, data=data, attrs=attributes)
 
-        # Return trajectories object with updated DataSet.
-        return trajectories(self.data)
+        # Return TrajArray object with updated DataSet.
+        return TrajArray(self.data)
