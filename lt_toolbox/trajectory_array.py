@@ -9,8 +9,11 @@
 # Last Edited:
 # 2023/17/06
 #
-# Created By:
+# Last Edited By:
 # Ollie Tooth
+#
+# Contact:
+# oliver.tooth@env-res.ox.ac.uk
 #
 ##############################################################################
 # Importing relevant packages.
@@ -30,11 +33,11 @@ from .compute_array_utils import compute_displacement, compute_velocity, compute
 class TrajArray:
 
     # Importing methods for finding indices in TrajArray object.
-    from .find_utils import find_between, find_equal, find_polygon
+    from .find_array_utils import find_between, find_equal, find_polygon
     # Importing methods for cartesian plotting with matplotlib.
-    from .plot_utils import plot_timeseries, plot_ts_diagram, plot_variable
+    from .plot_array_utils import plot_timeseries, plot_ts_diagram, plot_variable
     # Importing methods for geospatial mapping with Cartopy.
-    from .map_utils import map_trajectories, map_probability, map_property
+    from .map_array_utils import map_trajectories, map_probability, map_property
     # Importing methods for sensitivity analysis.
     from .compute_array_utils import compute_fuv
 
