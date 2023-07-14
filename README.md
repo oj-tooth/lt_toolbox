@@ -2,7 +2,7 @@
 
 <br />
 <p align="center">
-    <img src="docs/images/README_LT_Toolbox_Logo.png" alt="Logo" width="400" height="200">
+    <img src="docs/images/README_LT_Toolbox_Logo.png" alt="Logo" width="500" height="100">
   </a>
 
   <h3 align="center">LT Toolbox</h3>
