@@ -2,7 +2,7 @@
 
 <br />
 <p align="center">
-    <img src="docs/images/README_LT_Toolbox_Logo.png" alt="Logo" width="500" height="100">
+    <img src="docs/images/README_LT_Toolbox_Logo.png" alt="Logo" width="450" height="120">
   </a>
 
   <h3 align="center">Lagrangian Trajectories Toolbox</h3>
@@ -121,3 +121,5 @@ Distributed under the MIT License. See LICENSE file for further details.
 
 * Adapted README.md from opensource template: 
 https://github.com/othneildrew/Best-README-Template/blob/master/README.md
+
+* LT-Toolbox logo was created with the help of Noam Vogt-Vincent (@nvogtvincent) at the University of Oxford.
