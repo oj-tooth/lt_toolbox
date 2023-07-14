@@ -5,23 +5,23 @@
     <img src="docs/images/README_LT_Toolbox_Logo.png" alt="Logo" width="500" height="100">
   </a>
 
-  <h3 align="center">LT Toolbox</h3>
+  <h3 align="center">Lagrangian Trajectories Toolbox</h3>
 
   <p align="center">
-    The Lagrangian Trajectories Toolbox
+    Post-Processing, Visualisation & Analysis of Lagrangian particle trajectories
+    </a>
     <br />
-    <a href="https://lt_toolbox.readthedocs.io"><strong>Explore the docs »</strong></a>
     <br />
-    <br />
-    <a href=https://github.com/oj-tooth/lt_toolbox/#example>View Demo</a>
     ·
-    <a href="https://github.com/oj-tooth/lt-toolbox/issues">Report Issue</a>
+    <a href="https://lt_toolbox.readthedocs.io"><strong>Explore the docs</strong></a>
+    ·
+    <a href="https://github.com/oj-tooth/lt-toolbox/issues"><strong>Report an issue</strong></a>
     ·
   </p>
 </p>
 
 <!-- Table of Contents -->
-## Table of Contents
+### Table of Contents
 
 * [About the LT Toolbox](#about-the-lt-toolbox)
   * [Background](#background)
