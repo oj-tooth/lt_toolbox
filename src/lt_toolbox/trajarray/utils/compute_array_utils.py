@@ -20,7 +20,7 @@ import numpy as np
 import scipy.stats as stats
 from scipy.ndimage import gaussian_filter
 from .get_array_utils import get_start_time
-from .find_utils import find_equal
+from .find_array_utils import find_equal
 
 ##############################################################################
 # Define haversine_distance() function.
