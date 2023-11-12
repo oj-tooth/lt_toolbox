@@ -19,9 +19,12 @@
 
 import polars as pl
 import numpy as np
+import xarray as xr
 
 # Importing utility functions
-from utils.filter_frame_utils import filter_traj_polygon, filter_traj
+from .utils.filter_frame_utils import filter_traj_polygon, filter_traj, filter_summary
+from .utils.compute_frame_utils import haversine_dist, binned_statistic_1d, binned_statistic_2d, binned_group_statistic_1d, binned_group_statistic_2d
+from .utils.transform_frame_utils import transform_coords
 
 ##############################################################################
 # Define TrajStore Class.
@@ -29,80 +32,85 @@ from utils.filter_frame_utils import filter_traj_polygon, filter_traj
 
 class TrajStore:
 
-    def __init__(self, source, read_mode=None, summary_source=None, rename_cols=None, read_options=None, **kwargs):
+    def __init__(self, traj_source, read_mode='eager', read_kwargs=None, rename_cols=None, summary_source=None, summary_array=None):
         """
         Create a TrajStore from a single filepath, list of filepaths, Polars DataFrame
         or Polars LazyFrame.
 
         Parameters
         ----------
-        source: str | list
+        traj_source: str | list
             Path or list of paths to .csv or .parquet file(s) containing Lagrangian
             trajectories in tabular format. Alternatively, a Polars DataFrame or
             LazyFrame may be specified.
         read_mode : str
-            Select either 'eager' or 'lazy' mode to read source files.
+            Select either 'eager' or 'lazy' mode to read traj_source files.
             Default is to use Polars lazy API, only executing full queries
             when specified.
-        summary_source : DataFrame | LazyFrame
+        read_kwargs : dict
+            Additional keyword arguments to be passed to Polars read_csv(),
+            read_parquet(), scan_csv() or scan_parquet() function when
+            constructing TrajStore object.
+        rename_cols : dict
+            Rename columns using key value pairs that map from old name to new
+            name.
+        summary_source : DataFrame
             Summary data stored for each trajectory in TrajFrame, df.
             Default value is None since TrajFrame is assumed to
             contain multiple rows for each trajectory. An exception is made
             when the TrajFrame contains only a single row per trajectory.
             In this case, TrajFrame and SummaryFrame are equivalent.
-        rename_cols : dict
-            Rename columns using key value pairs that map from old name to new
-            name.
-        read_options : dict
-            Additional keyword arguments to be passed to Polars read_csv(),
-            read_parquet(), scan_csv() or scan_parquet() function when
-            constructing TrajStore object.
+        summary_array : DataSet
+            DataSet storing summary statistics in the form of n-dimensional 
+            DataArrays generated from Lagrangian trajectory data contained in
+            the TrajStore.
 
         Returns
         --------
         TrajStore object
             Complete trajectories, including all column variables contained
-            in TrajectoryFrame. Summary data stored for each
-            trajectory in SummaryFrame.
+            in TrajectoryFrame. Summary data stored for each trajectory in
+            SummaryFrame. Summary statistics stored as n-dimensional
+            arrays in SummaryArray.
 
         Examples
         --------
         Creating TrajStore object, trajectories, with example_trajectories.csv file in eager mode.
 
         >>> filename = 'example_trajectories.csv'
-        >>> trajectories = TrajStore(source=filename, SummaryFrame=None, mode='eager')
+        >>> trajectories = TrajStore(traj_source=filename, summary_source=None, read_mode='eager')
 
         Creating TrajStore object, traj, with multiple parquet files in lazy mode.
 
         >>> filenames = [ 'example_trajectories1.parquet', 'example_trajectories2.parquet']
-        >>> trajectories = TrajStore(source=filenames, SummaryFrame=None, mode='lazy')
+        >>> trajectories = TrajStore(traj_source=filenames, summary_source=None, read_mode='lazy')
 
         """
         # -------------------
         # Raising exceptions.
         # -------------------
         # Raising exceptions where a TrajectoryFrame source is specified:
-        if source is not None:
+        if traj_source is not None:
             # Determine if source is Polars DataFrame:
-            is_DataFrame = isinstance(source, pl.DataFrame)
+            is_DataFrame = isinstance(traj_source, pl.DataFrame)
             # Determine if source is Polars LazyFrame:
-            is_LazyFrame = isinstance(source, pl.LazyFrame)
+            is_LazyFrame = isinstance(traj_source, pl.LazyFrame)
 
             # Raise error if source is not a string, list or Polars DataFrame / LazyFrame:
-            if (isinstance(source, str) | isinstance(source, list) | is_DataFrame | is_LazyFrame) is False:
+            if (isinstance(traj_source, str) | isinstance(traj_source, list) | is_DataFrame | is_LazyFrame) is False:
                 raise TypeError("source file path(s) must be specified as string or list of strings")
 
             # Raise error if source list does not contain strings:
-            if isinstance(source, list):
-                if any(isinstance(file, str) for file in source) is False:
+            if isinstance(traj_source, list):
+                if any(isinstance(file, str) for file in traj_source) is False:
                     raise TypeError("source file paths must be specified as list of strings")
 
             # Raise error if source filepath does not contain .csv or .parquet extension:
-            if isinstance(source, str):
-                if (source.endswith('.csv')) | (source.endswith('.parquet')) is False:
+            if isinstance(traj_source, str):
+                if (traj_source.endswith('.csv')) | (traj_source.endswith('.parquet')) is False:
                     raise TypeError("source file must be specified as either .csv or .parquet")
-            if isinstance(source, list):
-                if any(((file.endswith('.csv')) | (file.endswith('.parquet'))) for file in source) is False:
+            if isinstance(traj_source, list):
+                if any(((file.endswith('.csv')) | (file.endswith('.parquet'))) for file in traj_source) is False:
                     raise TypeError("source files must be specified as either .csv or .parquet")
 
         # Raise error if read_mode is not a string:
@@ -117,58 +125,63 @@ class TrajStore:
             if isinstance(summary_source, pl.DataFrame) is False:
                 raise TypeError("summary_source must be specified a Polars DataFrame")
 
+        # Raise error if summary_array is not an xarray DataSet:
+        if summary_array is not None:
+            if isinstance(summary_array, xr.Dataset) is False:
+                raise TypeError("summary_source must be specified an xarray DataSet")
+
         # Raise error if attrs is not a dictionary:
         if rename_cols is not None:
             if isinstance(rename_cols, dict) is False:
                 raise TypeError("rename columns mapping specified as a dictionary")
 
-        # ------------------------------------------------------
-        # Constructing Lagrangian trajectory frame from source:
-        # ------------------------------------------------------
-        if source is not None:
+        # ----------------------------------------------------------
+        # Constructing Lagrangian trajectory frame from traj_source:
+        # ----------------------------------------------------------
+        if traj_source is not None:
             # Case 1. From specified Polars DataFrame or LazyFrame:
             if (is_DataFrame | is_LazyFrame) is True:
-                df = source
+                df = traj_source
 
             # Case 2. Reading input file(s) as Polars DataFrame or LazyFrame.
             else:
                 # Eager reading of source file(s).
                 if read_mode == 'eager':
                     # Sub Case 1. Single file:
-                    if isinstance(source, str):
-                        if source.endswith('.csv'):
+                    if isinstance(traj_source, str):
+                        if traj_source.endswith('.csv'):
                             # Reading DataFrame from source .csv file:
-                            df = pl.read_csv(source, **(read_options or {}))
-                        elif source.endswith('.parquet'):
+                            df = pl.read_csv(traj_source, **(read_kwargs or {}))
+                        elif traj_source.endswith('.parquet'):
                             # Reading DataFrame from source .parquet file:
-                            df = pl.read_parquet(source, **(read_options or {}))
+                            df = pl.read_parquet(traj_source, **(read_kwargs or {}))
                     # Sub Case 2. Multiple files:
-                    if isinstance(source, list):
-                        if source[0].endswith('.csv'):
+                    if isinstance(traj_source, list):
+                        if traj_source[0].endswith('.csv'):
                             # Reading DataFrame from source .csv file:
-                            df = pl.concat([pl.read_csv(file, **(read_options or {})) for file in source])
-                        elif source[0].endswith('.parquet'):
+                            df = pl.concat([pl.read_csv(file, **(read_kwargs or {})) for file in traj_source])
+                        elif traj_source[0].endswith('.parquet'):
                             # Reading DataFrame from source .parquet file:
-                            df = pl.concat([pl.read_parquet(file, **(read_options or {})) for file in source])
+                            df = pl.concat([pl.read_parquet(file, **(read_kwargs or {})) for file in traj_source])
 
                 # Lazy reading of source file(s).
                 if read_mode == 'lazy':
                     # Sub Case 1. Single file:
-                    if isinstance(source, str):
-                        if source.endswith('.csv'):
+                    if isinstance(traj_source, str):
+                        if traj_source.endswith('.csv'):
                             # Scan LazyFrame from source .csv file:
-                            df = pl.scan_csv(source, **(read_options or {}))
-                        elif source.endswith('.parquet'):
+                            df = pl.scan_csv(traj_source, **(read_kwargs or {}))
+                        elif traj_source.endswith('.parquet'):
                             # Scan LazyFrame from source .parquet file:
-                            df = pl.scan_parquet(source, **(read_options or {}))
+                            df = pl.scan_parquet(traj_source, **(read_kwargs or {}))
                     # Sub Case 2. Multiple files:
-                    if isinstance(source, list):
-                        if source[0].endswith('.csv'):
+                    if isinstance(traj_source, list):
+                        if traj_source[0].endswith('.csv'):
                             # Scan LazyFrame from source .csv file:
-                            df = pl.concat([pl.scan_csv(file, **(read_options or {})) for file in source])
-                        elif source[0].endswith('.parquet'):
+                            df = pl.concat([pl.scan_csv(file, **(read_kwargs or {})) for file in traj_source])
+                        elif traj_source[0].endswith('.parquet'):
                             # Scan LazyFrame from source .parquet file:
-                            df = pl.concat([pl.scan_parquet(file, **(read_options or {})) for file in source])
+                            df = pl.concat([pl.scan_parquet(file, **(read_kwargs or {})) for file in traj_source])
 
         # Renaming columns of trajectory frame:
         if rename_cols is not None:
@@ -179,7 +192,7 @@ class TrajStore:
         # ------------------------------------------------------
         # Storing input trajectory frame as TrajStore attribute.
         # ------------------------------------------------------
-        if source is not None:
+        if traj_source is not None:
             # Defining TrajFrame as input DataFrame or LazyFrame
             # containing one or more rows per trajectory.
             self.TrajFrame = df
@@ -208,6 +221,16 @@ class TrajStore:
         elif summary_source is None:
             # Defining SummaryFrame as None.
             self.SummaryFrame = None
+
+        # --------------------------------------------
+        # Storing SummaryArray as TrajStore attribute.
+        # --------------------------------------------
+        if summary_array is not None:
+            # Defining SummaryArray from specified Dataset.
+            self.SummaryArray = summary_array
+        elif summary_array is None:
+            # Defining SummaryArray as empty Dataset.
+            self.SummaryArray = xr.Dataset()
 
         # --------------------------------------
         # Extracting TrajFrame column variables.
@@ -252,7 +275,10 @@ class TrajStore:
             traj_str = f"<TrajFrame object>\n\n----- Trajectory LazyFrame -----\nSchema: {self.TrajFrame.schema}\nOptimised Query Plan:\n{self.traj_query_plan}\n"
 
         # Construct summary string for TrajFrame:
-        summary_str = f"\n----- Summary DataFrame -----\nObservations: {self.SummaryFrame.shape[0]}\nVariables: {self.SummaryFrame.columns}\n{self.SummaryFrame.glimpse}\n"
+        if self.SummaryFrame is not None:
+            summary_str = f"\n----- Summary DataFrame -----\nObservations: {self.SummaryFrame.shape[0]}\nVariables: {self.SummaryFrame.columns}\n{self.SummaryFrame.glimpse}\n"
+        else:
+            summary_str = ""
 
         return traj_str + summary_str
 
@@ -305,12 +331,12 @@ class TrajStore:
         trajectory_data = self.TrajFrame.collect(streaming=streaming, **kwargs)
 
         # Return TrajStore object including eager TrajFrame and/or SummaryFrame.
-        return TrajStore(source=trajectory_data, summary_source=self.SummaryFrame)
+        return TrajStore(traj_source=trajectory_data, summary_source=self.SummaryFrame)
 
 ##############################################################################
 # Define use_datetime.
 
-    def use_datetime(self, start_date, fmt="%Y-%m-%d"):
+    def use_datetime(self, start_date:str, fmt="%Y-%m-%d"):
         """
         Convert time attribute variable to Datetime format.
 
@@ -353,12 +379,86 @@ class TrajStore:
         )
 
         # Return TrajStore object with updated TrajFrame.
-        return TrajStore(source=trajectory_data, summary_source=self.SummaryFrame)
+        return TrajStore(traj_source=trajectory_data, summary_source=self.SummaryFrame)
+
+##############################################################################
+# Define transform_trajectory_coords() method.
+
+    def transform_trajectory_coords(self, lon:xr.DataArray, lat:xr.DataArray, depth:xr.DataArray):
+        """
+        Transform Lagrangian trajectories from model grid coordinates {i,j,k}.
+        to geographical coordinates {lon, lat, depth}.
+
+        Lagrangian trajectory positions are (bi-)linearly interpolated from
+        the specified ocean general circulation model grid.
+
+        Parameters
+        ----------
+        self : TrajStore object
+            TrajStore object containing Lagrangian trajectories in model coords
+            {i, j, k}.
+        lon : DataArray
+            Longitudes associated with the center of each model grid cell.
+        lat : DataArray
+            Latitudes associated with the center of each model grid cell.
+        depth : DataArray
+            Depths associated with model vertical grid levels.
+
+        Returns
+        -------
+        TrajStore object
+            TrajStore containing Lagrangian trajectories in geographical
+            coords {lon, lat, depth}.
+
+        Examples
+        --------
+        Transforming Lagrangian trajectories with positions referenced to model
+        coordinate system {x, y, z} to geographical coordinates {lon, lat, depth}
+        using the ocean general circulation horizontal and vertical model grids.
+        Here, we show a simple example for the Nucleus for European Modelling
+        of the Ocean ORCA C-grid:
+
+        >>> lon_mdl = ds_grid.nav_lon
+        >>> lat_mdl = ds_grid.nav_lat
+        >>> depth_mdl = ds_grid.nav_lev
+        >>> trajectories.transform_trajectory_coords(lon=lon_mdl, lat=lat_mdl, depth=depth_mdl, drop=True)
+        """
+        # -------------------
+        # Raising exceptions.
+        # -------------------
+        if isinstance(lon, xr.DataArray) is False:
+            raise TypeError("longitude array must be specified as an xarray DataArray")
+
+        if isinstance(lat, xr.DataArray) is False:
+            raise TypeError("latitude array must be specified as an xarray DataArray")
+
+        if isinstance(depth, xr.DataArray) is False:
+            raise TypeError("depth array must be specified as an xarray DataArray")
+
+        # ---------------------------------------------------------
+        # Transforming Lagrangian Trajectories stored in TrajFrame.
+        # ---------------------------------------------------------
+        if self.traj_mode == 'eager':
+            trajectory_data = self.TrajFrame.pipe(transform_coords,
+                                                lon=lon,
+                                                lat=lat,
+                                                depth=depth
+                                                )
+        elif self.traj_mode == 'lazy':
+            trajectory_data = (self.TrajFrame
+                              .map_batches(lambda df : transform_coords(df, lon=lon, lat=lat, depth=depth))
+                              )
+
+        # Rename TrajFrame position columns to geographic coords:
+        trajectory_data = trajectory_data.rename({'x':'lon', 'y':'lat', 'z':'depth'})  
+
+        # Return TrajStore object with updated TrajFrame & SummaryFrame.
+        return TrajStore(traj_source=trajectory_data, summary_source=self.SummaryFrame)
 
 ##############################################################################
 # Define filter() method.
 
-    def filter(self, expr, drop=False):
+    def filter(self, expr:str, drop=False):
         """
         Filter trajectories using conditional on a single column variable
         specified with a string expression.
@@ -379,8 +479,6 @@ class TrajStore:
 
         Parameters
         ----------
-        variable : string
-            Name of the variable in the TrajStore.
         expr : string
             String expression of the form "{variable} {operator} {value}",
             where {variable} represents the column variable contained in
@@ -425,17 +523,11 @@ class TrajStore:
         if len(expr_split) != 3:
             raise ValueError("string expression contains too many arguments. Use format \'var op val\' to compare column variable to value.")
 
-        # Defining list of variables contained in TrajFrame.
-        col_variables = list(self.columns)
-
         # Defining list of standard operators.
         operator_list = ['==', '!=', '<', '>', '<=', '>=']
 
         if isinstance(variable, str) is False:
             raise TypeError("variable must be specified as a string")
-
-        if variable not in col_variables:
-            raise ValueError("variable: \'" + variable + "\' not found in Dataset")
 
         if isinstance(drop, bool) is False:
             raise TypeError("drop must be specified as a boolean")
@@ -475,7 +567,7 @@ class TrajStore:
             # Determine dtype of filter column values:
             value_dtype = self.SummaryFrame.schema[variable]
             # Filter only SummaryFrame using specified expression:
-            summary_data = filter_traj(df=self.SummaryFrame,
+            summary_data = filter_summary(df=self.SummaryFrame,
                                           variable=variable,
                                           operator=operator,
                                           value=value,
@@ -486,12 +578,12 @@ class TrajStore:
             trajectory_data = self.TrajFrame
 
         # Return TrajStore object with updated TrajFrame & SummaryFrame.
-        return TrajStore(source=trajectory_data, summary_source=summary_data)
+        return TrajStore(traj_source=trajectory_data, summary_source=summary_data)
 
 ##############################################################################
 # Define filter_polygon() method.
 
-    def filter_polygon(self, xy_vars, x_poly, y_poly, drop=False):
+    def filter_polygon(self, xy_vars:list, x_poly:list, y_poly:list, drop=False):
         """
         Filter trajectories which intersect a specified polygon.
 
@@ -545,212 +637,460 @@ class TrajStore:
         # Defining the filtered TrajFrame.
         # --------------------------------
         if self.traj_mode == 'eager':
-            trajectory_data = filter_traj_polygon(self.TrajFrame, xy_vars=xy_vars, x_poly=x_poly, y_poly=y_poly, drop=drop)
+            trajectory_data = self.TrajFrame.pipe(filter_traj_polygon, xy_vars=xy_vars, x_poly=x_poly, y_poly=y_poly, drop=drop)
         elif self.traj_mode == 'lazy':
             trajectory_data = (self.TrajFrame
-                            .map_batches(lambda df : filter_traj_polygon(df, xy_vars=xy_vars, x_poly=x_poly, y_poly=y_poly, drop=drop))
+                            .map_batches(lambda df : filter_traj_polygon(df, xy_vars=xy_vars, x_poly=x_poly, y_poly=y_poly, drop=drop), streamable=True)
                             )
 
         # Return TrajStore object with updated TrajFrame & SummaryFrame.
-        return TrajStore(source=trajectory_data, summary_source=self.SummaryFrame)
+        return TrajStore(traj_source=trajectory_data, summary_source=self.SummaryFrame)
+    
+##############################################################################
+# Define filter_isin() method.
+
+    def filter_isin(self, var:str, values:pl.Series, drop=False):
+        """
+        Filter trajectories with at least one variable observation
+        in a given sequence of values.
+
+        Filtering returns the complete trajectories of particles
+        where one or more observations of the given variable are found
+        in the given list or Series of values.
+
+        Parameters
+        ----------
+        var : str
+            Name of variable contained in TrajStore object.
+        values : list | Series
+            Values of variables used to filter trajectories.
+        drop : boolean
+            Determines if fitered trajectories should be returned as a
+            new TrajStore (False) or instead dropped from the
+            existing TrajStore (True).
+
+        Returns
+        -------
+        TrajStore object
+            Complete TrajStore, including the complete Lagrangian trajectories
+            which meet (do not meet) the specified filter condition.
+
+        Examples
+        --------
+        Filtering all trajectories with unique IDs in a given list:
+
+        >>> id_group = [1, 2, 3, 4, 5]
+        >>> trajectories.filter_isin(var='id', values=id_group, drop=False)
+        """
+        # -------------------
+        # Raising exceptions.
+        # -------------------
+        if isinstance(drop, bool) is False:
+            raise TypeError("drop must be specified as a boolean")
+
+        if isinstance(var, str) is False:
+            raise TypeError("variable name must be specified in a string")
+
+        if (isinstance(values, list) | isinstance(values, pl.Series)) is False:
+            raise TypeError("values of variable must be given as either a list or Series")
+
+        # -------------------------------------------------------
+        # Applying specified filter to TrajFrame & Summary Frame.
+        # -------------------------------------------------------
+        if self.TrajFrame is not None:
+            if drop is False:
+                # Filter TrajFrame to store only trajectories with obs in values for variable:
+                trajectory_data = self.TrajFrame.filter(pl.col(var).is_in(values))
+            else:
+                # Filter TrajFrame to store only trajectories without obs in values for variable:
+                trajectory_data = self.TrajFrame.filter(~pl.col(var).is_in(values))
+
+            if self.SummaryFrame is not None:
+                # Update SummaryFrame:
+                if  self.traj_mode == 'eager':
+                    # Filter SummaryFrame using IDs in filtered eager TrajFrame:
+                    traj_ids = trajectory_data['id'].unique()
+                    summary_data = self.SummaryFrame.filter(pl.col('id').is_in(traj_ids))
+                elif self.traj_mode == 'lazy':
+                    # Filter SummaryFrame using IDs in filtered lazy TrajFrame:
+                    traj_ids = trajectory_data['id'].unique().collect(streaming=True)
+                    summary_data = self.SummaryFrame.filter(pl.col('id').is_in(traj_ids))
+            else:
+                # No need to update SummaryFrame:
+                summary_data = self.SummaryFrame
+
+        else:
+            # Filter only SummaryFrame using specified expression:
+            if drop is False:
+                summary_data = self.SummaryFrame.filter(pl.col(var).is_in(values))
+            else:
+                summary_data = self.SummaryFrame.filter(~pl.col(var).is_in(values))
+            # No need to update TrajFrame:
+            trajectory_data = self.TrajFrame
+
+
+        # Return TrajStore object with updated TrajFrame & SummaryFrame.
+        return TrajStore(traj_source=trajectory_data, summary_source=summary_data)
 
 ##############################################################################
 # Define compute_distance() method.
 
-    # def compute_distance(self, cumsum_dist=False, unit='km'):
-    #     """
-    #     Compute distance travelled by particles along their
-    #     of trajectories.
+    def compute_distance(self, cum_dist=False, unit='km'):
+        """
+        Compute distance travelled by particles along their
+        of trajectories.
 
-    #     Either the distance travelled between particle positions
-    #     or the cumulative distance travelled is computed
-    #     and returned for all trajectories as a new DataArray.
+        Either the distance travelled between particle positions
+        or the cumulative distance travelled is computed
+        and returned for all trajectories a new variable.
 
-    #     Parameters
-    #     ----------
-    #     self : TrajArray object
-    #         TrajArray object passed from TrajArray class method.
-    #     cumsum_dist : logical
-    #         Compute the cumulative distance travelled by each particle -
-    #         default is False.
-    #     unit : string
-    #         Unit for distance travelled output - default is 'km' -
-    #         alternative option 'm'.
+        Parameters
+        ----------
+        self : TrajStore object
+            TrajStore object passed from TrajStore class method.
+        cum_dist : logical
+            Compute the cumulative distance travelled by each particle -
+            default is False.
+        unit : string
+            Unit for distance travelled output - default is 'km' -
+            alternative option 'm'.
 
-    #     Returns
-    #     -------
-    #     TrajArray object.
-    #     Original TrajArray object is returned with appended attribute
-    #     variable DataArray containing the distance travelled by each
-    #     particle along it's trajectory with dimensions (traj x obs).
+        Returns
+        -------
+        TrajStore object.
+        Original TrajStore object is returned with new column variable
+        containing the distance travelled by each particle along it's
+        trajectory.
 
-    #     The first observation (obs) for all trajectories
-    #     (traj) is NaN since the (cumulative) distance
-    #     from the origin of a particle at the origin is
-    #     not defined.
+        The first row for all trajectories is Null since the (cumulative)
+        distance from the origin of a particle at the origin is not defined.
 
-    #     Examples
-    #     --------
-    #     Computing distance travelled by particles for all trajectories,
-    #     specifying cumulative distance as False and unit as default 'km'.
+        Examples
+        --------
+        Computing distance travelled by particles for all trajectories,
+        specifying cumulative distance as False and unit as default 'km'.
 
-    #     >>> trajectories.compute_distance()
-    #     """
-    #     # ------------------
-    #     # Raise exceptions.
-    #     # ------------------
-    #     # Define np.array with available options for
-    #     # distance output units.
-    #     unit_options = ['m', 'km']
+        >>> trajectories.compute_distance()
+        """
+        # ------------------
+        # Raise exceptions.
+        # ------------------
+        # Define np.array with available options for
+        # distance output units.
+        unit_options = ['m', 'km']
 
-    #     # Raising exception when unavailable unit is specified.
-    #     if unit not in unit_options:
-    #         raise ValueError("invalid unit - options: \'m\', \'km\'")
+        # Raising exception when unavailable unit is specified.
+        if unit not in unit_options:
+            raise ValueError("invalid unit - options: \'m\', \'km\'")
 
-    #     # -------------------------------------------
-    #     # Computing distance with compute_distance().
-    #     # -------------------------------------------
-    #     dist = compute_distance(self, cumsum_dist=cumsum_dist, unit=unit)
+        # Raising exception if longitude or latitude variables are
+        # not included in TrajFrame:
+        if ('lon' not in self.columns) | ('lat' not in self.columns):
+            raise ValueError("required variable missing from TrajFrame: \'lon\', \'lat\'")
 
-    #     # -----------------------
-    #     # Adding dist to DataSet.
-    #     # -----------------------
-    #     if cumsum_dist is True:
-    #         # Append distance DataArray to original DataSet.
-    #         self.data['cumdist'] = xr.DataArray(dist, dims=["traj", "obs"])
+        # ------------------------------------------
+        # Computing distance with haversine_dist().
+        # ------------------------------------------
+        # Calculate the Haversine distance between neighbouring trajectory positions:
+        dist_data = (self.TrajFrame
+                           .group_by(by=pl.col('id'), maintain_order=True)
+                           .agg(
+                               pl.map_groups(exprs=['lon', 'lat'],
+                                             function=lambda args: haversine_dist(args[0], args[1], cum_dist=cum_dist)
+                                             ).alias('dist')
+                                )
+                            )
+        
+        # Explode distance DataFrame from one row per trajectory to one row per observation:
+        dist_data = dist_data.explode(columns='dist')
 
-    #         # Adding attributes to cumdist DataArray.
-    #         self.data.cumdist.attrs = {
-    #                             'long_name': "cumulative distance",
-    #                             'standard_name': "cumdist",
-    #                             'units': unit,
-    #                             }
-    #     else:
-    #         # Append distance DataArray to original DataSet.
-    #         self.data['dist'] = xr.DataArray(dist, dims=["traj", "obs"])
+        if cum_dist is True:
+            # Add distance column to original TrajFrame as cum_dist:
+            trajectory_data = self.TrajFrame.sort(by='id').with_columns(dist_data['dist'].alias('cum_dist'))
+        else:
+            # Add distance column to original TrajFrame as dist:
+            trajectory_data = self.TrajFrame.sort(by='id').with_columns(dist_data['dist'])
 
-    #         # Adding attributes to dist DataArray.
-    #         self.data.dist.attrs = {
-    #                             'long_name': "distance",
-    #                             'standard_name': "dist",
-    #                             'units': unit,
-    #                             }
+        if unit == 'km':
+            # Define conversion factor meters to kilometers:
+            m_to_km = 1 / 1E3
+            if cum_dist is True:
+                # Transform distance values from m to km:
+                trajectory_data = trajectory_data.with_columns(pl.col('cum_dist') * m_to_km)
+            else:
+                # Transform distance values from m to km:
+                trajectory_data = trajectory_data.with_columns(pl.col('dist') * m_to_km)
 
-    #     # Return TrajArray object with updated DataSet.
-    #     return TrajArray(self.data)
+        # Return TrajStore object with updated TrajFrame & SummaryFrame.
+        return TrajStore(traj_source=trajectory_data, summary_source=self.SummaryFrame)
 
 ##############################################################################
-# Define compute_probability() method.
+# Define compute_binned_statistic_1d() method.
 
-    # def compute_probability(self, bin_res, method, gf_sigma=None, group_by=None):
-    #     """
-    #     Compute 2-dimensional binned Lagrangian probability
-    #     distributions using particle positions or particle
-    #     pathways.
+    def compute_binned_statistic_1d(self, var:str, values:str, statistic:str, bin_breaks:list, group=None, summary_var=False):
+        """
+        Compute a 1-dimensional binned statistic using variables stored in
+        a TrajStore.
 
-    #     Particle positions are binned into a 2-dimensional
-    #     (x-y) histogram and normalised by the total number
-    #     of particle positions ('pos') or the total number
-    #     of particles ('traj').
+        This is a generalization of a histogram function. A histogram divides
+        the chosen column varaible into bins, and returns the count of the number
+        of points in each bin. This function allows the computation of the sum,
+        mean, median, or other statistic of the values within each bin.
 
-    #     A Gaussian filter with a specified radius may also
-    #     be included to smooth the distribution.
+        Parameters
+        ----------
+        var : str
+            Name of variable whose values will binned.
 
-    #     Parameters
-    #     ----------
-    #     self : TrajArray object
-    #         TrajArray object passed from TrajArray class method.
-    #     bin_res : numeric
-    #         The resolution (degrees) of the grid on to which particle
-    #         positions will be binned.
-    #     method : string
-    #         The type of probability to be computed. 'pos' - particle
-    #         positions are binned and then normalised by the total number
-    #         of particle positions. 'traj' - for each particle positions
-    #         are counted once per bin and then normalised by the total
-    #         number of particles. To include a Gaussian filter modify the
-    #         methods above to 'pos-gauss' or 'traj-gauss'.
-    #     gf_sigma : numeric
-    #         The standard deviation of the Gaussian filter (degrees) with
-    #         which to smooth the Lagrangian probability distribution.
-    #     group_by : string
-    #         Grouping variable to compute Lagrangian probability
-    #         distributions - one distribution is computed for every
-    #         unique member of variable. See example below.
+        values : str
+            Name of the variable on which the statistic will be computed.
 
-    #     Returns
-    #     -------
-    #     TrajArray object.
-    #     Original TrajArray object is returned with appended attribute
-    #     variable DataArrays containing the binned 2-dimensional
-    #     Lagrangian probability distribution and the coordinates of the
-    #     centre points of the grid with dimensions (x - y). Where group_by
-    #     is used the Lagrangian probability distributions will have
-    #     dimensions (samples - x - y).
+        group : str
+            Name of variable to group according to unique values using group_by()
+            method. A 1-dimensional binned statistic will be computed for each
+            group member.
 
-    #     Examples
-    #     --------
-    #     Computing the Lagrangian probability distribution using all
-    #     particle positions for particles released at seed_level 1.
+        statistic: str
+            The statistic to compute.
+            The following statistics are available:
 
-    #     >>> trajectories.filter_equal('seed_level', 1).compute_probability(bin_res=1, method='pos')
+            * 'mean' : compute the mean of values for points within each bin.
+                Empty bins will be represented by null.
+            * 'std' : compute the standard deviation within each bin.
+            * 'median' : compute the median of values for points within each
+                bin. Empty bins will be represented by null.
+            * 'count' : compute the count of points within each bin. This is
+                identical to an unweighted histogram.
+            * 'sum' : compute the sum of values for points within each bin.
+                This is identical to a weighted histogram.
+            * 'min' : compute the minimum of values for points within each bin.
+                Empty bins will be represented by null.
+            * 'max' : compute the maximum of values for point within each bin.
+                Empty bins will be represented by null.
 
-    #     Computing the Lagrangian probability density distribution using
-    #     all particle positions with a Gaussian filter for particles released
-    #     at seed_levels 1 to 5.
+        bin_breaks: list
+            List of bin edges used in the binning of var variable.
 
-    #     >>> trajectories.filter_between('seed_level', 1, 5).compute_probability(bin_res=1, method='pos-gauss', gf_sigma=1, group_by='seed_level')
-    #     """
-    #     # ------------------
-    #     # Raise exceptions.
-    #     # ------------------
-    #     if group_by is not None:
-    #         # Defining list of variables contained in data.
-    #         variables = list(self.data.variables)
+        summary_var: boolean
+            Specify if variable to bin is contained in SummaryFrame rather than
+            TrajFrame.
 
-    #         if group_by not in variables:
-    #             raise ValueError("variable: \'" + group_by + "\' not found in Dataset")
+        Returns
+        -------
+        TrajStore
+            Original TrajStore is returned with the 1-dimensional binned
+            statistic included in the SummaryArray where the mid-points
+            of the specified bins are given as the coordinate dimension.
+        """
+        # -----------------
+        # Raise exceptions.
+        # -----------------
+        if isinstance(summary_var, bool) is False:
+            raise TypeError('invalid type - summary_var must be specified as a boolean')
+        if isinstance(bin_breaks, list) is False:
+            raise TypeError('invalid type - bin_breaks must be specified as a list')
 
-    #     if isinstance(method, str) is False:
-    #         raise TypeError("method must be specified as a string - options: \'pos\', \'traj\', \'pos-gauss\', \'traj-gauss\'")
+        if summary_var is True:
+            if var not in self.SummaryFrame.columns:
+                raise ValueError(f'invalid variable - {var} is not contained in SummaryFrame')
+            if values not in self.SummaryFrame.columns:
+                raise ValueError(f'invalid variable - {values} is not contained in SummaryFrame')
+            if group is not None:
+                if group not in self.SummaryFrame.columns:
+                    raise ValueError(f'invalid variable - {group} is not contained in SummaryFrame')
+        else:
+            if var not in self.columns:
+                raise ValueError(f'invalid variable - {var} is not contained in TrajFrame')
+            if values not in self.columns:
+                raise ValueError(f'invalid variable - {values} is not contained in TrajFrame')
+            if group is not None:
+                if group not in self.columns:
+                    raise ValueError(f'invalid variable - {group} is not contained in TrajFrame')
 
-    #     if isinstance(bin_res, (int, float)) is False:
-    #         raise TypeError("bin_res must be specified as integer or float")
+        # ---------------------------------
+        # Calculating 1-D binned statistic.
+        # ---------------------------------
+        if summary_var is True:
+            if group is None:
+                # Calculate 1-dimensional statistic from SummaryFrame:
+                result = binned_statistic_1d(var=self.SummaryFrame[var],
+                                             values=self.SummaryFrame[values],
+                                             statistic=statistic,
+                                             bin_breaks=bin_breaks,
+                                            )
+            else:
+                # Calculate 1-dimensional grouped statistic from SummaryFrame:
+                result = binned_group_statistic_1d(var=self.SummaryFrame[var],
+                                                   values=self.SummaryFrame[values],
+                                                   groups=self.SummaryFrame[group],
+                                                   statistic=statistic,
+                                                   bin_breaks=bin_breaks,
+                                                   )
+        else:
+            if group is None:
+                # Calculate 1-dimensional statistic from TrajFrame:
+                result = binned_statistic_1d(var=self.TrajFrame[var],
+                                                    values=self.TrajFrame[values],
+                                                    statistic=statistic,
+                                                    bin_breaks=bin_breaks,
+                                                    )
+            else:
+                # Calculate 1-dimensional grouped statistic from TrajFrame:
+                result = binned_group_statistic_1d(var=self.TrajFrame[var],
+                                                    values=self.TrajFrame[values],
+                                                    groups=self.TrajFrame[group],
+                                                    statistic=statistic,
+                                                    bin_breaks=bin_breaks,
+                                                    )
 
-    #     # ----------------------------------------------
-    #     # Computing Lagrangian probability distribution.
-    #     # ----------------------------------------------
-    #     nav_lon, nav_lat, probability = compute_probability_distribution(self, bin_res=bin_res, method=method, gf_sigma=gf_sigma, group_by=group_by)
+        # ----------------------------------------
+        # Adding 1-D statistic to summary DataSet.
+        # ----------------------------------------
+        # Add result DataArray to DataSet as named variable:
+        self.SummaryArray[result.name] = result
 
-    #     # Append DataArrays to original DataSet.
-    #     self.data['nav_lat'] = xr.DataArray(nav_lat, dims=["y", "x"])
-    #     self.data['nav_lon'] = xr.DataArray(nav_lon, dims=["y", "x"])
+        # Return TrajStore object with updated TrajFrame & SummaryFrame.
+        return TrajStore(traj_source=self.TrajFrame, summary_source=self.SummaryFrame, summary_array=self.SummaryArray)
 
-    #     if group_by is not None:
-    #         self.data['probability'] = xr.DataArray(probability, dims=["sample", "y", "x"])
-    #     else:
-    #         self.data['probability'] = xr.DataArray(probability, dims=["y", "x"])
+##############################################################################
+# Define compute_binned_statistic_2d() method.
 
-    #     # -----------------------------------
-    #     # Adding variable attributes DataSet.
-    #     # -----------------------------------
-    #     self.data.nav_lat.attrs = {
-    #                         'long_name': "Latitude",
-    #                         'standard_name': "latitude",
-    #                         'units': "degrees_north",
-    #                         }
-    #     self.data.nav_lon.attrs = {
-    #                         'long_name': "Longitude",
-    #                         'standard_name': "longitude",
-    #                         'units': "degrees_east",
-    #                         }
-    #     self.data.probability.attrs = {
-    #                         'long_name': "Lagrangian probability",
-    #                         'standard_name': "probability",
-    #                         }
 
-    #     # Return TrajArray object with updated DataSet.
-    #     return TrajArray(self.data)
+    def compute_binned_statistic_2d(self, var_x:str, var_y:str, values:str, statistic:str, bin_breaks:list, group=None, summary_var=False):
+        """
+        Compute a 2-dimensional binned statistic using the variables stored
+        in a TrajStore.
+
+        This is a generalization of a 2-D histogram function. A 2-D histogram divides
+        the chosen column varaibles into bins, and returns the count of the number
+        of points in each bin. This function allows the computation of the sum,
+        mean, median, or other statistic of the values within each bin.
+
+        Parameters
+        ----------
+        var_x : str
+            Name of variable whose values to be binned along the first dimension.
+
+        var_y : Series
+            Name of variable whose values to be binned along the second dimension.
+
+        values : Series
+            Name of variable on which the statistic will be computed.
+            This must be the same length as var_x & var_y.
+
+        group : str
+            Name of variable to group according to unique values using group_by()
+            method. A 1-dimensional binned statistic will be computed for each
+            group member.
+
+        statistic: str
+            The statistic to compute.
+            The following statistics are available:
+
+            * 'mean' : compute the mean of values for points within each bin.
+                Empty bins will be represented by null.
+            * 'std' : compute the standard deviation within each bin.
+            * 'median' : compute the median of values for points within each
+                bin. Empty bins will be represented by null.
+            * 'count' : compute the count of points within each bin. This is
+                identical to an unweighted histogram.
+            * 'sum' : compute the sum of values for points within each bin.
+                This is identical to a weighted histogram.
+            * 'min' : compute the minimum of values for points within each bin.
+                Empty bins will be represented by null.
+            * 'max' : compute the maximum of values for point within each bin.
+                Empty bins will be represented by null.
+
+        bin_breaks: list
+            List of lists including bin edges used in the binning of var_x
+            and var_y variables.
+
+        summary_var: boolean
+            Specify if variable to bin is contained in SummaryFrame rather than
+            TrajFrame.
+
+        Returns
+        -------
+        statistic : DataArray
+            DataArray containing values of the selected statistic in each bin.
+        """
+        # -----------------
+        # Raise exceptions.
+        # -----------------
+        if isinstance(summary_var, bool) is False:
+            raise TypeError('invalid type - summary_var must be specified as a boolean')
+        if isinstance(bin_breaks, list) is False:
+            raise TypeError('invalid type - bin_breaks must be specified as a list')
+
+        if summary_var is True:
+            if var_x not in self.SummaryFrame.columns:
+                raise ValueError(f'invalid variable - {var_x} is not contained in SummaryFrame')
+            if var_y not in self.SummaryFrame.columns:
+                raise ValueError(f'invalid variable - {var_y} is not contained in SummaryFrame')
+            if values not in self.SummaryFrame.columns:
+                raise ValueError(f'invalid variable - {values} is not contained in SummaryFrame')
+            if group is not None:
+                if group not in self.SummaryFrame.columns:
+                    raise ValueError(f'invalid variable - {group} is not contained in SummaryFrame')
+        else:
+            if var_x not in self.columns:
+                raise ValueError(f'invalid variable - {var_x} is not contained in TrajFrame')
+            if var_y not in self.columns:
+                raise ValueError(f'invalid variable - {var_y} is not contained in TrajFrame')
+            if values not in self.columns:
+                raise ValueError(f'invalid variable - {values} is not contained in TrajFrame')
+            if group is not None:
+                if group not in self.columns:
+                    raise ValueError(f'invalid variable - {group} is not contained in TrajFrame')
+
+        # ---------------------------------
+        # Calculating 2-D binned statistic.
+        # ---------------------------------
+        if summary_var is True:
+            if group is None:
+                # Calculate 2-dimensional statistic from SummaryFrame:
+                result = binned_statistic_2d(var_x=self.SummaryFrame[var_x],
+                                            var_y=self.SummaryFrame[var_y],
+                                            values=self.SummaryFrame[values],
+                                            statistic=statistic,
+                                            bin_breaks=bin_breaks,
+                                            )
+            else:
+                # Calculate 2-dimensional grouped statistic from SummaryFrame:
+                result = binned_group_statistic_2d(var_x=self.SummaryFrame[var_x],
+                                                   var_y=self.SummaryFrame[var_y],
+                                                   values=self.SummaryFrame[values],
+                                                   groups=self.SummaryFrame[group],
+                                                   statistic=statistic,
+                                                   bin_breaks=bin_breaks,
+                                                   )
+        else:
+            if group is None:
+                # Calculate 2-dimensional statistic from TrajFrame:
+                result = binned_statistic_2d(var_x=self.TrajFrame[var_x],
+                                             var_y=self.TrajFrame[var_y],
+                                             values=self.TrajFrame[values],
+                                             statistic=statistic,
+                                             bin_breaks=bin_breaks,
+                                             )
+            else:
+                # Calculate 2-dimensional grouped statistic from TrajFrame:
+                result = binned_group_statistic_2d(var_x=self.TrajFrame[var_x],
+                                                   var_y=self.TrajFrame[var_y],
+                                                   values=self.TrajFrame[values],
+                                                   groups=self.TrajFrame[group],
+                                                   statistic=statistic,
+                                                   bin_breaks=bin_breaks,
+                                                   )
+
+        # ----------------------------------------
+        # Adding 2-D statistic to summary DataSet.
+        # ----------------------------------------
+        # Add result DataArray to DataSet as named variable:
+        self.SummaryArray[result.name] = result
+
+        # Return TrajStore object with updated TrajFrame & SummaryFrame.
+        return TrajStore(traj_source=self.TrajFrame, summary_source=self.SummaryFrame, summary_array=self.SummaryArray)
 
 ##############################################################################
 # Define get_start_time() method.
@@ -802,7 +1142,7 @@ class TrajStore:
             summary_data = self.SummaryFrame.join(start_data, on='id', how='left').sort(by='id')
 
         # Return TrajStore with updated SummaryFrame.
-        return TrajStore(source=self.TrajFrame, summary_source=summary_data)
+        return TrajStore(traj_source=self.TrajFrame, summary_source=summary_data)
 
 ##############################################################################
 # Define get_start_loc() method.
@@ -867,7 +1207,7 @@ class TrajStore:
             summary_data = self.SummaryFrame.join(start_data, on='id', how='left').sort(by='id')
 
         # Return TrajStore with updated SummaryFrame.
-        return TrajStore(source=self.TrajFrame, summary_source=summary_data)
+        return TrajStore(traj_source=self.TrajFrame, summary_source=summary_data)
 
 ##############################################################################
 # Define get_end_time() method.
@@ -919,7 +1259,7 @@ class TrajStore:
             summary_data = self.SummaryFrame.join(end_data, on='id', how='left').sort(by='id')
 
         # Return TrajStore with updated SummaryFrame.
-        return TrajStore(source=self.TrajFrame, summary_source=summary_data)
+        return TrajStore(traj_source=self.TrajFrame, summary_source=summary_data)
 
 ##############################################################################
 # Define get_end_loc() method.
@@ -984,7 +1324,7 @@ class TrajStore:
             summary_data = self.SummaryFrame.join(end_data, on='id', how='left').sort(by='id')
 
         # Return TrajStore with updated SummaryFrame.
-        return TrajStore(source=self.TrajFrame, summary_source=summary_data)
+        return TrajStore(traj_source=self.TrajFrame, summary_source=summary_data)
 
 ##############################################################################
 # Define get_duration() method.
@@ -1043,7 +1383,7 @@ class TrajStore:
             summary_data = self.SummaryFrame.join(duration_data, on='id')
 
         # Return TrajStore with updated SummaryFrame.
-        return TrajStore(source=self.TrajFrame, summary_source=summary_data)
+        return TrajStore(traj_source=self.TrajFrame, summary_source=summary_data)
 
 ##############################################################################
 # Define get_values() function.
@@ -1121,7 +1461,7 @@ class TrajStore:
             summary_data = self.SummaryFrame.join(values_data, on='id')
 
         # Return TrajStore with updated SummaryFrame.
-        return TrajStore(source=self.TrajFrame, summary_source=summary_data)
+        return TrajStore(traj_source=self.TrajFrame, summary_source=summary_data)
 
 ##############################################################################
 # Define get_max() function.
@@ -1191,7 +1531,7 @@ class TrajStore:
             summary_data = self.SummaryFrame.join(max_data, on='id')
 
         # Return TrajStore with updated SummaryFrame.
-        return TrajStore(source=self.TrajFrame, summary_source=summary_data)
+        return TrajStore(traj_source=self.TrajFrame, summary_source=summary_data)
 
 ##############################################################################
 # Define get_min() function.
@@ -1261,12 +1601,12 @@ class TrajStore:
             summary_data = self.SummaryFrame.join(min_data, on='id')
 
         # Return TrajStore with updated SummaryFrame.
-        return TrajStore(source=self.TrajFrame, summary_source=summary_data)
+        return TrajStore(traj_source=self.TrajFrame, summary_source=summary_data)
 
 ##############################################################################
 # Define add_variable() method.
 
-    def add_variable(self, data, var, summary_var=False):
+    def add_variable(self, name, values, summary_var=False):
         """
         Adds a new variable to the existing TrajStore object.
 
@@ -1277,9 +1617,9 @@ class TrajStore:
         ----------
         self : TrajStore
             TrajStore object passed from TrajStore class method.
-        data : ndarray
+        values : list
             values of new variable to be added to the TrajStore.
-        var : str
+        name : str
             new variable name to be added to TrajStore.
         summary_var : bool
             indicates if new column variable should be added to the
@@ -1296,9 +1636,9 @@ class TrajStore:
         # -------------------
         # Raising exceptions.
         # -------------------
-        if isinstance(data, np.ndarray) is False:
-            raise TypeError("data must be specified as an ndarray")
-        if isinstance(var, str) is False:
+        if isinstance(values, list) is False:
+            raise TypeError("inavlid type - values must be specified as a list")
+        if isinstance(name, str) is False:
             raise TypeError('variable name must be specfied as a string')
         if isinstance(summary_var, bool) is False:
             raise TypeError("summary_var must be specified as a boolean value")
@@ -1315,14 +1655,14 @@ class TrajStore:
                 elif self.traj_mode == 'lazy':
                     self.SummaryFrame = self.TrajFrame['id'].unique().collect(streaming=True)
             # Append new column variable to SummaryFrame.
-            summary_data = self.SummaryFrame.with_column(pl.Series(name=var, values=data))
+            summary_data = self.SummaryFrame.with_columns(pl.Series(name=name, values=values))
             # Keep existing TrajFrame.
             trajectory_data = self.TrajFrame
         elif summary_var is False:
             # Append new column variable to TrajFrame.
-            trajectory_data = self.TrajFrame.with_column(pl.Series(name=var, values=data))
+            trajectory_data = self.TrajFrame.with_columns(pl.Series(name=name, values=values))
             # Keep existing SummaryFrame.
             summary_data = self.SummaryFrame
 
         # Return TrajStore with updated TrajFrame or SummaryFrame.
-        return TrajStore(source=trajectory_data, read_mode=None, summary_source=summary_data, rename_cols=None)
+        return TrajStore(traj_source=trajectory_data, summary_source=summary_data)
