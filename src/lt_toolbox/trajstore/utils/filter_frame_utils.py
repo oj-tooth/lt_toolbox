@@ -113,6 +113,98 @@ def filter_traj(df:pl.DataFrame, variable:str, operator:str, value:str, value_dt
     return df_reduced
 
 ##############################################################################
+# Define filter_summary() function.
+
+def filter_summary(df:pl.DataFrame, variable:str, operator:str, value:str, value_dtype:type, drop:bool) -> pl.DataFrame:
+    """
+    Filter trajectories using conditional on a single column variable
+    specified with a string expression.
+
+    Filtering returns a reduced SummaryFrame where only the
+    trajectory rows meeting the specified condition are retained.
+    The exception is when users specify drop=True, in which case
+    trajectory rows meeting the specified condition are dropped from
+    the SummaryFrame.
+
+    Parameters
+    ----------
+    df : DataFrame
+        DataFrame containing variable to filter.
+    variable : string
+        Name of the variable to filter.
+    operator : string
+        Logical operator used to filter variable.
+    value : string
+        Value used to filter variable.
+    value_dtype : type
+        Polars type of the value used to filter variable.
+    drop : boolean
+        Indcates if fitered trajectories should be retained in the
+        new DataFrame (False) or dropped from the DataFrame (True).
+
+    Returns
+    -------
+    df_reduced DataFrame
+        Reduced DataFrame, including the Lagrangian trajectories
+        which meet (do not meet) the specified filter condition.
+
+    """
+    # ---------------------------------------
+    # Applying specified filter to DataFrame.
+    # ---------------------------------------
+    # Apply filter according to specfied comparison operator:
+    # Case 1. Equal
+    if operator == '==':
+        # Filter DataFrame according to drop argument:
+        if drop is True:
+            df_reduced = df.filter(~(pl.col(variable) == pl.lit(value).cast(value_dtype)))
+        else:
+            df_reduced = df.filter(pl.col(variable) == pl.lit(value).cast(value_dtype))
+
+    # Case 2. Not Equal
+    elif operator == '!=':
+        # Filter DataFrame according to drop argument:
+        if drop is True:
+            df_reduced = df.filter(~(pl.col(variable) != pl.lit(value).cast(value_dtype)))
+        else:
+            df_reduced = df.filter(pl.col(variable) != pl.lit(value).cast(value_dtype))
+
+    # Case 3. Less Than
+    elif operator == '<':
+        # Filter DataFrame according to drop argument:
+        if drop is True:
+            df_reduced = df.filter(~(pl.col(variable) < pl.lit(value).cast(value_dtype)))
+        else:
+            df_reduced = df.filter(pl.col(variable) < pl.lit(value).cast(value_dtype))
+
+    # Case 4. Greater Than
+    elif operator == '>':
+        # Filter DataFrame according to drop argument:
+        if drop is True:
+            df_reduced = df.filter(~(pl.col(variable) > pl.lit(value).cast(value_dtype)))
+        else:
+            df_reduced = df.filter(pl.col(variable) > pl.lit(value).cast(value_dtype))
+
+    # Case 5. Less Than or Equal
+    elif operator == '<=':
+        # Filter DataFrame according to drop argument:
+        if drop is True:
+            df_reduced = df.filter(~(pl.col(variable) <= pl.lit(value).cast(value_dtype)))
+        else:
+            df_reduced = df.filter(pl.col(variable) <= pl.lit(value).cast(value_dtype))
+
+    # Case 6. Greater Than or Equal
+    elif operator == '>=':
+        # Filter DataFrame according to drop argument:
+        if drop is True:
+            df_reduced = df.filter(~(pl.col(variable) >= pl.lit(value).cast(value_dtype)))
+        else:
+            df_reduced = df.filter(pl.col(variable) >= pl.lit(value).cast(value_dtype))
+
+    # Return filtered DataFrame:
+    return df_reduced
+
+##############################################################################
 # Define filter_traj_polygon() function.
 
 def filter_traj_polygon(df:pl.DataFrame, xy_vars:list, x_poly:list, y_poly:list, drop:bool) -> pl.DataFrame:
