@@ -7,7 +7,7 @@
 # CF-conventions implemented with the NCEI trajectory template.
 #
 # Last Edited:
-# 2023/17/06
+# 25/11/2023
 #
 # Last Edited By:
 # Ollie Tooth
@@ -87,26 +87,24 @@ class TrajArray:
         if isinstance(ds, xr.Dataset) is False:
             raise TypeError("ds must be specified as an xarray DataSet")
 
+        # Defining core dimensions required for TrajArray:
+        core_dims = ['traj', 'obs']
+        for dim in core_dims:
+            # Raise error if core dimension is absent from DataSet:
+            if dim not in ds.dims:
+                raise ValueError(f"required dimension missing from Dataset: \'{dim}\'")
+
+        # Defining core variables required for TrajArray:
+        core_vars = ['trajectory', 'time', 'lon', 'lat', 'z']
         # Defining list of variables contained in DataSet:
-        ds_variables = list(ds.variables)
-
-        # Raise error if any required variable is absent from DataSet:
-        if 'trajectory' not in ds_variables:
-            raise ValueError("required variable missing from Dataset: \'trajectory\'")
-        if 'time' not in ds_variables:
-            raise ValueError("required variable missing from Dataset: \'time\'")
-        if 'lat' not in ds_variables:
-            raise ValueError("required variable missing from Dataset: \'lat\'")
-        if 'lon' not in ds_variables:
-            raise ValueError("required variable missing from Dataset: \'lon\'")
-        if 'z' not in ds_variables:
-            raise ValueError("required variable missing from Dataset: \'z\'")
-
-        # Raise error if required dimension are absent from DataSet:
-        if 'traj' not in ds.dims:
-            raise ValueError("required dimension missing from Dataset: \'traj\'")
-        if 'obs' not in ds.dims:
-            raise ValueError("required dimension missing from Dataset: \'obs\'")
+        ds_vars = list(ds.variables)
+        for var in core_vars:
+            # Raise error if any core variable is absent from DataSet:
+            if var not in ds_vars:
+                raise ValueError(f"required variable missing from Dataset: \'{var}\'")
+            # Raise error if any core variable does not have dimensions {traj x obs}:
+            if ('traj' not in ds[var].dims) | ('obs' not in ds[var].dims):
+                raise ValueError(f"core variable \'{var}\' does not have dimensions (traj x obs)")
 
         # ----------------------------------------
         # Storing input Dataset as data attribute.
