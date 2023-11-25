@@ -264,6 +264,72 @@ def filter_traj_between(self, variable, min_val, max_val, drop):
     return ds_reduced
 
 ##############################################################################
+# Define filter_traj_isin() function.
+
+def filter_traj_isin(self, variable, values, drop):
+    """
+    Filter trajectories where the values of an attribute variable
+    are contained in a given list.
+
+    Filtering returns the complete trajectories where at least one
+    value of the specified attribute variable is contained within
+    the specified list of values.
+
+    When variable is specified as 'time' only the observations (obs)
+    equal to and between the specified time-levels are returned for all
+    trajectories.
+
+    Parameters
+    ----------
+    self : trajectories object
+        Trajectories object passed from trajectories class method.
+    variable : string
+        Name of the attribute variable in the trajectories object.
+    values : list
+        List of values against which to test each value of the named
+        attribute variable.
+    drop : boolean
+        Determines if fitered trajectories should be returned as a
+        new Dataset (False) or instead dropped from the existing
+        Dataset (True).
+
+    Returns
+    -------
+    DataSet.
+        Complete trajectories, including all attribute variables,
+        which meet the filter specification.
+    """
+    # ------------------------------------
+    # Sub-Routine for filtering with time.
+    # ------------------------------------
+    if variable == 'time':
+        # Filter Dataset and drop where False:
+        ds_reduced = self.data.where((self.data[variable].isin(values)), drop=True)
+
+    # -------------------------------------------------------
+    # Sub-Routine for filtering with 1-D attribute variables.
+    # -------------------------------------------------------
+    elif len(self.data[variable].shape) == 1:
+        # Filter Dataset according to drop argument:
+        if drop is True:
+            ds_reduced = self.data.isel(traj=~(self.data[variable].isin(values)))
+        else:
+            ds_reduced = self.data.isel(traj=(self.data[variable].isin(values)))
+
+    # -------------------------------------------------------
+    # Sub-Routine for filtering with 2-D attribute variables.
+    # -------------------------------------------------------
+    elif len(self.data[variable].shape) == 2:
+        # Filter Dataset according to drop argument:
+        if drop is True:
+            ds_reduced = self.data.isel(traj=~(self.data[variable].isin(values)).any(dim='obs'))
+        else:
+            ds_reduced = self.data.isel(traj=(self.data[variable].isin(values)).any(dim='obs'))
+
+    # Return filtered Dataset:
+    return ds_reduced
+
+##############################################################################
 # Define filter_traj_polygon() function.
 
 def filter_traj_polygon(self, polygon, method, drop):

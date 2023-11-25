@@ -22,7 +22,7 @@ import xarray as xr
 import numpy as np
 from .utils.get_array_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_minmax, get_val
 from .utils.add_array_utils import add_seed, add_id, add_var
-from .utils.filter_array_utils import filter_traj, filter_traj_between, filter_traj_polygon
+from .utils.filter_array_utils import filter_traj, filter_traj_between, filter_traj_isin, filter_traj_polygon
 from .utils.compute_array_utils import compute_displacement, compute_velocity, compute_distance, compute_probability_distribution, compute_res_time, compute_trans_time
 
 
@@ -323,17 +323,11 @@ class TrajArray:
 
         >>> trajectories.filter_between('lat', 0, 20, drop=False)
 
-        Filtering trajectory observations between two dates using numpy
-        datetime64.
+        Filtering trajectory observations between two dates where dates
+        are given as numpy datetime64 dtype.
 
-        >>> tmin = np.datetime64('2000-01-01')
-        >>> tmax = np.datetime64('2000-03-01')
-        >>> trajectories.filter_between('time', tmin, tmax)
-
-        Filtering trajectory observations with time using numpy timedelta64.
-
-        >>> tmin = np.timedelta64(0, 'D')
-        >>> tmax = np.timedelta64(90, 'D')
+        >>> tmin = '2000-01-01'
+        >>> tmax = '2000-03-01'
         >>> trajectories.filter_between('time', tmin, tmax)
         """
         # -------------------
@@ -363,6 +357,82 @@ class TrajArray:
         # Defining ds, the filtered DataSet.
         # ----------------------------------
         ds = filter_traj_between(self, variable=variable, min_val=min_val, max_val=max_val, drop=drop)
+
+        # Returning the subsetted xarray DataSet as a TrajArray object -
+        # this enables multiple filtering to take place.
+        return TrajArray(ds)
+    
+##############################################################################
+# Define filter_isin() method.
+
+    def filter_isin(self, variable, values, drop=False):
+        """
+        Filter trajectories where the values of an attribute variable
+        are contained in a given list.
+
+        Filtering returns the complete trajectories where at least one
+        value of the specified attribute variable is contained within
+        the specified list of values.
+
+        When variable is specified as 'time' only the observations (obs)
+        equal to and between the specified time-levels are returned for all
+        trajectories.
+
+        Parameters
+        ----------
+        variable : string
+            Name of the attribute variable in the trajectories object.
+        values : list
+            List of values against which to test each value of the named
+            attribute variable.
+        drop : boolean
+            Determines if fitered trajectories should be returned as a
+            new Dataset (False) or instead dropped from the existing
+            Dataset (True).
+
+        Returns
+        -------
+        TrajArray object
+            Complete trajectories, including all attribute variables,
+            which meet the filter specification.
+
+        Examples
+        --------
+        Filtering all trajectories where id is in specified list of values.
+
+        >>> trajectories.filter_isin(variable='id', values=[11,22,33,44], drop=False)
+
+        Filtering trajectory observations in a list of dates where dates
+        are given as numpy datetime64 dtype.
+
+        >>> time_vals = ['2000-01-01', '2000-03-01', '2000-09-01']
+        >>> trajectories.filter_isin(vairbale'time', values=time_vals, drop=False)
+        """
+        # -------------------
+        # Raising exceptions.
+        # -------------------
+        # Defining list of variables contained in data.
+        variables = list(self.data.variables)
+
+        if isinstance(variable, str) is False:
+            raise TypeError("variable must be specified as a string")
+
+        if variable not in variables:
+            raise ValueError("variable: \'" + variable + "\' not found in Dataset")
+
+        if isinstance(drop, bool) is False:
+            raise TypeError("drop must be specified as a boolean")
+        
+        # --------------------------------------
+        # Transforming values to variable dtype.
+        # --------------------------------------
+        # Transforming minimum value dtype to that of specified variable:
+        values = np.array(values, dtype=self.data[variable].dtype)
+
+        # ----------------------------------
+        # Defining ds, the filtered DataSet.
+        # ----------------------------------
+        ds = filter_traj_isin(self, variable=variable, values=values, drop=drop)
 
         # Returning the subsetted xarray DataSet as a TrajArray object -
         # this enables multiple filtering to take place.
