@@ -22,7 +22,7 @@ import xarray as xr
 import numpy as np
 from .utils.get_array_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_minmax, get_val
 from .utils.add_array_utils import add_seed, add_id, add_var
-from .utils.filter_array_utils import filter_traj_between, filter_traj_equal, filter_traj_polygon
+from .utils.filter_array_utils import filter_traj, filter_traj_between, filter_traj_polygon
 from .utils.compute_array_utils import compute_displacement, compute_velocity, compute_distance, compute_probability_distribution, compute_res_time, compute_trans_time
 
 
@@ -201,6 +201,87 @@ class TrajArray:
 
         # Return TrajArray object with updated DataSet.
         return TrajArray(self.data)
+    
+##############################################################################
+# Define filter() method.
+
+    def filter(self, query, drop=False):
+        """
+        Filter trajectories using conditional on an attribute variable
+        specified with a string query.
+
+        Filtering returns the complete trajectories where the specified
+        attribute variable meets the conditional query or does not
+        meet the conditional query where drop is specified as True.
+
+        Parameters
+        ----------
+        query : string
+            String query of the form "{variable} {operator} {value}",
+            where {variable} represents the attribute variable contained in
+            the TrajArray used to filter trajectories, {operator}
+            represents one of the six standard comparison operators and
+            {value} represents the value with which to compare the {variable}
+            to.
+        drop : boolean
+            Indcates if fitered trajectories should be retained in the
+            new TrajArray (False) or instead dropped from the
+            existing TrajArray (True).
+
+        Returns
+        -------
+        TrajArray object
+            Complete trajectories, including all attribute variables,
+            which meet or do not meet the specified filter.
+
+        Examples
+        --------
+        Filtering all trajectories where temperature is greater than 10C
+        at any point along-stream.
+
+        >>> trajectories.filter(query='temp > 10', drop=False)
+
+        """
+        # ------------------------
+        # Split string query.
+        # ------------------------
+        # Split string query into three arguments seperated by spaces
+        query_split = query.split(sep=' ')
+
+        # -------------------
+        # Raising exceptions.
+        # -------------------
+        if len(query_split) != 3:
+            raise ValueError("string expression contains too many arguments. Use format \'var op val\' to compare column variable to value.")
+
+        # Defining arguments from string query:
+        variable = query_split[0]
+        operator = query_split[1]
+        value = query_split[2]
+
+        # Transforming value dtype to that of specified variable:
+        value = np.array(value, dtype=self.data[variable].dtype)
+
+        # Defining list of standard operators.
+        operator_list = ['==', '!=', '<', '>', '<=', '>=']
+
+        if isinstance(variable, str) is False:
+            raise TypeError("variable must be specified as a string")
+
+        if isinstance(drop, bool) is False:
+            raise TypeError("drop must be specified as a boolean")
+
+        if operator not in operator_list:
+            raise ValueError("unknown comparison operator specified: \'" + operator + "\'. Use one of the standard Python comparison operators: ==, !=, <, >, <=, >=")
+
+        # ----------------------------------
+        # Defining ds, the filtered DataSet.
+        # ----------------------------------
+        ds = filter_traj(self, variable=variable, operator=operator, value=value, drop=drop)
+
+        # Returning the subsetted xarray DataSet as a TrajArray object -
+        # this enables multiple filtering to take place.
+        return TrajArray(ds)
 
 ##############################################################################
 # Define filter_between() method.
@@ -269,125 +350,19 @@ class TrajArray:
 
         if isinstance(drop, bool) is False:
             raise TypeError("drop must be specified as a boolean")
-
-        # For non-time variables integers or floats only.
-        if variable != 'time':
-            if isinstance(min_val, (int, float)) is False:
-                raise TypeError("min must be specified as integer or float")
-
-            if isinstance(max_val, (int, float)) is False:
-                raise TypeError("max must be specified as integer or float")
-
-        # For time variable numpy datetime64 or timedelta64 format only.
-        else:
-            if isinstance(min_val, (np.datetime64, np.timedelta64)) is False:
-                raise TypeError("min must be specified as datetime64 or timedelta64")
-
-            if isinstance(max_val, (np.datetime64, np.timedelta64)) is False:
-                raise TypeError("max must be specified as datetime64 or timedelta64")
+        
+        # --------------------------------------
+        # Transforming values to variable dtype.
+        # --------------------------------------
+        # Transforming minimum value dtype to that of specified variable:
+        min_val = np.array(min_val, dtype=self.data[variable].dtype)
+        # Transforming maximum value dtype to that of specified variable:
+        max_val = np.array(max_val, dtype=self.data[variable].dtype)
 
         # ----------------------------------
         # Defining ds, the filtered DataSet.
         # ----------------------------------
         ds = filter_traj_between(self, variable=variable, min_val=min_val, max_val=max_val, drop=drop)
-
-        # Returning the subsetted xarray DataSet as a TrajArray object -
-        # this enables multiple filtering to take place.
-        return TrajArray(ds)
-
-##############################################################################
-# Define filter_equal() method.
-
-    def filter_equal(self, variable, val, drop=False):
-        """
-        Filter trajectories with attribute variable equal to value.
-
-        Filtering returns the complete trajectories where the specified
-        attribute variable takes the value specified by val.
-
-        When variable is specified as 'time' only the observations (obs)
-        equal to and between the specified time-levels are returned for
-        all trajectories.
-
-        Parameters
-        ----------
-        variable : string
-            Name of the variable in the TrajArray object.
-        val : numeric
-            Value variable should equal.
-        drop : boolean
-            Determines if fitered trajectories should be returned as a
-            new TrajArray object (False) or instead dropped from the
-            existing TrajArray object (True).
-
-        Returns
-        -------
-        TrajArray object
-            Complete trajectories, including all attribute variables,
-            which meet the filter specification.
-
-        Examples
-        --------
-        Filtering all trajectories where Latitude equals 0 N.
-
-        >>> trajectories.filter_equal('lat', 0, drop=False)
-
-        Filtering trajectory observations for one date using numpy
-        datetime64.
-
-        >>> tval = np.datetime64('2000-03-01')
-        >>> trajectories.filter_equal('time', tval)
-
-        Filtering trajectory observations for multiple times using
-        numpy timedelta64.
-
-        >>> tval = [np.timedelta64(10, 'D'), np.timedelta64(20, 'D')]
-        >>> trajectories.filter_equal('time', tval)
-        """
-        # -------------------
-        # Raising exceptions.
-        # -------------------
-        # Defining list of variables contained in data.
-        variables = list(self.data.variables)
-
-        if isinstance(variable, str) is False:
-            raise TypeError("variable must be specified as a string")
-
-        if variable not in variables:
-            raise ValueError("variable: \'" + variable + "\' not found in Dataset")
-
-        if isinstance(drop, bool) is False:
-            raise TypeError("drop must be specified as a boolean")
-
-        # For non-time variables.
-        if variable != 'time':
-            # For list of values, val, elements must be int or float type.
-            if isinstance(val, list) is True:
-                if all(isinstance(value, (int, float, np.int64, np.float64)) for value in val) is False:
-                    raise TypeError("contents of val must be specified as integers or floats")
-
-            # For single value, val.
-            else:
-                if isinstance(val, (int, float, np.int64, np.float64)) is False:
-                    raise TypeError("val must be specified as integer or float")
-
-        # For time variable.
-        else:
-            # For list of values, val, elements must be numpy datetime64 or
-            # timedelta64 format only.
-            if isinstance(val, list) is True:
-                if all(isinstance(value, (np.datetime64, np.timedelta64)) for value in val) is False:
-                    raise TypeError("contents of val must be specified as datetime64 or timedelta64")
-
-            # For single value, val.
-            else:
-                if isinstance(val, (np.datetime64, np.timedelta64)) is False:
-                    raise TypeError("val must be specified as datetime64 or timedelta64")
-
-        # ----------------------------------
-        # Defining ds, the filtered DataSet.
-        # ----------------------------------
-        ds = filter_traj_equal(self, variable=variable, val=val, drop=drop)
 
         # Returning the subsetted xarray DataSet as a TrajArray object -
         # this enables multiple filtering to take place.

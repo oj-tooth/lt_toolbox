@@ -19,6 +19,183 @@ import pygeos
 
 
 ##############################################################################
+# Define filter_traj() function.
+
+def filter_traj(self, variable, operator, value, drop):
+    """
+    Filter trajectories using conditional on an attribute variable
+    specified with a string expression.
+
+    Filtering returns a reduced Dataset where only the
+    trajectories meeting the specified condition are retained.
+    The exception is when users specify drop=True, in which case
+    trajectories meeting the specified condition are dropped from the
+    Dataset.
+
+    Parameters
+    ----------
+    self : TrajArray
+        TrajArray containing Dataset with attribute variable to filter.
+    variable : string
+        Name of the attribute variable to filter.
+    operator : string
+        Logical operator used to filter attribute variable.
+    value : string
+        Value used to filter attribute variable.
+    drop : boolean
+        Indcates if fitered trajectories should be retained in the
+        new Dataset (False) or dropped from the Dataset (True).
+
+    Returns
+    -------
+    ds_reduced Dataset
+        Reduced Dataset, including the Lagrangian trajectories
+        which meet (do not meet) the specified filter condition.
+
+    """
+    # -------------------------------------------
+    # Applying specified filter to time variable.
+    # -------------------------------------------
+    if variable == 'time':
+        # Apply filter according to specfied comparison operator:
+        # Case 1. Equal
+        if operator == '==':
+            # Filter Dataset and drop where False:
+            ds_reduced = self.data.where(self.data[variable] == value, drop=True)
+
+        # Case 2. Not Equal
+        elif operator == '!=':
+            # Filter Dataset and drop where False:
+            ds_reduced = self.data.where(self.data[variable] != value, drop=True)
+
+        # Case 3. Less Than
+        elif operator == '<':
+            # Filter Dataset and drop where False:
+            ds_reduced = self.data.where(self.data[variable] < value, drop=True)
+
+        # Case 4. Greater Than
+        elif operator == '>':
+            # Filter Dataset and drop where False:
+            ds_reduced = self.data.where(self.data[variable] > value, drop=True)
+
+        # Case 5. Less Than or Equal
+        elif operator == '<=':
+            # Filter Dataset and drop where False:
+            ds_reduced = self.data.where(self.data[variable] <= value, drop=True)
+
+        # Case 6. Greater Than or Equal
+        elif operator == '>=':
+            # Filter Dataset and drop where False:
+            ds_reduced = self.data.where(self.data[variable] >= value, drop=True)
+
+    # ------------------------------------------
+    # Applying specified filter to 1-D variable.
+    # ------------------------------------------
+    elif len(self.data[variable].shape) == 1:
+        # Apply filter according to specfied comparison operator:
+        # Case 1. Equal
+        if operator == '==':
+            # Filter Dataset according to drop argument:
+            if drop is True:
+                ds_reduced = self.data.isel(traj=~(self.data[variable] == value))
+            else:
+                ds_reduced = self.data.isel(traj=(self.data[variable] == value))
+        # Case 2. Not Equal
+        elif operator == '!=':
+            # Filter Dataset according to drop argument:
+            if drop is True:
+                ds_reduced = self.data.isel(traj=~(self.data[variable] != value))
+            else:
+                ds_reduced = self.data.isel(traj=(self.data[variable] != value))
+
+        # Case 3. Less Than
+        elif operator == '<':
+            # Filter Dataset according to drop argument:
+            if drop is True:
+                ds_reduced = self.data.isel(traj=~(self.data[variable] < value))
+            else:
+                ds_reduced = self.data.isel(traj=(self.data[variable] < value))
+
+        # Case 4. Greater Than
+        elif operator == '>':
+            # Filter Dataset according to drop argument:
+            if drop is True:
+                ds_reduced = self.data.isel(traj=~(self.data[variable] > value))
+            else:
+                ds_reduced = self.data.isel(traj=(self.data[variable] > value))
+
+        # Case 5. Less Than or Equal
+        elif operator == '<=':
+            # Filter Dataset according to drop argument:
+            if drop is True:
+                ds_reduced = self.data.isel(traj=~(self.data[variable] <= value))
+            else:
+                ds_reduced = self.data.isel(traj=(self.data[variable] <= value))
+
+        # Case 6. Greater Than or Equal
+        elif operator == '>=':
+            # Filter Dataset according to drop argument:
+            if drop is True:
+                ds_reduced = self.data.isel(traj=~(self.data[variable] >= value))
+            else:
+                ds_reduced = self.data.isel(traj=(self.data[variable] >= value))
+
+    # ------------------------------------------
+    # Applying specified filter to 2-D variable.
+    # ------------------------------------------
+    elif len(self.data[variable].shape) == 2:
+        # Apply filter according to specfied comparison operator:
+        # Case 1. Equal
+        if operator == '==':
+            # Filter Dataset according to drop argument:
+            if drop is True:
+                ds_reduced = self.data.isel(traj=~(self.data[variable] == value).any(dim='obs'))
+            else:
+                ds_reduced = self.data.isel(traj=(self.data[variable] == value).any(dim='obs'))
+        # Case 2. Not Equal
+        elif operator == '!=':
+            # Filter Dataset according to drop argument:
+            if drop is True:
+                ds_reduced = self.data.isel(traj=~(self.data[variable] != value).any(dim='obs'))
+            else:
+                ds_reduced = self.data.isel(traj=(self.data[variable] != value).any(dim='obs'))
+
+        # Case 3. Less Than
+        elif operator == '<':
+            # Filter Dataset according to drop argument:
+            if drop is True:
+                ds_reduced = self.data.isel(traj=~(self.data[variable] < value).any(dim='obs'))
+            else:
+                ds_reduced = self.data.isel(traj=(self.data[variable] < value).any(dim='obs'))
+
+        # Case 4. Greater Than
+        elif operator == '>':
+            # Filter Dataset according to drop argument:
+            if drop is True:
+                ds_reduced = self.data.isel(traj=~(self.data[variable] > value).any(dim='obs'))
+            else:
+                ds_reduced = self.data.isel(traj=(self.data[variable] > value).any(dim='obs'))
+
+        # Case 5. Less Than or Equal
+        elif operator == '<=':
+            # Filter Dataset according to drop argument:
+            if drop is True:
+                ds_reduced = self.data.isel(traj=~(self.data[variable] <= value).any(dim='obs'))
+            else:
+                ds_reduced = self.data.isel(traj=(self.data[variable] <= value).any(dim='obs'))
+
+        # Case 6. Greater Than or Equal
+        elif operator == '>=':
+            # Filter Dataset according to drop argument:
+            if drop is True:
+                ds_reduced = self.data.isel(traj=~(self.data[variable] >= value).any(dim='obs'))
+            else:
+                ds_reduced = self.data.isel(traj=(self.data[variable] >= value).any(dim='obs'))
+
+    # Return filtered Dataset:
+    return ds_reduced
+
+##############################################################################
 # Define filter_traj_between() function.
 
 def filter_traj_between(self, variable, min_val, max_val, drop):
@@ -60,137 +237,31 @@ def filter_traj_between(self, variable, min_val, max_val, drop):
     # Sub-Routine for filtering with time.
     # ------------------------------------
     if variable == 'time':
-        # Defining number of observations, obs.
-        obs = np.shape(self.data[variable].values)[1]
+        # Filter Dataset and drop where False:
+        ds_reduced = self.data.where((self.data[variable] <= max_val) & (self.data[variable] >= min_val), drop=True)
 
-        # Finding the minimum and maximum observations from specified
-        # min_val and max_val.
-        obs_min = np.where(self.data[variable].values[0, :] == min_val)[0]
-        obs_max = np.where(self.data[variable].values[0, :] == max_val)[0]
-        # Defining cols to contain indexes obs_min : obs_max.
-        cols = np.arange(obs_min, obs_max + 1)
-
-        # Returning the filtered trajectories as a subset of the original
-        # DataSet.
-        if drop is False:
-            return self.data.isel(obs=xr.DataArray(cols, dims=["obs"]))
-
-        # Where drop is True, remove filtered trajectories from original
-        # Datset.
+    # -------------------------------------------------------
+    # Sub-Routine for filtering with 1-D attribute variables.
+    # -------------------------------------------------------
+    elif len(self.data[variable].shape) == 1:
+        # Filter Dataset according to drop argument:
+        if drop is True:
+            ds_reduced = self.data.isel(traj=~((self.data[variable] <= max_val) & (self.data[variable] >= min_val)))
         else:
-            # Defining cols to contain indexes not including obs_min :
-            # obs_max.
-            cols = np.concatenate([np.arange(obs_min), np.arange(obs_max + 1, obs)])
+            ds_reduced = self.data.isel(traj=((self.data[variable] <= max_val) & (self.data[variable] >= min_val)))
 
-            return self.data.isel(obs=xr.DataArray(cols, dims=["obs"]))
-
-    # -----------------------------------------------------------
-    # Sub-Routine for filtering with attribute variables != time.
-    # -----------------------------------------------------------
-    else:
-        if np.ndim(self.data[variable].values) > 1:
-            # Defining rows as logical vector storing rows where
-            # trajectories meeting conditions will be stored
-            # Use numpy vectorisation, np.any().
-            rows = np.any((self.data[variable].values <= max_val) & (self.data[variable].values >= min_val), axis=1)
-
+    # -------------------------------------------------------
+    # Sub-Routine for filtering with 2-D attribute variables.
+    # -------------------------------------------------------
+    elif len(self.data[variable].shape) == 2:
+        # Filter Dataset according to drop argument:
+        if drop is True:
+            ds_reduced = self.data.isel(traj=~((self.data[variable] <= max_val) & (self.data[variable] >= min_val)).any(dim='obs'))
         else:
-            # For 1-dimensional array, use logical condition.
-            rows = (self.data[variable].values <= max_val) & (self.data[variable].values >= min_val)
+            ds_reduced = self.data.isel(traj=((self.data[variable] <= max_val) & (self.data[variable] >= min_val)).any(dim='obs'))
 
-        # Returning the filtered trajectories as a subset of the original
-        # DataSet.
-        if drop is False:
-            return self.data.isel(traj=xr.DataArray(rows, dims=["traj"]))
-
-        # Where drop is True, remove filtered trajectories from original
-        # Datset.
-        else:
-            return self.data.isel(traj=xr.DataArray(~rows, dims=["traj"]))
-
-
-##############################################################################
-# Define filter_traj_equal() function.
-
-
-def filter_traj_equal(self, variable, val, drop):
-    """
-    Filter trajectories with attribute variable equal to value.
-
-    Filtering returns the complete trajectories where the specified
-    attribute variable takes the value specified by val.
-
-    When variable is specified as 'time' only the observations (obs)
-    equal to and between the specified time-levels are returned for
-    all trajectories.
-
-    Parameters
-    ----------
-    self : trajectories object
-        Trajectories object passed from trajectories class method.
-    variable : string
-        Name of the variable in the trajectories object.
-    val : numeric
-        Value variable should equal.
-    drop : boolean
-        Determines if fitered trajectories should be returned as a
-        new trajectories object (False) or instead dropped from the
-        existing trajectories object (True).
-
-    Returns
-    -------
-    DataSet.
-        Complete trajectories, including all attribute variables,
-        which meet the filter specification.
-    """
-    # --------------------------------
-    # Routine for filtering with time.
-    # --------------------------------
-    if variable == 'time':
-
-        # Finding the observations for a specified time.
-        # obs_equal = np.where(self.data[variable].values[0, :] == val)[0]
-        obs_equal = np.isin(self.data[variable].values[0, :], val)
-
-        # Defining cols to contain indexes obs_min : obs_max.
-        # cols = obs_equal
-
-        # Returning the filtered trajectories as a subset of the original
-        # DataSet.
-        if drop is False:
-            return self.data.isel(obs=xr.DataArray(obs_equal, dims=["obs"]))
-
-        # Where drop is True, remove filtered trajectories from original
-        # Datset.
-        else:
-            return self.data.isel(obs=xr.DataArray(~obs_equal, dims=["obs"]))
-
-    else:
-        # -------------------------------------------------------
-        # Routine for filtering with attribute variables != time.
-        # -------------------------------------------------------
-
-        if np.ndim(self.data[variable].values) > 1:
-            # Defining rows as logical vector storing rows where
-            # trajectories meeting conditions will be stored.
-            # Uses numpy vectorisation, np.any().
-            # self.data[variable].values == val
-            rows = np.any(np.isin(self.data[variable].values, val), axis=1)
-
-        else:
-            # For 1-dimensional array, use logical condition.
-            rows = np.isin(self.data[variable].values, val)
-
-        # Returning the filtered trajectories as a subset of the original
-        # DataSet.
-        if drop is False:
-            return self.data.isel(traj=xr.DataArray(rows, dims=["traj"]))
-
-        # Where drop is True, remove filtered trajectories from original
-        # Datset.
-        else:
-            return self.data.isel(traj=xr.DataArray(~rows, dims=["traj"]))
-
+    # Return filtered Dataset:
+    return ds_reduced
 
 ##############################################################################
 # Define filter_traj_polygon() function.
