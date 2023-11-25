@@ -20,10 +20,10 @@
 
 import xarray as xr
 import numpy as np
-from .get_array_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_minmax, get_val
-from .add_array_utils import add_seed, add_id, add_var
-from .filter_array_utils import filter_traj_between, filter_traj_equal, filter_traj_polygon
-from .compute_array_utils import compute_displacement, compute_velocity, compute_distance, compute_probability_distribution, compute_res_time, compute_trans_time
+from .utils.get_array_utils import get_start_time, get_start_loc, get_end_time, get_end_loc, get_duration, get_minmax, get_val
+from .utils.add_array_utils import add_seed, add_id, add_var
+from .utils.filter_array_utils import filter_traj_between, filter_traj_equal, filter_traj_polygon
+from .utils.compute_array_utils import compute_displacement, compute_velocity, compute_distance, compute_probability_distribution, compute_res_time, compute_trans_time
 
 
 ##############################################################################
@@ -31,15 +31,26 @@ from .compute_array_utils import compute_displacement, compute_velocity, compute
 
 
 class TrajArray:
+    """
+    A multi-dimensional, in memory, Lagrangian Trajectory array database built on top
+    of Xarray (https://docs.xarray.dev/en/stable/index.html).
 
+    A TrajArray contains an in-memory representation of a NetCDF or .zarr file, and
+    consists of variables, coordinates and attributes which together form a self
+    describing dataset.
+
+    A TrajArray includes a number of attributes and methods to faciliate the reproducible
+    post-processing, analysis and visualsation of Lagrangian trajectory data. 
+
+    """
     # Importing methods for finding indices in TrajArray object.
-    from .find_array_utils import find_between, find_equal, find_polygon
+    from .utils.find_array_utils import find_between, find_equal, find_polygon
     # Importing methods for cartesian plotting with matplotlib.
-    from .plot_array_utils import plot_timeseries, plot_ts_diagram, plot_variable
+    from .utils.plot_array_utils import plot_timeseries, plot_ts_diagram, plot_variable
     # Importing methods for geospatial mapping with Cartopy.
-    from .map_array_utils import map_trajectories, map_probability, map_property
+    from .utils.map_array_utils import map_trajectories, map_probability, map_property
     # Importing methods for sensitivity analysis.
-    from .compute_array_utils import compute_fuv
+    from .utils.compute_array_utils import compute_fuv
 
     def __init__(self, ds):
         """
@@ -72,14 +83,16 @@ class TrajArray:
         # -------------------
         # Raising exceptions.
         # -------------------
-        # Raise error if ds is not an xarray DataSet.
-        if (str(type(ds)) == "<class 'xarray.core.dataset.Dataset'>") is False:
+        # Raise error if ds is not an xarray DataSet:
+        if isinstance(ds, xr.Dataset) is False:
             raise TypeError("ds must be specified as an xarray DataSet")
 
-        # Defining list of variables contained in DataSet.
+        # Defining list of variables contained in DataSet:
         ds_variables = list(ds.variables)
 
-        # Raise error if the any required variable is absent from DataSet.
+        # Raise error if any required variable is absent from DataSet:
+        if 'trajectory' not in ds_variables:
+            raise ValueError("required variable missing from Dataset: \'trajectory\'")
         if 'time' not in ds_variables:
             raise ValueError("required variable missing from Dataset: \'time\'")
         if 'lat' not in ds_variables:
@@ -88,6 +101,12 @@ class TrajArray:
             raise ValueError("required variable missing from Dataset: \'lon\'")
         if 'z' not in ds_variables:
             raise ValueError("required variable missing from Dataset: \'z\'")
+
+        # Raise error if required dimension are absent from DataSet:
+        if 'traj' not in ds.dims:
+            raise ValueError("required dimension missing from Dataset: \'traj\'")
+        if 'obs' not in ds.dims:
+            raise ValueError("required dimension missing from Dataset: \'obs\'")
 
         # ----------------------------------------
         # Storing input Dataset as data attribute.
@@ -109,25 +128,29 @@ class TrajArray:
         for var in variables:
             setattr(self, var, getattr(self.data, var))
 
+        # Define number of trajectories and observations as attributes:
+        self.n_traj = ds.dims['traj']
+        self.n_obs = ds.dims['obs']
+
 ##############################################################################
 # Define print() method.
 
     def __str__(self):
         # Return Dimension and Data Variables contained within
         # TrajArray object.
-        return "<TrajArray object>\n\n------------------------------------------\nDimensions:  {2}\n\nTrajectories: {0}\nObservations: {1}\n------------------------------------------ \n{3}".format(np.shape(self.data['time'].values)[0], np.shape(self.data['time'].values)[1], list(self.data.dims), self.data.data_vars)
+        return f"<TrajArray object>\n\n------------------------------------------\nDimensions:  {list(self.data.dims)}\n\nTrajectories: {self.n_traj}\nObservations: {self.n_obs}\n------------------------------------------ \n{self.data.data_vars}"
 
 ##############################################################################
 # Define len() method.
 
     def __len__(self):
         # Return the no. trajectories containined in TrajArray object.
-        return np.shape(self.data['time'].values)[0]
+        return self.n_traj
 
 ##############################################################################
 # Define use_datetime.
 
-    def use_datetime(self, start_date):
+    def use_datetime(self, start_date, unit):
         """
         Convert time attribute variable to datetime64 format.
 
@@ -136,6 +159,8 @@ class TrajArray:
         start_date : string
             Starting date to use when converting time attribute
             variable to datetime64, formatted as 'YYYY-MM-DD'
+        unit : string
+            Datetime unit of time values stored in TrajArray.
 
         Returns
         --------
@@ -152,24 +177,29 @@ class TrajArray:
         >>> trajectories.use_datetime('2000-01-01')
         """
         # -------------------
-        # Raising exceptions.
+        # Raising exceptions:
         # -------------------
         if isinstance(start_date, str) is False:
             raise TypeError("start_date must be specified as a string")
+        if isinstance(unit, str) is False:
+            raise TypeError("unit must be specified as a string")
+        if unit not in ['s', 'm', 'h', 'D', 'W', 'M', 'Y']:
+            raise ValueError("unit must be specified as a numpy timedelta unit")
         if np.issubdtype(self.data['time'].values.dtype, np.datetime64) is True:
             raise TypeError("time already exists with dtype = \'datetime64[ns]\'")
 
         # -----------------------------------
-        # Set start_date in datetime format.
+        # Set start_date in datetime format:
         # -----------------------------------
-        # Using np.datetime64 to convert start_date.
+        # Using np.datetime64 as in xarray to convert start_date:
         start_date = np.datetime64(start_date)
 
         # --------------------------------------------------
-        # Convert time to datetime64 format with start_date.
+        # Convert time to datetime64 format with start_date:
         # --------------------------------------------------
-        # Redefining time variable in datetime64 format.
-        self.data.time.values = start_date + self.data.time.values
+        # Redefining time variable in datetime64 format:
+        type_str = f"timedelta64[{unit}]"
+        self.data.time.values = start_date + self.data.time.values.astype(type_str)
 
         # Return TrajArray object with updated DataSet.
         return TrajArray(self.data)
