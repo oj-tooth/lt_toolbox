@@ -173,9 +173,9 @@ def plot_timeseries(self, variable, col_variable=None):
         # Determine number of trajectories to plot.
         traj = np.shape(var)[0]
 
-        # Defining color from col_norm with diverging coolwarm
+        # Defining color from col_norm with diverging RdBu_r
         # colour map.
-        color = cm.coolwarm(col_norm)
+        color = plt.cm.RdBu_r(col_norm)
 
         # Plot time series for all trajectories, traj.
         for n in np.arange(0, traj-1):
@@ -194,10 +194,10 @@ def plot_timeseries(self, variable, col_variable=None):
         norm = colors.Normalize(vmin=np.nanmin(col), vmax=np.nanmax(col))
 
         # Defining Scalar Mappable object for colorbar.
-        sm = plt.cm.ScalarMappable(cmap=cm.coolwarm, norm=norm)
+        sm = plt.cm.ScalarMappable(cmap=plt.cm.RdBu_r, norm=norm)
 
         # Defining colorbar, cbar, to be 0.9 of the fig height.
-        cbar = plt.colorbar(sm, shrink=0.9)
+        cbar = plt.colorbar(ax=ax, mappable=sm, shrink=0.9)
         cbar.ax.get_yaxis().labelpad = 15
 
         # Creating colorbar label with col_variable attributes.
@@ -320,7 +320,7 @@ def plot_ts_diagram(self, col_variable=None):
 
         # Defining color from col_norm with diverging coolwarm
         # colour map.
-        color = cm.coolwarm(col_norm)
+        color = plt.cm.RdBu_r(col_norm)
 
         # Plot scatter plot for all trajectories, traj.
         for n in np.arange(0, traj-1):
@@ -339,10 +339,10 @@ def plot_ts_diagram(self, col_variable=None):
         norm = colors.Normalize(vmin=np.nanmin(col), vmax=np.nanmax(col))
 
         # Defining Scalar Mappable object for colorbar.
-        sm = plt.cm.ScalarMappable(cmap=cm.coolwarm, norm=norm)
+        sm = plt.cm.ScalarMappable(cmap=plt.cm.RdBu_r, norm=norm)
 
         # Defining colorbar, cbar, to be 0.6 of the fig height.
-        cbar = plt.colorbar(sm, shrink=0.6)
+        cbar = plt.colorbar(ax=ax, mappable=sm, shrink=0.6)
         cbar.ax.get_yaxis().labelpad = 15
 
         # Creating colorbar label with col_variable attributes.
@@ -497,7 +497,7 @@ def plot_variable(self, variable, plane, seed_level, time_level, cmap='coolwarm'
     # Adding colorbar to the figure.
     # ------------------------------
     # Defining colorbar, cbar, to be 0.6 of the fig height.
-    cbar = fig.colorbar(cplot, shrink=0.6)
+    cbar = fig.colorbar(ax=ax, mappable=cplot, shrink=0.6)
     cbar.ax.get_yaxis().labelpad = 15
 
     # Add colobar label with SI units.
