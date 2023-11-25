@@ -197,7 +197,7 @@ class TrajArray:
         # --------------------------------------------------
         # Redefining time variable in datetime64 format:
         type_str = f"timedelta64[{unit}]"
-        self.data.time.values = start_date + self.data.time.values.astype(type_str)
+        self.data.time.values = start_date + self.data.time.astype(type_str)
 
         # Return TrajArray object with updated DataSet.
         return TrajArray(self.data)
