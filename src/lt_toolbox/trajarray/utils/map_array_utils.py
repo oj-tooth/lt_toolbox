@@ -128,9 +128,12 @@ def map_trajectories(self, col_variable=None):
 
         # Plot all trajectories, traj.
         for n in np.arange(0, traj-1):
+            # Remove NaN values from ndarrays:
+            lon_n = lon[n, :][~np.isnan(lon[n, :])]
+            lat_n = lat[n, :][~np.isnan(lat[n, :])]
             # Plot trajectories with default colors specififed by
             # matplotlib.
-            ax.plot(lon[n, :], lat[n, :], transform=ccrs.PlateCarree())
+            ax.plot(lon_n, lat_n, transform=ccrs.PlateCarree())
 
     # --------------------------------------------
     # Subroutine for 1-dimensional color variable.
@@ -152,14 +155,17 @@ def map_trajectories(self, col_variable=None):
         # Determine number of trajectories to plot.
         traj = np.shape(lon)[0]
 
-        # Defining color from col_norm with diverging coolwarm
+        # Defining color from col_norm with diverging RdBu_r
         # colour map.
-        color = cm.coolwarm(col_norm)
+        color = plt.cm.RdBu_r(col_norm)
 
         # Plot all trajectories, traj.
         for n in np.arange(0, traj-1):
+            # Remove NaN values from ndarrays:
+            lon_n = lon[n, :][~np.isnan(lon[n, :])]
+            lat_n = lat[n, :][~np.isnan(lat[n, :])]
             # Plot trajectories with single colour defined by color.
-            ax.plot(lon[n, :], lat[n, :], c=color[n], transform=ccrs.PlateCarree())
+            ax.plot(lon_n, lat_n, c=color[n], transform=ccrs.PlateCarree())
 
         # ------------------------------
         # Adding colorbar to the figure.
@@ -168,7 +174,7 @@ def map_trajectories(self, col_variable=None):
         norm = colors.Normalize(vmin=np.nanmin(col), vmax=np.nanmax(col))
 
         # Defining Scalar Mappable object for colorbar.
-        sm = plt.cm.ScalarMappable(cmap=cm.coolwarm, norm=norm)
+        sm = plt.cm.ScalarMappable(cmap=plt.cm.RdBu_r, norm=norm)
 
         # Defining colorbar, cbar, to be 0.4 of the fig height.
         cbar = plt.colorbar(sm, shrink=0.4)
@@ -201,20 +207,23 @@ def map_trajectories(self, col_variable=None):
         # Plotting trajectories as coloured line segments.
         # ------------------------------------------------
         # Determine number of trajectories to plot.
-        traj = np.shape(lon)[0]
-        obs = np.shape(lon)[1]
+        traj = self.n_traj
 
         # Plot all trajectories, traj.
         for n in np.arange(0, traj-1):
             # Within each trajectory iteration define color from col_norm with
             # diverging cool warm colour map.
-            color = cm.coolwarm(col_norm[n, :])
+            color = plt.cm.RdBu_r(col_norm[n, :])
+
+            # Remove NaN values from ndarrays:
+            lon_n = lon[n, :][~np.isnan(lon[n, :])]
+            lat_n = lat[n, :][~np.isnan(lat[n, :])]
 
             # Plot all line segments between observations, obs.
-            for i in np.arange(0, obs-1):
+            for i in np.arange(0, lon_n.size-1):
                 # Plot trajectories with col_norm of previous particle position
                 # as colour of line segment.
-                ax.plot([lon[n, i], lon[n, i+1]], [lat[n, i], lat[n, i+1]], c=color[i], transform=ccrs.PlateCarree())
+                ax.plot([lon_n[i], lon_n[i+1]], [lat_n[i], lat_n[i+1]], c=color[i], transform=ccrs.PlateCarree())
 
         # ------------------------------
         # Adding colorbar to the figure.
@@ -223,10 +232,10 @@ def map_trajectories(self, col_variable=None):
         norm = colors.Normalize(vmin=np.nanmin(col), vmax=np.nanmax(col))
 
         # Defining Scalar Mappable object for colorbar.
-        sm = plt.cm.ScalarMappable(cmap=cm.coolwarm, norm=norm)
+        sm = plt.cm.ScalarMappable(cmap=plt.cm.RdBu_r, norm=norm)
 
-        # Defining colorbar, cbar, to be 0.4 of the fig height.
-        cbar = plt.colorbar(sm, shrink=0.4)
+        # Defining colorbar, cbar, to be 0.6 of the fig height.
+        cbar = plt.colorbar(ax=ax, mappable=sm, shrink=0.6)
         cbar.ax.get_yaxis().labelpad = 15
 
         # Creating colorbar label with col_variable attributes.
