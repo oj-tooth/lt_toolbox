@@ -1,1 +1,9 @@
-site_name: My Docs
+# https://www.mkdocs.org/user-guide/configuration/
+
+# Project information
+site_name: LT-Toolbox
+site_url: https://lt_toolbox.github.io/lt_toolbox
+repo_url: https://github.com/lt_toolbox/
+repo_name: lt_toolbox
+
+# Documentation layout
