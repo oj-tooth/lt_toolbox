@@ -419,7 +419,7 @@ def plot_variable(self, variable, plane, seed_level, time_level, cmap='coolwarm'
     # ---------------------------------------------------
     # Add seed_levels to DataSet, filter on specified seed level.
     # Return starting locations lat, lon and z for contour plot.
-    dataset = self.add_seed().filter_equal('seed_level', seed_level).get_start_loc()
+    dataset = self.add_seed().filter('seed_level == '+ str(seed_level)).get_start_loc()
     # Return specified variable at specified time_level as {variable}_i.
     dataset = dataset.get_value(variable, time_level)
 
