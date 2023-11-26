@@ -1191,7 +1191,7 @@ def compute_probability_distribution(self, bin_res, method, gf_sigma=None, group
         # compute a Lagrangian probability distribution.
         for n in vals:
             # Filter trajectories where group_by equals n.
-            traj = self.filter_equal(group_by, n)
+            traj = self.filter(group_by+' == n', drop=False)
 
             # Compute probability distribution to return gridded
             # longitudes, latitudes and probabilities.
