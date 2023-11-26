@@ -762,3 +762,143 @@ def binned_group_statistic_2d(var_x:pl.Series, var_y:pl.Series, values:pl.Series
 
     # Return 2-dimensional binned statistics as DataArray:
     return result_array
+
+##############################################################################
+# Define binned_statistic_1d() function.
+
+
+def binned_statistic_1d(var:pl.Series, values:pl.Series, statistic:str, bin_breaks:list) -> xr.DataArray:
+    """
+    Compute a 1-dimensional binned statistic using the Series stored in a
+    DataFrame.
+
+    This is a generalization of a histogram function. A histogram divides
+    the chosen column varaible into bins, and returns the count of the number
+    of points in each bin. This function allows the computation of the sum,
+    mean, median, or other statistic of the values within each bin.
+
+    Parameters
+    var : Series
+        A sequence of values to be binned.
+
+    values : Series
+        The values on which the statistic will be computed.
+        This must be the same length as var
+
+    statistic: str
+        The statistic to compute.
+        The following statistics are available:
+
+          * 'mean' : compute the mean of values for points within each bin.
+            Empty bins will be represented by null.
+          * 'std' : compute the standard deviation within each bin.
+          * 'median' : compute the median of values for points within each
+            bin. Empty bins will be represented by null.
+          * 'count' : compute the count of points within each bin. This is
+            identical to an unweighted histogram.
+          * 'sum' : compute the sum of values for points within each bin.
+            This is identical to a weighted histogram.
+          * 'min' : compute the minimum of values for points within each bin.
+            Empty bins will be represented by null.
+          * 'max' : compute the maximum of values for point within each bin.
+            Empty bins will be represented by null.
+
+    bin_breaks: list
+          List of bin edges used in the binning of var variable.
+
+    Returns
+    -------
+    statistic : DataArray
+        DataArray containing values of the selected statistic in each bin.
+    """
+    # --- Raise Errors ---
+    available_stats = ['mean', 'median', 'count', 'sum', 'std', 'min', 'max']
+    if not callable(statistic) and statistic not in available_stats:
+        raise ValueError(f'invalid statistic {statistic!r}')
+
+    # --- Definitions ---
+    # Define DataFrame from var and values Series:
+    df = pl.DataFrame(data=[var, values])
+    # Define column names:
+    var_name = var.name
+    values_name = values.name
+
+    # Define bin width:
+    bin_width = bin_breaks[1] - bin_breaks[0]
+
+    # Define extended bin breaks:
+    bin_breaks_ext = bin_breaks.copy()
+    # Extend bin breaks at start and end:
+    bin_breaks_ext.insert(0, bin_breaks_ext[0] - bin_width)
+    bin_breaks_ext.extend([bin_breaks_ext[-1] + bin_width])
+
+    # Define bin labels as Polars Series:
+    bin_labels = pl.Series(name='labels', values=bin_breaks_ext)
+    # Determine bin labels from mid-points of extended bin breaks:
+    bin_labels = (bin_labels[:-1] + bin_labels[1:]) / 2
+    # Transform labels to string dtype:
+    bin_labels = bin_labels.cast(pl.Utf8)
+
+    # --- Label Variable with Discrete Bins ---
+    # Calculate 1-dimensional binned statistics:
+    df_binned = (df
+                 .with_columns(
+                     pl.col(var_name).cut(breaks=bin_breaks, labels=bin_labels).alias('values_binned')
+                     )
+                 )
+
+    # --- Calculate Statistic in Discrete Bins ---
+    # Evaluate statistic over values stored in each bin:
+    if statistic == 'mean':
+        result = (df_binned
+                        .group_by(pl.col('values_binned'), maintain_order=True)
+                        .agg(pl.col(values_name).mean())
+                        )
+    elif statistic == 'median':
+        result = (df_binned
+                        .group_by(pl.col('values_binned'), maintain_order=True)
+                        .agg(pl.col(values_name).median())
+                        )
+    elif statistic == 'count':
+        result = (df_binned
+                        .group_by(pl.col('values_binned'), maintain_order=True)
+                        .agg(pl.col(values_name).count())
+                        )
+    elif statistic == 'sum':
+        result = (df_binned
+                        .group_by(pl.col('values_binned'), maintain_order=True)
+                        .agg(pl.col(values_name).sum())
+                        )
+    elif statistic == 'std':
+        result = (df_binned
+                        .group_by(pl.col('values_binned'), maintain_order=True)
+                        .agg(pl.col(values_name).std())
+                        )
+    elif statistic == 'min':
+        result = (df_binned
+                        .group_by(pl.col('values_binned'), maintain_order=True)
+                        .agg(pl.col(values_name).min())
+                        )
+    elif statistic == 'max':
+        result = (df_binned
+                        .group_by(pl.col('values_binned'), maintain_order=True)
+                        .agg(pl.col(values_name).max())
+                        )
+
+    # Cast value bins dtype from categorical to float:
+    result = result.with_columns(pl.col('values_binned').cast(pl.Utf8).cast(pl.Float64))
+    # Sort DataFrame by bin value in ascending order:
+    result = result.sort(by='values_binned', descending=False)
+
+    # --- Transform Binned Statistic to DataArray ---
+    # Construct xarray DataArray from Polars Series:
+    result_array = xr.DataArray(data=result[values_name].to_numpy(),
+                                dims=[var_name],
+                                coords={
+                                    var_name:([var_name], result['values_binned'].to_numpy().astype(np.float64))
+                                },
+                                name=values_name
+                                )
+
+    # Return 1-dimensional binned statistics as DataArray:
+    return result_array

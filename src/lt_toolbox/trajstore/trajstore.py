@@ -1093,6 +1093,130 @@ class TrajStore:
         return TrajStore(traj_source=self.TrajFrame, summary_source=self.SummaryFrame, summary_array=self.SummaryArray)
 
 ##############################################################################
+# Define compute_property_lof() method.
+
+    def compute_property_lof(self, subvol:str, property:str, bin_breaks:list, direction='+1', group=None):
+        """
+        Compute Lagrangian Overturning Function in discrete property-space.
+
+        The net volume transport distribution in the chosen property
+        space is accumulated in specified direction.
+
+        Parameters
+        ----------
+        subvol : str
+            Name of the variable storing water parcel volume transport.
+        property : str
+            Name of the property variable prefix to bin volume transports.
+        bin_breaks: list
+            List of bin edges used in the binning volume transports.
+        direction : str
+            direction of accumulation: '+1' is smallest to largest, 
+            '-1' is largest to smallest.
+        in_Sv : bool
+            specify if volume transport is given in Sv or m3 s-1
+
+        Returns
+        -------
+        TrajStore
+            Original TrajStore is returned with Lagrangian Overturning
+            Functions included in the SummaryArray where the mid-points
+            of the specified bins are given as the coordinate dimension.
+        """
+        # -----------------
+        # Raise exceptions.
+        # -----------------
+        if isinstance(bin_breaks, list) is False:
+            raise TypeError('invalid type - bin_breaks must be specified as a list')
+
+        if subvol not in self.SummaryFrame.columns:
+            raise ValueError(f'invalid variable - {subvol} is not contained in SummaryFrame')
+        
+        # Define inflow and outflow property variable names:
+        prop_in = property + '_in'
+        prop_out = property + '_out'
+
+        if prop_in not in self.SummaryFrame.columns:
+            raise ValueError(f'invalid variable - {prop_in} is not contained in SummaryFrame')
+        if prop_out not in self.SummaryFrame.columns:
+            raise ValueError(f'invalid variable - {prop_out} is not contained in SummaryFrame')
+        if group is not None:
+            if group not in self.SummaryFrame.columns:
+                raise ValueError(f'invalid variable - {group} is not contained in SummaryFrame')
+
+        # ---------------------------------------------------
+        # Calculating 1-D binned statistic in property-space.
+        # ---------------------------------------------------
+        # Binning Volume Transport according to Inflow Properties:
+        if group is None:
+            # Calculate 1-dimensional statistic from SummaryFrame:
+            result_in = binned_statistic_1d(var=self.SummaryFrame[prop_in],
+                                            values=self.SummaryFrame[subvol],
+                                            statistic='sum',
+                                            bin_breaks=bin_breaks,
+                                        )
+        else:
+            # Calculate 1-dimensional grouped statistic from SummaryFrame:
+            result_in = binned_group_statistic_1d(var=self.SummaryFrame[prop_in],
+                                                values=self.SummaryFrame[subvol],
+                                                groups=self.SummaryFrame[group],
+                                                statistic='sum',
+                                                bin_breaks=bin_breaks,
+                                                )
+
+        # Binning Volume Transport according to Outflow Properties:
+        if group is None:
+            # Calculate 1-dimensional statistic from SummaryFrame:
+            result_out = binned_statistic_1d(var=self.SummaryFrame[prop_out],
+                                            values=self.SummaryFrame[subvol],
+                                            statistic='sum',
+                                            bin_breaks=bin_breaks,
+                                        )
+        else:
+            # Calculate 1-dimensional grouped statistic from SummaryFrame:
+            result_out = binned_group_statistic_1d(var=self.SummaryFrame[prop_out],
+                                                values=self.SummaryFrame[subvol],
+                                                groups=self.SummaryFrame[group],
+                                                statistic='sum',
+                                                bin_breaks=bin_breaks,
+                                                )
+            
+        # ---------------------------------------------
+        # Calculating Lagrangian Overturning Functions.
+        # ---------------------------------------------
+        # Rename property dimension names:
+        result_in = result_in.rename({prop_in:property})
+        result_out = result_out.rename({prop_out:property})
+        # Rename the volume transport variables:
+        result_in.name = 'subvol_in'
+        result_out.name = 'subvol_out'
+
+        # Join inflow and outflow volume transport DataArrays:
+        result_net = xr.merge([result_in, result_out])
+        result_net['subvol'] = result_net['subvol_in'] - result_net['subvol_out']
+
+        # Calculate accumulative sum of net volume transport:
+        # Case 1. Accumulate with increasing property values:
+        if direction == '+1':
+            # Accumlate along property dimension:
+            result_lof = result_net['subvol'].cumsum(dim=property, skipna=True)
+        # Case 2. Accumulate with decreasing property values:
+        elif direction == '-1':
+            # Reverse DataArray along propert dimension:
+            result_net = result_net.reindex({property:list(reversed(result_net[property]))})
+            # Accumlate along property dimension:
+            result_lof = result_net['subvol'].cumsum(dim=property, skipna=True)
+
+        # ----------------------------------------
+        # Adding LOF statistic to summary DataSet.
+        # ----------------------------------------
+        # Add result_lof DataArray to DataSet as named variable:
+        self.SummaryArray['LOF_'+property] = result_lof
+
+        # Return TrajStore object with updated TrajFrame & SummaryFrame.
+        return TrajStore(traj_source=self.TrajFrame, summary_source=self.SummaryFrame, summary_array=self.SummaryArray)
+
+##############################################################################
 # Define get_start_time() method.
 
     def get_start_time(self):
