@@ -2,8 +2,10 @@
 
 # Project information
 site_name: LT-Toolbox
-site_url: https://lt_toolbox.github.io/lt_toolbox
-repo_url: https://github.com/lt_toolbox/
+site_url: https://oj-tooth.github.io/lt_toolbox/
+repo_url: https://github.com/oj_tooth/lt_toolbox/
 repo_name: lt_toolbox
 
-# Documentation layout
+
+nav:
+- Welcome: index.md
