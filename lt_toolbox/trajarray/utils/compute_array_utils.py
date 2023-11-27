@@ -1191,7 +1191,7 @@ def compute_probability_distribution(self, bin_res, method, gf_sigma=None, group
         # compute a Lagrangian probability distribution.
         for n in vals:
             # Filter trajectories where group_by equals n.
-            traj = self.filter(group_by+' == n', drop=False)
+            traj = self.filter(f'{str(group_by)} == {str(n)}', drop=False)
 
             # Compute probability distribution to return gridded
             # longitudes, latitudes and probabilities.
@@ -1332,7 +1332,7 @@ def compute_fuv(self, bin_res, method, resample, repeats, upper_bound=None, gf_s
                 # Use indices to create list of ids to resample.
                 sample_id = list(self.id.values[ind])
                 # Store resample N trajectories by id.
-                traj = self.filter_equal('id', sample_id)
+                traj = self.filter_isin('id', sample_id, drop=False)
 
                 # ----------------------------------------------
                 # Computing Lagrangian probability distribution.
@@ -1406,7 +1406,7 @@ def compute_fuv(self, bin_res, method, resample, repeats, upper_bound=None, gf_s
         # compute a Lagrangian probability distribution.
         for n in np.arange(nval):
             # Filter trajectories where group_by equals n.
-            traj = self.filter_equal(group_by, vals[n])
+            traj = self.filter(f"{str(group_by)} == {str(vals[n])}")
 
             # ----------------------------------------
             # Defining number of trajectories in traj.
@@ -1433,7 +1433,7 @@ def compute_fuv(self, bin_res, method, resample, repeats, upper_bound=None, gf_s
                     # Use indices to create list of ids to resample.
                     sample_id = list(traj.id.values[ind])
                     # Store resample N trajectories by id.
-                    traj_resample = traj.filter_equal('id', sample_id)
+                    traj_resample = self.filter_isin('id', sample_id, drop=False)
 
                     # ----------------------------------------------
                     # Computing Lagrangian probability distribution.
@@ -1461,10 +1461,10 @@ def compute_fuv(self, bin_res, method, resample, repeats, upper_bound=None, gf_s
 
                     if upper_bound is None:
                         # Compute Fraction of Unexplained Variance, fuv.
-                        fuv[n, rep, N] = (1 - r**2)
+                        fuv[n, rep, N] = 1 - r**2
                     else:
                         # Compute Fraction of Unexplained Variance, fuv.
-                        fuv[rep] = (1 - r**2)
+                        fuv[rep] = 1 - r**2
 
                 # ---------------------------
                 # Compute upper bound of FUV.
