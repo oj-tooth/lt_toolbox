@@ -12,5 +12,5 @@
 # Ollie Tooth
 #
 ###############################################################################
-from lt_toolbox.trajstore.trajstore import TrajStore
-from lt_toolbox.trajarray.trajarray import TrajArray
+from .trajstore.trajstore import TrajStore
+from .trajarray.trajarray import TrajArray
