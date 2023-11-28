@@ -135,6 +135,12 @@ traj = ltt.TrajArray(ds=dataset)
 traj.map_probability(bin_res=1, prob_type='traj', cmap='viridis')
 ```
 
+<p align="centre">
+    <img src="docs/images/Figure3_Example_Probability.png" alt="Fig3" width="300" height="200"> 
+ </a>
+<p
+
+
 <!-- License -->
 ## License
 
