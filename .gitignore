@@ -18,3 +18,6 @@ __pycache__/
 /tutorials/data/ORCA025-GJM189_1976_02_05.zarr
 /tutorials/data/MITgcm_2km_upper_1000m_example_traj.zarr
 /tutorials/data/particles_output_5km_1000m.mat
+
+# Notebooks for Tutorials
+/tutorials/LT_Toolbox_Testing_MITgcm_IrmSea.ipynb
