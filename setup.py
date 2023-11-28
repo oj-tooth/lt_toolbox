@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(name='lt_toolbox',
       version='0.1.0',
@@ -7,5 +7,6 @@ setup(name='lt_toolbox',
       author='Ollie Tooth',
       author_email='oliver.tooth@seh.ox.ac.uk',
       license='MIT',
-      packages=['lt_toolbox'],
-      zip_safe=False)
+      packages=find_packages(),
+      install_requires=["numpy", "scipy", "polars", "xarray"]
+      )
