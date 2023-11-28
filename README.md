@@ -13,7 +13,7 @@
     <br />
     <br />
     ·
-    <a href="https://lt_toolbox.readthedocs.io"><strong>Explore the docs</strong></a>
+    <a href="https://oj-tooth.github.io/lt_toolbox/"><strong>Explore the docs</strong></a>
     ·
     <a href="https://github.com/oj-tooth/lt-toolbox/issues"><strong>Report an issue</strong></a>
     ·
@@ -107,7 +107,7 @@ The LT Toolbox is currently under development and is awaiting packaging for form
 
 The LT Toolbox is structured as follows:
     
-For further details on each of the modules included in the LT Toolbox view our [docs](https://lt_toolbox.readthedocs.io).
+For further details on each of the modules included in the LT Toolbox view our [API Reference](https://oj-tooth.github.io/lt_toolbox/).
 
 ## Example
 
