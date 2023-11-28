@@ -21,3 +21,4 @@ __pycache__/
 
 # Notebooks for Tutorials
 /tutorials/LT_Toolbox_Testing_MITgcm_IrmSea.ipynb
+/tutorials/data/Export_MITgcm_Lagrangian_trajectories_to_zarr.ipynb
