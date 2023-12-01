@@ -827,7 +827,7 @@ class TrajStore:
 ##############################################################################
 # Define compute_binned_statistic_1d() method.
 
-    def compute_binned_statistic_1d(self, var:str, values:str, statistic:str, bin_breaks:list, group=None, summary_var=False):
+    def compute_binned_statistic_1d(self, var:str, values:str, statistic:str, bin_breaks:list, alias=None, group=None, summary_var=False):
         """
         Compute a 1-dimensional binned statistic using variables stored in
         a TrajStore.
@@ -871,6 +871,9 @@ class TrajStore:
         bin_breaks: list
             List of bin edges used in the binning of var variable.
 
+        alias : str
+            New name of output statistics.
+
         summary_var: boolean
             Specify if variable to bin is contained in SummaryFrame rather than
             TrajFrame.
@@ -889,6 +892,9 @@ class TrajStore:
             raise TypeError('invalid type - summary_var must be specified as a boolean')
         if isinstance(bin_breaks, list) is False:
             raise TypeError('invalid type - bin_breaks must be specified as a list')
+        if alias is not None:
+            if isinstance(alias, str) is False:
+                raise TypeError('invalid type - alias must be specified as a list')
 
         if summary_var is True:
             if var not in self.SummaryFrame.columns:
@@ -947,7 +953,10 @@ class TrajStore:
         # Adding 1-D statistic to summary DataSet.
         # ----------------------------------------
         # Add result DataArray to DataSet as named variable:
-        self.SummaryArray[result.name] = result
+        if alias is None:
+            self.SummaryArray[result.name] = result
+        else:
+            self.SummaryArray[alias] = result
 
         # Return TrajStore object with updated TrajFrame & SummaryFrame.
         return TrajStore(traj_source=self.TrajFrame, summary_source=self.SummaryFrame, summary_array=self.SummaryArray)
@@ -956,7 +965,7 @@ class TrajStore:
 # Define compute_binned_statistic_2d() method.
 
 
-    def compute_binned_statistic_2d(self, var_x:str, var_y:str, values:str, statistic:str, bin_breaks:list, group=None, summary_var=False):
+    def compute_binned_statistic_2d(self, var_x:str, var_y:str, values:str, statistic:str, bin_breaks:list, alias=None, group=None, summary_var=False):
         """
         Compute a 2-dimensional binned statistic using the variables stored
         in a TrajStore.
@@ -1005,6 +1014,9 @@ class TrajStore:
             List of lists including bin edges used in the binning of var_x
             and var_y variables.
 
+        alias : str
+            New name of output statistics.
+
         summary_var: boolean
             Specify if variable to bin is contained in SummaryFrame rather than
             TrajFrame.
@@ -1021,6 +1033,9 @@ class TrajStore:
             raise TypeError('invalid type - summary_var must be specified as a boolean')
         if isinstance(bin_breaks, list) is False:
             raise TypeError('invalid type - bin_breaks must be specified as a list')
+        if alias is not None:
+            if isinstance(alias, str) is False:
+                raise TypeError('invalid type - alias must be specified as a string')
 
         if summary_var is True:
             if var_x not in self.SummaryFrame.columns:
@@ -1087,7 +1102,10 @@ class TrajStore:
         # Adding 2-D statistic to summary DataSet.
         # ----------------------------------------
         # Add result DataArray to DataSet as named variable:
-        self.SummaryArray[result.name] = result
+        if alias is None:
+            self.SummaryArray[result.name] = result
+        else:
+            self.SummaryArray[alias] = result
 
         # Return TrajStore object with updated TrajFrame & SummaryFrame.
         return TrajStore(traj_source=self.TrajFrame, summary_source=self.SummaryFrame, summary_array=self.SummaryArray)
@@ -1095,7 +1113,7 @@ class TrajStore:
 ##############################################################################
 # Define compute_property_lof() method.
 
-    def compute_property_lof(self, subvol:str, property:str, bin_breaks:list, direction='+1', group=None):
+    def compute_property_lof(self, subvol:str, prop:str, bin_breaks:list, alias=None, direction='+1', group=None):
         """
         Compute Lagrangian Overturning Function in discrete property-space.
 
@@ -1106,21 +1124,30 @@ class TrajStore:
         ----------
         subvol : str
             Name of the variable storing water parcel volume transport.
-        property : str
+
+        prop : str
             Name of the property variable prefix to bin volume transports.
+
         bin_breaks: list
             List of bin edges used in the binning volume transports.
+
+        alias: str
+            New name for Lagrangian overturning funtion in property-coordinates.
+
         direction : str
             direction of accumulation: '+1' is smallest to largest, 
             '-1' is largest to smallest.
-        in_Sv : bool
-            specify if volume transport is given in Sv or m3 s-1
+
+        group : str
+            Name of variable to group according to unique values using group_by()
+            method. A Lagrangian overturning function will be computed for each
+            group member.
 
         Returns
         -------
         TrajStore
-            Original TrajStore is returned with Lagrangian Overturning
-            Functions included in the SummaryArray where the mid-points
+            Original TrajStore is returned with Lagrangian overturning
+            functions included in the SummaryArray where the mid-points
             of the specified bins are given as the coordinate dimension.
         """
         # -----------------
@@ -1128,13 +1155,15 @@ class TrajStore:
         # -----------------
         if isinstance(bin_breaks, list) is False:
             raise TypeError('invalid type - bin_breaks must be specified as a list')
-
         if subvol not in self.SummaryFrame.columns:
             raise ValueError(f'invalid variable - {subvol} is not contained in SummaryFrame')
+        if alias is not None:
+            if isinstance(alias, str) is False:
+                raise TypeError('invalid type - alias must be specified as a string')
         
         # Define inflow and outflow property variable names:
-        prop_in = property + '_in'
-        prop_out = property + '_out'
+        prop_in = prop + '_in'
+        prop_out = prop + '_out'
 
         if prop_in not in self.SummaryFrame.columns:
             raise ValueError(f'invalid variable - {prop_in} is not contained in SummaryFrame')
@@ -1180,13 +1209,13 @@ class TrajStore:
                                                 statistic='sum',
                                                 bin_breaks=bin_breaks,
                                                 )
-            
+       
         # ---------------------------------------------
         # Calculating Lagrangian Overturning Functions.
         # ---------------------------------------------
-        # Rename property dimension names:
-        result_in = result_in.rename({prop_in:property})
-        result_out = result_out.rename({prop_out:property})
+        # Rename property dimension names & replace NaN -> 0 for arithmetic:
+        result_in = result_in.rename({prop_in:prop}).fillna(value=0)
+        result_out = result_out.rename({prop_out:prop}).fillna(value=0)
         # Rename the volume transport variables:
         result_in.name = 'subvol_in'
         result_out.name = 'subvol_out'
@@ -1199,19 +1228,22 @@ class TrajStore:
         # Case 1. Accumulate with increasing property values:
         if direction == '+1':
             # Accumlate along property dimension:
-            result_lof = result_net['subvol'].cumsum(dim=property, skipna=True)
+            result_lof = result_net['subvol'].cumsum(dim=prop, skipna=True)
         # Case 2. Accumulate with decreasing property values:
         elif direction == '-1':
-            # Reverse DataArray along propert dimension:
-            result_net = result_net.reindex({property:list(reversed(result_net[property]))})
+            # Reverse DataArray along property dimension:
+            result_net = result_net.reindex({prop:list(reversed(result_net[prop]))})
             # Accumlate along property dimension:
-            result_lof = result_net['subvol'].cumsum(dim=property, skipna=True)
+            result_lof = result_net['subvol'].cumsum(dim=prop, skipna=True)
 
         # ----------------------------------------
         # Adding LOF statistic to summary DataSet.
         # ----------------------------------------
         # Add result_lof DataArray to DataSet as named variable:
-        self.SummaryArray['LOF_'+property] = result_lof
+        if alias is None:
+            self.SummaryArray['LOF_'+prop] = result_lof
+        else:
+            self.SummaryArray[alias] = result_lof
 
         # Return TrajStore object with updated TrajFrame & SummaryFrame.
         return TrajStore(traj_source=self.TrajFrame, summary_source=self.SummaryFrame, summary_array=self.SummaryArray)
