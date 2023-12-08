@@ -10,14 +10,14 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 
-# Testing / Development .ipynb files.
-/tutorials/LT_Toolbox_Testing.ipynb
+# Development .ipynb files.
+/lt_toolbox/trajstore/test_TrajStore.ipynb
+/lt_toolbox/trajframe/test_TrajFrame.ipynb
 
 # Data for Tutorials.
-/tutorials/data/ORCA025-GJM189_1976_01_01.zarr
-/tutorials/data/ORCA025-GJM189_1976_02_05.zarr
-/tutorials/data/MITgcm_2km_upper_1000m_example_traj.zarr
-/tutorials/data/particles_output_5km_1000m.mat
+/tutorials/data/*.zarr
+/tutorials/data/*.parquet
+/tutorials/data/*.mat
 
 # Notebooks for Tutorials
 /tutorials/LT_Toolbox_Testing_MITgcm_IrmSea.ipynb
