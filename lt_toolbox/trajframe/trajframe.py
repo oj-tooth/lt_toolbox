@@ -32,7 +32,7 @@ from .utils.transform_frame_utils import transform_coords
 
 class TrajFrame:
 
-    def __init__(self, source:pl.DataFrame | pl.LazyFrame, condese=False, rename_cols=None, summary_source=None):
+    def __init__(self, source:pl.DataFrame | pl.LazyFrame, condense=False, rename_cols=None, summary_source=None):
         """
         Create a TrajFrame from a Polars DataFrame or LazyFrame.
 
@@ -110,7 +110,7 @@ class TrajFrame:
             data = source
 
         # Condense DataFrame / LazyFrame into list columns:
-        if condese:
+        if condense:
             data = (data
                     .group_by(pl.col('id'))
                     .agg([
