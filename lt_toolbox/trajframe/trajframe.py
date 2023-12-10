@@ -20,6 +20,7 @@
 import os
 import polars as pl
 import xarray as xr
+import plotly.express as px
 
 # Importing utility functions
 from .utils.filter_frame_utils import filter_traj_polygon, filter_traj, filter_summary
@@ -1785,3 +1786,154 @@ class TrajFrame:
 
         # Return TrajFrame object with updated DataFrame.
         return TrajFrame(source=trajectory_data, summary_source=self.summary_data)
+
+##############################################################################
+# Define plot_trajectories() function.
+
+    def plot_trajectories(self, sample_size=None, kwargs=None):
+        """
+        Plot Lagrangian trajectories in a plotly
+        express interactive figure.
+
+        Parameters
+        ----------
+        self : TrajFrame
+            TrajFrame passed from TrajFrame class method.
+        sample_size : integer
+            Size of random sample of Lagrangian trajectories
+            to plot.
+        kwargs : dict
+            Additional keyword arguments to be passed to plotly line_geo(),
+            when creating the figure.
+
+        Returns
+        -------
+        plotly.graph_objs._figure.Figure
+            Interactive figure of Lagrangian particle trajectories plotted
+            as a plotly geographic line plot.
+
+        Examples
+        --------
+        Plot trajectories of ten randomly sampled Lagrangian particles.
+
+        >>>  trajectories.plot_trajectories(sample_size=10).
+        """
+        # -------------------
+        # Raising exceptions.
+        # -------------------
+        if sample_size is not None:
+            if isinstance(sample_size, int) is False:
+                raise TypeError("invalid type: sample_size must be specified as an integer")
+        if kwargs is not None:
+            if isinstance(kwargs, dict) is False:
+                raise TypeError("invalid type: kwargs must be specified in a dictionary")
+        if 'lon' not in self.columns:
+            raise ValueError('invalid value: no column variable lon in TrajFrame')
+        if 'lat' not in self.columns:
+            raise ValueError('invalid value: no column variable lat in TrajFrame')
+
+        # ---------------------------------------------
+        # Creating Plotly Express geographic line plot.
+        # ---------------------------------------------
+        # Determine column names with List dtype:
+        list_cols = [col for col in self.columns if self.schema[col] == pl.List]
+        # Explode positions from condensed format to long format
+        # one observation per row:
+        if sample_size is not None:
+            df_exp = self.data.sample(n=sample_size).explode(columns=list_cols)
+        else:
+            df_exp = self.data.explode(columns=list_cols)
+
+        # Collect exploded result if LazyFrame:
+        if isinstance(df_exp, pl.LazyFrame):
+            df_exp = df_exp.collect(streaming=True)
+
+        if kwargs is None:
+            kwargs = {}
+        # Update kwargs if no color variable specified:
+        if 'color' not in kwargs.keys():
+            kwargs['color'] = 'id'
+        # Geographic line plot:
+        figure = px.line_geo(data_frame=df_exp,
+                             lon='lon',
+                             lat='lat',
+                             **(kwargs),
+                             )
+
+        # Return plotly express interactive figure.
+        return figure
+
+##############################################################################
+# Define plot_timeseries() function.
+
+    def plot_timeseries(self, var, sample_size=None, kwargs=None):
+        """
+        Plot timeseries of property sampled along Lagrangian trajectories
+        in a plotly express interactive figure.
+
+        Parameters
+        ----------
+        self : TrajFrame
+            TrajFrame passed from TrajFrame class method.
+        var : str
+            Name of column variable to plot timeseries.
+        sample_size : integer
+            Size of random sample of Lagrangian trajectories
+            to plot.
+        kwargs : dict
+            Additional keyword arguments to be passed to plotly line(),
+            when creating the figure.
+
+        Returns
+        -------
+        plotly.graph_objs._figure.Figure
+            Interactive figure of property timeseries sampled along
+            Langrangian trajectories.
+
+        Examples
+        --------
+        Plot the temperature along ten randomly sampled Lagrangian
+        trajectories.
+
+        >>>  trajectories.plot_timeseries(var='temp', sample_size=10).
+        """
+        # -------------------
+        # Raising exceptions.
+        # -------------------
+        if sample_size is not None:
+            if isinstance(sample_size, int) is False:
+                raise TypeError("invalid type: sample_size must be specified as an integer")
+        if kwargs is not None:
+            if isinstance(kwargs, dict) is False:
+                raise TypeError("invalid type: kwargs must be specified in a dictionary")
+        if var not in self.columns:
+            raise ValueError(f'invalid value: no column variable {var} in TrajFrame')
+
+        # ---------------------------------------------
+        # Creating Plotly Express geographic line plot.
+        # ---------------------------------------------
+        # Explode positions from condensed format to long format
+        # one observation per row:
+        if sample_size is not None:
+            df_exp = self.data.sample(n=sample_size).explode(columns=['time', var])
+        else:
+            df_exp = self.data.explode(columns=['time', var])
+
+        # Collect exploded result if LazyFrame:
+        if isinstance(df_exp, pl.LazyFrame):
+            df_exp = df_exp.collect(streaming=True)
+
+        if kwargs is None:
+            kwargs = {}
+        # Update kwargs if no color variable specified:
+        if 'color' not in kwargs.keys():
+            kwargs['color'] = 'id'
+        # Timeseries line plot:
+        figure = px.line(data_frame=df_exp,
+                         x='time',
+                         y=var,
+                         **(kwargs),
+                         )
+
+        # Return plotly express interactive figure.
+        return figure
