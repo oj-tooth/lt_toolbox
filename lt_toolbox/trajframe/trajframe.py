@@ -113,7 +113,7 @@ class TrajFrame:
         # Condense DataFrame / LazyFrame into list columns:
         if condense:
             data = (data
-                    .group_by(pl.col('id'))
+                    .group_by(pl.col('id'), maintain_order=True)
                     .agg([
                         pl.all()
                         ])
