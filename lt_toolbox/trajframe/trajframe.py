@@ -18,6 +18,7 @@
 # Importing relevant packages.
 
 import os
+import numpy as np
 import polars as pl
 import xarray as xr
 import plotly.express as px
@@ -25,7 +26,7 @@ import plotly.express as px
 # Importing utility functions
 from .utils.filter_frame_utils import filter_traj_polygon, filter_traj, filter_summary
 from .utils.compute_frame_utils import binned_statistic_1d, binned_statistic_2d, binned_group_statistic_1d, binned_group_statistic_2d, binned_lazy_group_statistic_1d, binned_lazy_group_statistic_2d
-from .utils.transform_frame_utils import transform_coords
+from .utils.interpolate_frame_utils import interpolation_1d, interpolation_2d
 
 ##############################################################################
 # Define TrajFrame Class.
@@ -315,7 +316,7 @@ class TrajFrame:
 ##############################################################################
 # Define transform_trajectory_coords() method.
 
-    def transform_trajectory_coords(self, lon:xr.DataArray, lat:xr.DataArray, depth:xr.DataArray):
+    def transform_trajectory_coords(self, lon:np.ndarray, lat:np.ndarray, depth:np.ndarray):
         """
         Transform Lagrangian trajectories from model grid coordinates {i,j,k}.
         to geographical coordinates {lon, lat, depth}.
@@ -328,11 +329,11 @@ class TrajFrame:
         self : TrajFrame object
             TrajFrame object containing Lagrangian trajectories in model coords
             {i, j, k}.
-        lon : DataArray
+        lon : ndarray
             Longitudes associated with the center of each model grid cell.
-        lat : DataArray
+        lat : ndarray
             Latitudes associated with the center of each model grid cell.
-        depth : DataArray
+        depth : ndarray
             Depths associated with model vertical grid levels.
 
         Returns
@@ -349,22 +350,22 @@ class TrajFrame:
         Here, we show a simple example for the Nucleus for European Modelling
         of the Ocean ORCA C-grid:
 
-        >>> lon_mdl = ds_grid.nav_lon
-        >>> lat_mdl = ds_grid.nav_lat
-        >>> depth_mdl = ds_grid.nav_lev
-        >>> trajectories.transform_trajectory_coords(lon=lon_mdl, lat=lat_mdl, depth=depth_mdl, drop=True)
+        >>> lon_mdl = ds_grid.nav_lon.values
+        >>> lat_mdl = ds_grid.nav_lat.values
+        >>> depth_mdl = ds_grid.nav_lev.values
+        >>> trajectories.transform_trajectory_coords(lon=lon_mdl, lat=lat_mdl, depth=depth_mdl)
         """
         # -------------------
         # Raising exceptions.
         # -------------------
-        if isinstance(lon, xr.DataArray) is False:
-            raise TypeError("invalid type: longitude array must be specified as an xarray DataArray")
+        if isinstance(lon, np.ndarray) is False:
+            raise TypeError("invalid type: longitude array must be specified as an ndarray")
 
-        if isinstance(lat, xr.DataArray) is False:
-            raise TypeError("invalid type: latitude array must be specified as an xarray DataArray")
+        if isinstance(lat, np.ndarray) is False:
+            raise TypeError("invalid type: latitude array must be specified as an ndarray")
 
-        if isinstance(depth, xr.DataArray) is False:
-            raise TypeError("invalid type: depth array must be specified as an xarray DataArray")
+        if isinstance(depth, np.ndarray) is False:
+            raise TypeError("invalid type: depth array must be specified as an ndarray")
 
         # ---------------------------------------------------------
         # Transforming Lagrangian Trajectories stored in TrajFrame.
@@ -377,23 +378,27 @@ class TrajFrame:
 
         if self.traj_mode == 'eager':
             # Apply coordinate transformation:
-            df_exp = df_exp.pipe(transform_coords,
-                                 lon=lon,
-                                 lat=lat,
-                                 depth=depth
-                                 )
+            df_exp = (df_exp
+                      .pipe(interpolation_2d, fields=[lon, lat], dims=['x', 'y'], aliases=['x', 'y'])
+                      .pipe(interpolation_1d, field=depth, dim='z', alias='z')
+                      )
 
         elif self.traj_mode == 'lazy':
             # Apply coordinate transformation:
             df_exp = (df_exp
-                      .map_batches(lambda data : transform_coords(data, lon=lon, lat=lat, depth=depth))
-                      )
+                .map_batches(lambda df : interpolation_2d(df, fields=[lon, lat], dims=['x', 'y'], aliases=['x', 'y']),
+                            streamable=True
+                            )
+                .map_batches(lambda df : interpolation_1d(df, field=depth, dim='z', alias='z'),
+                            streamable=True
+                            )
+                )
 
         # Return output from exploded to Polars list dtypes:
         df_exp = (df_exp
                     .group_by(by=pl.col('id'), maintain_order=True)
                     .agg([
-                        pl.col(list_cols).explode(),
+                        pl.col(list_cols),
                         ])
                     )
         # Update the original DataFrame / LazyFrame positions:
