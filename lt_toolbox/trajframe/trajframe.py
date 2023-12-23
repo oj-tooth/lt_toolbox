@@ -1030,7 +1030,7 @@ class TrajFrame:
 # Define compute_binned_statistic_2d() method.
 
 
-    def compute_binned_statistic_2d(self, var_x:str, var_y:str, values:str, statistic:str, bin_breaks:list, alias=None, group=None, summary_var=False):
+    def compute_binned_statistic_2d(self, var_x:str, var_y:str, values:str, statistic:str, bin_breaks:list, alias=None, group=None):
         """
         Compute a 2-dimensional binned statistic using the variables stored
         in a TrajFrame.
