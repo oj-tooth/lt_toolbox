@@ -34,23 +34,24 @@ from .utils.interpolate_frame_utils import interpolation_1d, interpolation_2d
 
 class TrajFrame:
 
-    def __init__(self, source:pl.DataFrame | pl.LazyFrame, condense=False, rename_cols=None, summary_source=None):
+    def __init__(self, source:pl.DataFrame | pl.LazyFrame | xr.Dataset, condense=False, rename_cols=None, summary_source=None):
         """
-        Create a TrajFrame from a Polars DataFrame or LazyFrame.
+        Create a TrajFrame from an xarray DataSet or a polars DataFrame or LazyFrame.
 
         Parameters
         ----------
-        source: DataFrame | LazyFrame
-            Lagrangian trajectories to be stored in TrajFrame. Each trajectory's
-            data should be contained in a single row with the positions and
-            properties recorded along-stream stored in columns of Polars list
-            dtype and can be of variable length.
+        source: DataFrame | LazyFrame | DataSet
+            Lagrangian trajectories to be stored in TrajFrame.
+            Trajectories specified in eager or lazy tabular data formats
+            can be stored in long-format or condensed formats.
+            Trajectories specified in an xarray DataSet will be transformed
+            to a condensed DataFrame before TrajFrame creation. 
         condense: bool
             Transform DataFrame or LazyFrame from long-format to condensed
             format where data is stored in list columns.
         rename_cols : dict
-            Rename columns variables using key value pairs that map from old
-            name to new name.
+            Rename columns variables using key value pairs that map from
+            current to new column names.
         summary_source : DataSet
             DataSet storing summary statistics in the form of n-dimensional 
             DataArrays generated from Lagrangian trajectory data contained in
@@ -71,24 +72,37 @@ class TrajFrame:
         >>> data = pl.read_csv(filename)
         >>> trajectories = TrajFrame(source=data)
 
-        Creating TrajFrame object, traj, with multiple parquet files in lazy mode.
+        Creating TrajFrame object, trajectories, with multiple parquet files in lazy mode.
 
         >>> filenames = [ 'example_trajectories1.parquet', 'example_trajectories2.parquet']
         >>> data = pl.concat([pl.scan_csv(file) for file in filenames])
         >>> trajectories = TrajFrame(source=data)
 
+        Creating TrajFrame object, trajectories, from a .zarr file with dimensions (traj x obs).
+        The water parcel IDs must be stored in a 2-dimensional array, trajectory. When
+        creating a TrajFrame from a DataSet, condense is defined as True by default.
+
+        >>> filename = 'example_trajectories.zarr'
+        >>> dataset = xr.open_zarr(filename, chunks=None)
+        >>> trajectories = TrajFrame(source=dataset, condense=True)
         """
         # -------------------
-        # Raising exceptions.
+        # Raising exceptions:
         # -------------------
         # Determine if source is Polars DataFrame:
         is_dataframe = isinstance(source, pl.DataFrame)
         # Determine if source is Polars LazyFrame:
         is_lazyframe = isinstance(source, pl.LazyFrame)
+        # Determine if source is xarray DataSet:
+        is_dataset = isinstance(source, xr.Dataset)
 
         # Raise error if source is not a Polars DataFrame / LazyFrame:
-        if (is_dataframe | is_lazyframe) is False:
-            raise TypeError("source must be specified as a Polars DataFrame or LazyFrame")
+        if (is_dataframe | is_lazyframe | is_dataset) is False:
+            raise TypeError("source must be specified as an xarray DataSet or polars DataFrame or LazyFrame")
+
+        # Raise error if condense is not a boolean:
+        if isinstance(condense, bool) is False:
+            raise TypeError("condense must be specified as a boolean")
 
         # Raise error if summary_source is not an xarray DataSet:
         if summary_source is not None:
@@ -103,6 +117,19 @@ class TrajFrame:
         # ----------------------------------------------
         # Constructing Lagrangian TrajFrame from source:
         # ----------------------------------------------
+        if is_dataset:
+            # Define condense as True by default:
+            condense = True
+            # Defining polars Dataframe from xarray DataSet:
+            source = (pl.from_pandas(source.to_dataframe())
+                      .drop_nulls()
+                      )
+            source = (source
+                      .insert_at_idx(index=0,
+                                     series=source['trajectory'].cast(pl.Int64).alias('id'))
+                                     .drop('trajectory')
+                                     )
+
         # Renaming column variables of TrajFrame:
         if rename_cols is not None:
             # Rename column variables using key value pairs that map from
@@ -133,7 +160,7 @@ class TrajFrame:
         # Defining modes as TrajFrame attributes:
         # ---------------------------------------
         # Defining mode of TrajFrame:
-        if is_dataframe:
+        if is_dataframe | is_dataset:
             self.traj_mode = 'eager'
         elif is_lazyframe:
             self.traj_mode = 'lazy'
