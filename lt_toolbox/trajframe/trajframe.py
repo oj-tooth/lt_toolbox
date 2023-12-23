@@ -876,7 +876,7 @@ class TrajFrame:
 ##############################################################################
 # Define compute_binned_statistic_1d() method.
 
-    def compute_binned_statistic_1d(self, var:str, values:str, statistic:str, bin_breaks:list, alias=None, group=None, summary_var=False):
+    def compute_binned_statistic_1d(self, var:str, values:str, statistic:str, bin_breaks:list, alias=None, group=None):
         """
         Compute a 1-dimensional binned statistic using variables stored in
         a TrajFrame.
@@ -923,10 +923,6 @@ class TrajFrame:
         alias : str
             New name of output statistics.
 
-        summary_var: boolean
-            Specify if variable to bin is contained in SummaryFrame rather than
-            TrajFrame.
-
         Returns
         -------
         TrajFrame
@@ -937,8 +933,6 @@ class TrajFrame:
         # -----------------
         # Raise exceptions.
         # -----------------
-        if isinstance(summary_var, bool) is False:
-            raise TypeError('invalid type - summary_var must be specified as a boolean')
         if isinstance(bin_breaks, list) is False:
             raise TypeError('invalid type - bin_breaks must be specified as a list')
         if alias is not None:
@@ -1061,10 +1055,6 @@ class TrajFrame:
         alias : str
             New name of output statistics.
 
-        summary_var: boolean
-            Specify if variable to bin is contained in SummaryFrame rather than
-            TrajFrame.
-
         Returns
         -------
         statistic : DataArray
@@ -1073,8 +1063,6 @@ class TrajFrame:
         # -----------------
         # Raise exceptions.
         # -----------------
-        if isinstance(summary_var, bool) is False:
-            raise TypeError('invalid type - summary_var must be specified as a boolean')
         if isinstance(bin_breaks, list) is False:
             raise TypeError('invalid type - bin_breaks must be specified as a list')
         if alias is not None:
@@ -1842,10 +1830,28 @@ class TrajFrame:
         # ---------------------------------------------
         # Determine column names with List dtype:
         list_cols = [col for col in self.columns if self.schema[col] == pl.List]
-        # Explode positions from condensed format to long format
-        # one observation per row:
+
         if sample_size is not None:
-            df_exp = self.data.sample(n=sample_size).explode(columns=list_cols)
+            if self.traj_mode == 'eager':
+                # Sample IDs from TrajFrame and explode positions from condensed
+                # format to long format one observation per row:
+                df_exp = self.data.sample(n=sample_size).explode(columns=list_cols)
+            elif self.traj_mode == 'lazy':
+                # Create random sample of IDs from LazyFrame:
+                id_series = (self.data
+                             .select(
+                                 pl.col('id').min().alias('min'),
+                                 pl.col('id').max().alias('max'),
+                                 )
+                            ).collect(streaming=True)
+                id_samples = np.random.randint(low=id_series['min'],
+                                               high=id_series['max'],
+                                               size=sample_size)
+                # Sample IDs from TrajFrame and explode columns:
+                df_exp = (self.data
+                          .filter(pl.col('id').is_in(id_samples))
+                          .explode(columns=list_cols)
+                          )
         else:
             df_exp = self.data.explode(columns=list_cols)
 
@@ -1920,7 +1926,26 @@ class TrajFrame:
         # Explode positions from condensed format to long format
         # one observation per row:
         if sample_size is not None:
-            df_exp = self.data.sample(n=sample_size).explode(columns=['time', var])
+            if self.traj_mode == 'eager':
+                # Sample IDs from TrajFrame and explode variables from condensed
+                # format to long format one observation per row:
+                df_exp = self.data.sample(n=sample_size).explode(columns=['time', var])
+            elif self.traj_mode == 'lazy':
+                # Create random sample of IDs from LazyFrame:
+                id_series = (self.data
+                             .select(
+                                 pl.col('id').min().alias('min'),
+                                 pl.col('id').max().alias('max'),
+                                 )
+                            ).collect(streaming=True)
+                id_samples = np.random.randint(low=id_series['min'],
+                                               high=id_series['max'],
+                                               size=sample_size)
+                # Sample IDs from TrajFrame and explode columns:
+                df_exp = (self.data
+                          .filter(pl.col('id').is_in(id_samples))
+                          .explode(columns=['time', var])
+                          )
         else:
             df_exp = self.data.explode(columns=['time', var])
 
