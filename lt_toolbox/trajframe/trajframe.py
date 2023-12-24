@@ -113,6 +113,13 @@ class TrajFrame:
         if rename_cols is not None:
             if isinstance(rename_cols, dict) is False:
                 raise TypeError("rename columns mapping specified as a dictionary")
+   
+        if is_dataframe:
+            coord_list = list(source.coords)
+            if 'trajectory' not in coord_list:
+                raise ValueError("invalid value: \'trajectory\' must be specified as a coordinate in the xarray DataSet")
+            if 'obs' not in coord_list:
+                raise ValueError("invalid value: \'obs\' must be specified as a coordinate in the xarray DataSet")
 
         # ----------------------------------------------
         # Constructing Lagrangian TrajFrame from source:
@@ -120,15 +127,15 @@ class TrajFrame:
         if is_dataset:
             # Define condense as True by default:
             condense = True
+            # Transforming xarray DataSet to Dask DataFrame:
+            df_dask = (source
+                       .to_dask_dataframe(dim_order=['trajectory', 'obs'], set_index=False)
+                       .dropna()
+                       .drop(columns='obs')
+                       .rename(columns={'trajectory':'id'})
+                       )
             # Defining polars Dataframe from xarray DataSet:
-            source = (pl.from_pandas(source.to_dataframe())
-                      .drop_nulls()
-                      )
-            source = (source
-                      .insert_at_idx(index=0,
-                                     series=source['trajectory'].cast(pl.Int64).alias('id'))
-                                     .drop('trajectory')
-                                     )
+            source = (pl.from_pandas(df_dask.compute()))
 
         # Renaming column variables of TrajFrame:
         if rename_cols is not None:
