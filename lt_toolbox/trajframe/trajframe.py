@@ -114,7 +114,8 @@ class TrajFrame:
             if isinstance(rename_cols, dict) is False:
                 raise TypeError("rename columns mapping specified as a dictionary")
    
-        if is_dataframe:
+        # Raise error if trajectory and obs coords not present in xarray DataSet:
+        if is_dataset:
             coord_list = list(source.coords)
             if 'trajectory' not in coord_list:
                 raise ValueError("invalid value: \'trajectory\' must be specified as a coordinate in the xarray DataSet")
@@ -209,6 +210,21 @@ class TrajFrame:
 # Define print() method.
 
     def __str__(self):
+        # Return summary of TrajFrame and SummaryFrame
+        # stored in TrajFrame object.
+
+        # Construct summary string for TrajFrame:
+        if self.traj_mode == 'eager':
+            traj_str = f"<TrajFrame object>\n\n----- Trajectory DataFrame -----\nTrajectories: {self.data.shape[0]}\nVariables: {self.columns}\n{self.data.glimpse}\n"
+        elif self.traj_mode == 'lazy':
+            traj_str = f"<TrajFrame object>\n\n----- Trajectory LazyFrame -----\nSchema: {self.data.schema}\nOptimised Query Plan:\n{self.traj_query_plan}\n"
+
+        return traj_str    
+
+##############################################################################
+# Define repr() method.
+
+    def __repr__(self):
         # Return summary of TrajFrame and SummaryFrame
         # stored in TrajFrame object.
 
