@@ -24,6 +24,7 @@ import xarray as xr
 import plotly.express as px
 
 # Importing utility functions
+from .utils.list_ops import EagerListOperations, LazyListOperations
 from .utils.filter_frame_utils import filter_traj_polygon, filter_traj, filter_summary
 from .utils.compute_frame_utils import binned_statistic_1d, binned_statistic_2d, binned_group_statistic_1d, binned_group_statistic_2d, binned_lazy_group_statistic_1d, binned_lazy_group_statistic_2d
 from .utils.interpolate_frame_utils import interpolation_1d, interpolation_2d
@@ -219,7 +220,7 @@ class TrajFrame:
         elif self.traj_mode == 'lazy':
             traj_str = f"<TrajFrame object>\n\n----- Trajectory LazyFrame -----\nSchema: {self.data.schema}\nOptimised Query Plan:\n{self.traj_query_plan}\n"
 
-        return traj_str    
+        return traj_str  
 
 ##############################################################################
 # Define repr() method.
@@ -765,7 +766,7 @@ class TrajFrame:
         containing the distance travelled by each particle along it's
         trajectory.
 
-        The first row for all trajectories is Null since the (cumulative)
+        The first element for all trajectories is Null since the (cumulative)
         distance from the origin of a particle at the origin is not defined.
 
         Examples
@@ -773,7 +774,7 @@ class TrajFrame:
         Computing distance travelled by particles for all trajectories,
         specifying cumulative distance as False and unit as default 'km'.
 
-        >>> trajectories.compute_distance()
+        >>> trajectories.compute_distance(cum_dist=False, unit='km')
         """
         # ------------------
         # Raise exceptions.
@@ -786,6 +787,9 @@ class TrajFrame:
         if unit not in unit_options:
             raise ValueError("invalid unit - options: \'m\', \'km\'")
 
+        # Assigning boolean value to use_km:
+        use_km = True if unit == 'km' else False
+
         # Raising exception if longitude or latitude variables are
         # not included in TrajFrame:
         if ('lon' not in self.columns) | ('lat' not in self.columns):
@@ -794,61 +798,82 @@ class TrajFrame:
         # ------------------------------------------------
         # Computing haversine distance along trajectories.
         # ------------------------------------------------
-        # Defining radius of the Earth, re (m), as volumetric mean radius from NASA.
-        # See: https://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html
-        re = 6371000
-        # Define conversion factor meters to kilometers:
-        m_to_km = 1 / 1E3
+        if self.traj_mode == 'eager':
+            trajectory_data = (self.data
+                               .eager_list_ops.haversine_dist(cum_dist=cum_dist, use_km=use_km)
+                               )
+        elif self.traj_mode == 'lazy':
+            trajectory_data = (self.data
+                               .lazy_list_ops.haversine_dist(cum_dist=cum_dist, use_km=use_km)
+                               )
 
-        # Explode ID and haversine distance computed from expr into
-        # long format:
-        df_exp = (self.data.select(
-                    id = pl.col('id').repeat_by(pl.col('lon').list.len()).explode(),
-                    dist = 2*re*((pl.col('lat').list.diff().explode().radians()*0.5).sin()**2
-                                +pl.col('lat').explode().radians().cos()
-                                *pl.col('lat').explode().radians().cos()
-                                *(pl.col('lon').list.diff().explode().radians()*0.5).sin()**2
-                                ).sqrt().arcsin().fill_null(value=0),
-                    ))
+        # Return TrajFrame object with updated trajectory data.
+        return TrajFrame(source=trajectory_data, summary_source=self.summary_data)
 
-        # Calculate accumulated distance along trajectories:
-        if cum_dist:
-            # Apply unit conversion:
-            if unit == 'km':
-                df_exp = (df_exp
-                            .group_by(by=pl.col('id'), maintain_order=True)
-                            .agg([
-                                (pl.col('dist')*m_to_km).explode().cumsum(),
-                                ])
-                            )
-            else:
-                df_exp = (df_exp
-                            .group_by(by=pl.col('id'), maintain_order=True)
-                            .agg([
-                                pl.col('dist').explode().cumsum(),
-                                ])
-                            )
-        else:
-            if unit == 'km':
-                df_exp = (df_exp
-                            .group_by(by=pl.col('id'), maintain_order=True)
-                            .agg([
-                                (pl.col('dist')*m_to_km).explode(),
-                                ])
-                            )
-            else:
-                df_exp = (df_exp
-                            .group_by(by=pl.col('id'), maintain_order=True)
-                            .agg([
-                                pl.col('dist').explode(),
-                                ])
-                            )
+##############################################################################
+# Define compute_velocity() method.
 
-        # Update TrajFrame with new distance column:
-        trajectory_data = (self.data
-                           .with_columns(dist=pl.lit(value=0, dtype=pl.List))
-                           .update(df_exp, on='id', how='inner')
-                           )
+    def compute_velocity(self):
+        """
+        Compute magnitude and direction of the velocity vectors describing
+        each Lagrangian trajectory.
+
+        Two column variables are returned to the TrajFrame object:
+        speed (m/s) and direction (degrees) each with List dtype and
+        one element less than the position column variables (lon, lat).
+
+        Parameters
+        ----------
+        self : TrajFrame object
+            TrajFrame object passed from TrajFrame class method.
+
+        Returns
+        -------
+        TrajFrame object.
+        Original TrajFrame object is returned with two new column variables:
+        magnitude (speed) and the direction (bearing) of the velocity vectors
+        describing each Lagrangian trajectory.
+
+        Examples
+        --------
+        Computing velocity of particles along their Lagrangian trajectories,
+        by default the speed is returned with units of the {dist} / {time}
+        column variables (e.g., m/s).
+
+        >>> trajectories.compute_velocity()
+        """
+        # ------------------
+        # Raise exceptions.
+        # ------------------
+        # Raising exception if longitude, latitude, distance variables
+        # are not included in TrajFrame:
+        if ('lon' not in self.columns) | ('lat' not in self.columns):
+            raise ValueError("required variable missing from TrajFrame: \'lon\', \'lat\'")
+        if ('dist' not in self.columns):
+            raise ValueError("required variable missing from TrajFrame: \'dist\'")
+
+        # -------------------------------------------------
+        # Computing velocity along Lagrangian Trajectories.
+        # -------------------------------------------------
+        # Compute direction (bearing) of velocity vectors:
+        if self.traj_mode == 'eager':
+            trajectory_data = (self.data
+                               .eager_list_ops.velocity_direction()
+                               )
+        elif self.traj_mode == 'lazy':
+            trajectory_data = (self.data
+                               .lazy_list_ops.velocity_direction()
+                               )
+
+        # Compute magnitude (speed) of velocity vectors:
+        if self.traj_mode == 'eager':
+            trajectory_data = (trajectory_data.
+                               eager_list_ops.velocity_magnitude()
+                               )
+        elif self.traj_mode == 'lazy':
+            trajectory_data = (trajectory_data.
+                               lazy_list_ops.velocity_magnitude()
+                               )
 
         # Return TrajFrame object with updated trajectory data.
         return TrajFrame(source=trajectory_data, summary_source=self.summary_data)
