@@ -1793,7 +1793,7 @@ class TrajFrame:
 ##############################################################################
 # Define add_variable() method.
 
-    def add_variable(self, name:str, values:list=None, expr:pl.Expr=None):
+    def add_variable(self, name:str, values:list=None, expr:pl.Expr=None, list_expr:bool=False):
         """
         Adds a new variable to the existing TrajFrame object.
 
@@ -1811,7 +1811,10 @@ class TrajFrame:
         expr : pl.Expr
             Expression used to determine values of new variable.
             The expression must use only columns contained in the
-            TrajFrame. 
+            TrajFrame.
+        list_expr : bool
+            Use list expression to determine values of new variable.
+            The default value is False.
 
         Returns
         -------
@@ -1835,13 +1838,23 @@ class TrajFrame:
         # -----------------------------------------------------
         # Returning updated TrajFrame with new column variable.
         # -----------------------------------------------------
-        # Define new column variable using Polars Expression:
+        # Define new column variable using polars Expression:
         if expr is not None:
-            trajectory_data = (self.data
-                            .with_columns(
-                                expr.alias(name)
-                            )
-                            )
+            # Use list expression to determine values of new variable:
+            if list_expr:
+                if self.traj_mode == 'eager':
+                    trajectory_data = (self.data
+                                    .eager_list_ops.apply_expr(expr=expr, alias=name)
+                                    )
+                elif self.traj_mode == 'lazy':
+                    trajectory_data = (self.data
+                                    .lazy_list_ops.apply_expr(expr=expr, alias=name)
+                                    )
+            else:
+                trajectory_data = (self.data
+                                   .with_columns(
+                                       expr.alias(name)
+                                   ))
         # Define new column variable using list of values:
         else:
             trajectory_data = (self.data
