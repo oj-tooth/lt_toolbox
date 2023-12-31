@@ -486,7 +486,7 @@ def binned_lazy_group_statistic_1d(ldf:pl.LazyFrame, var:str, values:str, groups
 # Define binned_statistic_2d() function.
 
 
-def binned_statistic_2d(df:pl.DataFrame | pl.LazyFrame, var_x:str, var_y:str, values:str, statistic:str, bin_breaks:list) -> xr.DataArray:
+def binned_statistic_2d(df:pl.DataFrame | pl.LazyFrame, var_x:str, var_y:str, values:str, statistic:str, bin_breaks:list, drop_duplicates:bool=False) -> xr.DataArray:
     """
     Compute a 2-dimensional binned statistic using the Series stored in a
     DataFrame.
@@ -532,6 +532,10 @@ def binned_statistic_2d(df:pl.DataFrame | pl.LazyFrame, var_x:str, var_y:str, va
     bin_breaks: list
           List of lists including bin edges used in the binning of var_x
           and var_y variables.
+
+    drop_duplicates: bool
+        Remove duplicate Lagrangian trajectory occurences in each
+        bin before computing specified statistic. The default is False.
 
     Returns
     -------
@@ -582,11 +586,20 @@ def binned_statistic_2d(df:pl.DataFrame | pl.LazyFrame, var_x:str, var_y:str, va
     # Calculate 2-dimensional binned statistics:
     df_binned = (df
                  .select(
+                     pl.col('id'),
                      pl.col(values),
                      pl.col(var_x).cut(breaks=bin_x_breaks, labels=bin_x_labels).alias('values_x_binned'),
                      pl.col(var_y).cut(breaks=bin_y_breaks, labels=bin_y_labels).alias('values_y_binned'),
                      )
                  )
+
+    # Drop duplicate Lagrangian trajectory occurences in each bin:
+    if drop_duplicates:
+        df_binned = (df_binned
+                     .unique(subset=['id', 'values_x_binned', 'values_y_binned'],
+                             maintain_order=True
+                             )
+                    )
 
     # --- Calculate Statistic in Discrete Bins ---
     # Evaluate statistic over values stored in each bin:
@@ -675,7 +688,7 @@ def binned_statistic_2d(df:pl.DataFrame | pl.LazyFrame, var_x:str, var_y:str, va
 # Define binned_group_statistic_2d() function.
 
 
-def binned_group_statistic_2d(df:pl.DataFrame, var_x:str, var_y:str, values:str, groups:str, statistic:str, bin_breaks:list) -> xr.DataArray:
+def binned_group_statistic_2d(df:pl.DataFrame, var_x:str, var_y:str, values:str, groups:str, statistic:str, bin_breaks:list, drop_duplicates:bool=False) -> xr.DataArray:
     """
     Compute a 2-dimensional grouped binned statistic using the Series stored in a
     DataFrame.
@@ -726,6 +739,10 @@ def binned_group_statistic_2d(df:pl.DataFrame, var_x:str, var_y:str, values:str,
           List of lists including bin edges used in the binning of var_x
           and var_y variables.
 
+    drop_duplicates: bool
+        Remove duplicate Lagrangian trajectory occurences in each
+        bin before computing specified statistic. The default is False.
+
     Returns
     -------
     statistic : DataArray
@@ -775,12 +792,21 @@ def binned_group_statistic_2d(df:pl.DataFrame, var_x:str, var_y:str, values:str,
     # Calculate 2-dimensional binned statistics:
     df_binned = (df
                  .select(
+                     pl.col('id'),
                      pl.col(groups),
                      pl.col(values),
                      pl.col(var_x).cut(breaks=bin_x_breaks, labels=bin_x_labels).alias('values_x_binned'),
                      pl.col(var_y).cut(breaks=bin_y_breaks, labels=bin_y_labels).alias('values_y_binned'),
                      )
                  )
+
+    # Drop duplicate Lagrangian trajectory occurences in each bin:
+    if drop_duplicates:
+        df_binned = (df_binned
+                     .unique(subset=['id', 'values_x_binned', 'values_y_binned'],
+                             maintain_order=True
+                             )
+                    )
 
     # --- Calculate Statistic in Discrete Bins ---
     # Initialise empty list to store results:
@@ -876,7 +902,7 @@ def binned_group_statistic_2d(df:pl.DataFrame, var_x:str, var_y:str, values:str,
 # Define binned_lazy_group_statistic_2d() function.
 
 
-def binned_lazy_group_statistic_2d(ldf:pl.LazyFrame, var_x:str, var_y:str, values:str, groups:str, statistic:str, bin_breaks:list) -> xr.DataArray:
+def binned_lazy_group_statistic_2d(ldf:pl.LazyFrame, var_x:str, var_y:str, values:str, groups:str, statistic:str, bin_breaks:list, drop_duplicates:bool=False) -> xr.DataArray:
     """
     Compute a 2-dimensional grouped binned statistic using the Series stored in a
     LazyFrame.
@@ -927,6 +953,10 @@ def binned_lazy_group_statistic_2d(ldf:pl.LazyFrame, var_x:str, var_y:str, value
           List of lists including bin edges used in the binning of var_x
           and var_y variables.
 
+    drop_duplicates: bool
+        Remove duplicate Lagrangian trajectory occurences in each bin before
+        computing specified statistic. The default is False.
+
     Returns
     -------
     statistic : DataArray
@@ -976,12 +1006,21 @@ def binned_lazy_group_statistic_2d(ldf:pl.LazyFrame, var_x:str, var_y:str, value
     # Calculate 2-dimensional binned statistics:
     df_binned = (ldf
                  .select(
+                     pl.col('id'),
                      pl.col(groups),
                      pl.col(values),
                      pl.col(var_x).cut(breaks=bin_x_breaks, labels=bin_x_labels).alias('values_x_binned'),
                      pl.col(var_y).cut(breaks=bin_y_breaks, labels=bin_y_labels).alias('values_y_binned'),
                      )
                  )
+
+    # Drop duplicate Lagrangian trajectory occurences in each bin:
+    if drop_duplicates:
+        df_binned = (df_binned
+                     .unique(subset=['id', 'values_x_binned', 'values_y_binned'],
+                             maintain_order=True
+                             )
+                    )
 
     # --- Group Members ---
     # Determine unique members of group column:
