@@ -747,6 +747,9 @@ class TrajFrame:
         Either the distance travelled between particle positions
         or the cumulative distance travelled is computed
         and returned for all trajectories a new variable.
+    
+        The final element in each list is Null since the distance
+        magnitude and direction is undefined at the final position.
 
         Parameters
         ----------
@@ -819,8 +822,10 @@ class TrajFrame:
         each Lagrangian trajectory.
 
         Two column variables are returned to the TrajFrame object:
-        speed (m/s) and direction (degrees) each with List dtype and
-        one element less than the position column variables (lon, lat).
+        speed (m/s) and direction (degrees) each with List dtype.
+
+        The final element in each list is Null since the velocity
+        magnitude and direction is undefined at the final position.
 
         Parameters
         ----------
