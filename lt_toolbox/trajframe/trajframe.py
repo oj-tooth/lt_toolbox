@@ -1077,7 +1077,6 @@ class TrajFrame:
 ##############################################################################
 # Define compute_binned_statistic_2d() method.
 
-
     def compute_binned_statistic_2d(self, var_x:str, var_y:str, values:str, statistic:str, bin_breaks:list, alias=None, group=None):
         """
         Compute a 2-dimensional binned statistic using the variables stored
@@ -1376,6 +1375,125 @@ class TrajFrame:
             self.summary_data['LOF_'+prop] = result_lof
         else:
             self.summary_data[alias] = result_lof
+
+        # Return TrajFrame object with updated summary_data.
+        return TrajFrame(source=self.data, summary_source=self.summary_data)
+
+##############################################################################
+# Define compute_probability() method.
+
+    def compute_probability(self, bin_res:float, prob_type:str='pos', group:str=None):
+        """
+        Compute Lagrangian probability in discrete geographical (longitude,
+        latitude) space.
+        
+        Lagrangian probability is the likelihood that a Lagrangian trajectory
+        will enter a given geographical bin at least once (prob_type='traj')
+        or the likelihood that a Lagrangian trajectory position will be found
+        in a given geographical bin (prob_type='pos').
+
+        Parameters
+        ----------
+        bin_res : float
+            Geographical bin resolution to compute Lagrangian probability.
+            The bin resolution should be specified in degrees.
+
+        prob_type : str
+            Type of Lagrangian probability to compute. Options are 'pos' and
+            'traj'. The default is 'pos' which returns the probability that
+            a Lagrangian trajectory position is found in any given
+            geographical bin. The 'traj' option returns the probability that
+            a Lagrangian trajectory will enter any given geographical bin.
+
+        group : str
+            Name of column variable to group according to unique values using
+            group_by() before computing Lagrangian probability.
+            The default is None.
+
+        Returns
+        -------
+        statistic : DataArray
+            DataArray containing values of the selected statistic in each bin.
+        """
+        # -----------------
+        # Raise exceptions.
+        # -----------------
+        if isinstance(bin_res, float) is False:
+            raise TypeError('invalid type - bin_res must be specified as a float')
+        if isinstance(prob_type, str) is False:
+            raise TypeError('invalid type - probability type must be specified as a string')
+        if group is not None:
+            if isinstance(group, str) is False:
+                raise TypeError('invalid type - group must be specified as a string')
+            if group not in self.columns:
+                raise ValueError(f'invalid variable - {group} is not contained in TrajFrame')
+
+        # ---------------------------------
+        # Calculating 2-D binned statistic.
+        # ---------------------------------
+        # Define x, y variables:
+        var_x = 'lat'
+        var_y = 'lon'
+        values = 'lon'
+        # Define bin breaks:
+        bin_x = np.arange(-90, 90+bin_res, bin_res).tolist()
+        bin_y = np.arange(-180, 180+bin_res, bin_res).tolist()
+        bin_breaks = [bin_x, bin_y]
+
+        # Determine column names with List dtype:
+        list_cols = [col for col in self.data.columns if self.data.schema[col] == pl.List]
+        # Explode positions from condensed format to long format
+        # (one observation per row) if any inputs are lists:
+        if len(set([var_x, var_y, values, group]) - set(list_cols)) == 4:
+            df_exp = self.data
+        else:
+            df_exp = self.data.explode(columns=list_cols)
+
+        if group is None:
+            # Calculate 2-dimensional statistic from Data/LazyFrame:
+            result = binned_statistic_2d(df=df_exp,
+                                         var_x=var_x,
+                                         var_y=var_y,
+                                         values=values,
+                                         statistic='count',
+                                         bin_breaks=bin_breaks,
+                                         )
+        else:
+            if self.traj_mode == 'lazy':
+                # Calculate 2-dimensional grouped statistic from LazyFrame:
+                result = binned_lazy_group_statistic_2d(ldf=df_exp,
+                                                        var_x=var_x,
+                                                        var_y=var_y,
+                                                        values=values,
+                                                        groups=group,
+                                                        statistic='count',
+                                                        bin_breaks=bin_breaks,
+                                                        )
+            else:
+                # Calculate 2-dimensional grouped statistic from DataFrame:
+                result = binned_group_statistic_2d(df=df_exp,
+                                                   var_x=var_x,
+                                                   var_y=var_y,
+                                                   values=values,
+                                                   groups=group,
+                                                   statistic='count',
+                                                   bin_breaks=bin_breaks,
+                                                   )
+
+        # ----------------------------------------
+        # Adding 2-D statistic to summary DataSet.
+        # ----------------------------------------
+        if prob_type == 'pos':
+            # Calculate Lagrangian probability of positions:
+            self.summary_data['probability'] = result / result.sum()
+        elif prob_type == 'traj':
+            # Calculate number of trajectories:
+            if self.traj_mode == 'eager':
+                n_traj = self.data['id'].unique().len()
+            elif self.traj_mode == 'lazy':
+                n_traj = self.data['id'].unique().len().collect(streaming=True)
+            # Calculate Lagrangian probability of trajectories:
+            self.summary_data['probability'] = result / n_traj
 
         # Return TrajFrame object with updated summary_data.
         return TrajFrame(source=self.data, summary_source=self.summary_data)
