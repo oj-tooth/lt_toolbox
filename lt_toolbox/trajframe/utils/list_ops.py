@@ -148,6 +148,14 @@ class EagerListOperations:
                     .agg(pl.col('dist'))
                     )
 
+        # Concatenate zero value to start of list to conserve list
+        # sizes in TrajFrame:
+        df_exp = (df_exp
+                  .with_columns(
+                      dist = pl.col('dist').list.reverse().list.concat([0.0]).list.reverse()
+                  )
+                  )
+
         # Appending distance column variable to original DataFrame:
         df = (self._df.with_columns(dist=pl.lit(value=0.0, dtype=pl.List(pl.Float64)))
             .update(df_exp, on='id', how='inner')
@@ -204,6 +212,14 @@ class EagerListOperations:
                 .agg(pl.col('direction'))
                 )
 
+        # Concatenate null value to end of list to conserve list
+        # sizes in TrajFrame:
+        df_exp = (df_exp
+                  .with_columns(
+                      direction = pl.col('direction').list.concat([None])
+                  )
+                  )
+
         # Appending direction column variable to original DataFrame:
         df = (self._df
               .with_columns(direction=pl.lit(value=0.0, dtype=pl.List(pl.Float64)))
@@ -230,7 +246,7 @@ class EagerListOperations:
         # consecutive time values and remove initial null value:
         expr_dt = (pl.col('time').list.diff()
                    .list.eval(pl.element().abs())
-                   .list.slice(offset=1, length=pl.col('time').list.len()))
+                   )
 
         # Selecting columns for velocity magnitude calculation:
         df_exp = (self._df
@@ -253,6 +269,14 @@ class EagerListOperations:
                 .group_by(by='id', maintain_order=True)
                 .agg(pl.col('speed'))
                 )
+
+        # Slice & concatenate null value to end of list to conserve list
+        # sizes in TrajFrame:
+        df_exp = (df_exp
+                  .with_columns(
+                      speed = pl.col('speed').list.slice(offset=1, length=pl.col('speed').list.len()).list.concat([None])
+                  )
+                  )
 
         # Appending speed column variable to original DataFrame:
         df = (self._df
@@ -396,6 +420,14 @@ class LazyListOperations:
                        .agg(pl.col('dist'))
                        )
 
+        # Concatenate 0.0 distance value to start of list to conserve list
+        # sizes in TrajFrame:
+        ldf_exp = (ldf_exp
+                  .with_columns(
+                      dist = pl.col('dist').list.reverse().list.concat([0.0]).list.reverse()
+                  )
+                  )
+
         # Appending distance column variable to original LazyFrame:
         ldf = (self._df
                .with_columns(dist=pl.lit(value=0.0, dtype=pl.List(pl.Float64)))
@@ -456,6 +488,14 @@ class LazyListOperations:
                    .agg(pl.col('direction'))
                    )
 
+        # Concatenate null value to end of list to conserve list
+        # sizes in TrajFrame:
+        ldf_exp = (ldf_exp
+                  .with_columns(
+                      direction = pl.col('direction').list.concat([None])
+                  )
+                  )
+
         # Appending direction column variable to original LazyFrame:
         ldf = (self._df
                .with_columns(direction=pl.lit(value=0.0, dtype=pl.List(pl.Float64)))
@@ -507,6 +547,14 @@ class LazyListOperations:
                    .group_by(by='id', maintain_order=True)
                    .agg(pl.col('speed'))
                    )
+
+        # Slice & concatenate null value to end of list to conserve list
+        # sizes in TrajFrame:
+        ldf_exp = (ldf_exp
+                  .with_columns(
+                      speed = pl.col('speed').list.slice(offset=1, length=pl.col('speed').list.len()).list.concat([None])
+                  )
+                  )
 
         # Appending speed column variable to original LazyFrame:
         ldf = (self._df
