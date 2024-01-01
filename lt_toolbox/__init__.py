@@ -13,5 +13,4 @@
 #
 ###############################################################################
 from lt_toolbox.trajframe.trajframe import TrajFrame
-from lt_toolbox.trajstore.trajstore import TrajStore
 from lt_toolbox.trajarray.trajarray import TrajArray
