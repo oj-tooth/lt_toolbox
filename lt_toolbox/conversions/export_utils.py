@@ -1,16 +1,11 @@
 ##############################################################################
-# export_utils.py
-#
-# Description:
-# Defines export functions for conversions module of Lagrangian Trajectories.
-# Toolbox
-#
-# Last Edited:
-# 2023/12/24
-#
-# Created By:
-# Ollie Tooth
-#
+"""
+export_utils.py
+
+Description:
+Defines export functions for conversions module of Lagrangian Trajectories.
+Toolbox
+"""
 ##############################################################################
 # Importing relevant packages.
 
@@ -23,7 +18,7 @@ from tqdm import tqdm
 ##############################################################################
 # Define eval_obs_numbers() function.
 
-def eval_obs_numbers(time:pl.Series):
+def eval_obs_numbers(time:pl.Series) -> pl.Series:
     """
     Create Series with observation number (int)
     for the corresponding positions and properties
@@ -49,7 +44,12 @@ def eval_obs_numbers(time:pl.Series):
 ##############################################################################
 # Define export_csv_to_zarr() function.
 
-def export_csv_to_zarr(csv_filename:str, zarr_filename:str, variables:list, attrs:dict, read_options:dict):
+def export_csv_to_zarr(csv_filename:str,
+                       zarr_filename:str,
+                       variables:list,
+                       attrs:dict,
+                       read_options:dict | None=None
+                       ) -> None:
     """
     Export Lagrangian trajectory properties and positions
     stored in tabular format in .csv file to array format
@@ -76,7 +76,7 @@ def export_csv_to_zarr(csv_filename:str, zarr_filename:str, variables:list, attr
         and positions in array format.
     """
     # Import Lagrangian trajectories .csv file as DataFrame:
-    df_run = pl.read_csv(csv_filename, **(read_options or {}))
+    df_run = pl.read_csv(csv_filename, **(read_options))
 
     # Add observation numbers for each Lagrangian trajectory in DataFrame:
     df_obs = (df_run
@@ -132,12 +132,14 @@ def export_csv_to_zarr(csv_filename:str, zarr_filename:str, variables:list, attr
     # Write Lagrangian trajectories to compressed .zarr store:
     ds.to_zarr(zarr_filename, encoding=enc)
 
-    return
-
 ##############################################################################
 # Define export_zarr_to_parquet() function.
 
-def export_zarr_to_parquet(zarr_filename:str, parquet_filename:str, read_options:dict=None, write_options:dict=None):
+def export_zarr_to_parquet(zarr_filename:str,
+                           parquet_filename:str,
+                           read_options:dict | None=None,
+                           write_options:dict | None=None
+                           ) -> None:
     """
     Export Lagrangian trajectory properties and positions
     stored in tabular format in .csv file to array format
@@ -206,12 +208,18 @@ def export_zarr_to_parquet(zarr_filename:str, parquet_filename:str, read_options
     # Write polars DataFrame to .parquet file:
     df_polars.write_parquet(parquet_filename, **(write_options))
 
-    return f"Completed: Lagrangian trajectories written to single .parquet file: {parquet_filename}"
+    print(f"Completed: Lagrangian trajectories written to .parquet file: {parquet_filename}")
 
 ##############################################################################
 # Define export_zarr_to_mfparquet() function.
 
-def export_zarr_to_mfparquet(zarr_filename:str, parquet_filedir:str, parquet_filename:str, npartitions:int='auto', read_options:dict=None, write_options:dict=None):
+def export_zarr_to_mfparquet(zarr_filename:str,
+                             parquet_filedir:str,
+                             parquet_filename:str,
+                             npartitions:int='auto',
+                             read_options:dict | None=None,
+                             write_options:dict | None=None
+                             ) -> None:
     """
     Export Lagrangian trajectory properties and positions
     stored in array format in .zarr store to tabular format
@@ -293,4 +301,4 @@ def export_zarr_to_mfparquet(zarr_filename:str, parquet_filedir:str, parquet_fil
                        **(write_options)
                        )
 
-    return f"Completed: Lagrangian trajectories written to multi-file .parquet store: {parquet_filedir}"
+    print(f"Completed: Lagrangian trajectories written to multi-file .parquet store: {parquet_filedir}")
