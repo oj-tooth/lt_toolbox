@@ -1,16 +1,11 @@
 ##############################################################################
-# interpolate_frame_utils.py
-#
-# Description:
-# Defines functions for interpolating values from trajectories stored in
-# TrajFrames.
-#
-# Date Created:
-# 2023/12/22
-#
-# Created By:
-# Ollie Tooth
-#
+"""
+interpolate_frame_utils.py
+
+Description:
+Defines functions for interpolating values from trajectories stored in
+TrajFrames.
+"""
 ##############################################################################
 # Importing relevant packages.
 import polars as pl
@@ -19,7 +14,11 @@ import numpy as np
 ##############################################################################
 # Define interpolation_1d() function.
 
-def interpolation_1d(df:pl.DataFrame | pl.LazyFrame, field:np.ndarray, dim:str, alias:str):
+def interpolation_1d(df:pl.DataFrame | pl.LazyFrame,
+                     field:np.ndarray,
+                     dim:str,
+                     alias:str
+                     ) -> pl.DataFrame | pl.LazyFrame:
     """
     Interpolate values from a 1D field along Lagrangian water
     parcel trajectories.
@@ -40,21 +39,21 @@ def interpolation_1d(df:pl.DataFrame | pl.LazyFrame, field:np.ndarray, dim:str, 
 
     Returns
     -------
-    df : DataFrame
-        DataFrame containing Lagrangian trajectories and interpolated values
-        in one or more new column variables.
+    df : DataFrame | LazyFrame
+        DataFrame | LazyFrame containing Lagrangian trajectories and interpolated
+        values of specified column variable in a new column variable.
     """
     # -------------------
     # Raising exceptions.
     # -------------------
     if isinstance(df, pl.DataFrame) | isinstance(df, pl.LazyFrame) is False:
-        raise TypeError("invalid type: df array must be specified as either a polars DataFrame or LazyFrame")
+        raise TypeError("df must be specified as either a polars DataFrame or LazyFrame")
     if isinstance(field, np.ndarray) is False:
-        raise TypeError("invalid type: field array must be specified as an ndarray")
+        raise TypeError("field must be specified as an ndarray")
     if isinstance(dim, str) is False:
-        raise TypeError("invalid type: dim must be specified as a string")
+        raise TypeError("dim must be specified as a string")
     if isinstance(alias, str) is False:
-        raise TypeError("invalid type: alias must be specified as a string")
+        raise TypeError("alias must be specified as a string")
 
     # ---------------------
     # Linear Interpolation.
@@ -94,7 +93,11 @@ def interpolation_1d(df:pl.DataFrame | pl.LazyFrame, field:np.ndarray, dim:str, 
 ##############################################################################
 # Define interpolation_2d() function.
 
-def interpolation_2d(df:pl.DataFrame | pl.LazyFrame, fields:np.ndarray, dims:list, aliases:list):
+def interpolation_2d(df:pl.DataFrame | pl.LazyFrame,
+                     fields:np.ndarray,
+                     dims:list,
+                     aliases:list
+                     ) -> pl.DataFrame | pl.LazyFrame:
     """
     Interpolate values from one or more 2D fields along Lagrangian water
     parcel trajectories.
@@ -117,21 +120,21 @@ def interpolation_2d(df:pl.DataFrame | pl.LazyFrame, fields:np.ndarray, dims:lis
 
     Returns
     -------
-    df : DataFrame
-        DataFrame containing Lagrangian trajectories and interpolated values
-        in one or more new column variables.
+    df : DataFrame | LazyFrame
+        DataFrame | LazyFrame containing Lagrangian trajectories and interpolated
+        values of specified column variable in a new column variable.
     """
     # -------------------
     # Raising exceptions.
     # -------------------
     if isinstance(df, pl.DataFrame) | isinstance(df, pl.LazyFrame) is False:
-        raise TypeError("invalid type: df array must be specified as either a polars DataFrame or LazyFrame")
+        raise TypeError("df must be specified as either a polars DataFrame or LazyFrame")
     if isinstance(fields, list) is False:
-        raise TypeError("invalid type: field array must be specified as list of ndarrays")
+        raise TypeError("field must be specified as list of ndarrays")
     if isinstance(dims, list) is False:
-        raise TypeError("invalid type: dim must be specified as a list of strings")
+        raise TypeError("dims must be specified as a list of strings")
     if isinstance(aliases, list) is False:
-        raise TypeError("invalid type: alias must be specified as a list of strings")
+        raise TypeError("aliases must be specified as a list of strings")
 
     # ------------------------
     # Bi-Linear Interpolation.
