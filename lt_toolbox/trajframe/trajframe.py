@@ -1,92 +1,100 @@
 ##############################################################################
-# trajframe.py
-#
-# Description:
-# Defines the TrajFrame Class from a DataFrame or LazyFrame containing atmosphere
-# ocean parcel trajectories (and accompanying tracers) stored in a tabular format.
-#
-# Last Edited:
-# 2023/12/09
-#
-# Last Edited By:
-# Ollie Tooth
-#
-# Contact:
-# oliver.tooth@env-res.ox.ac.uk
-#
-##############################################################################
-# Importing relevant packages.
+"""
+trajframe.py
 
+Description:
+Defines the TrajFrame Class from a DataFrame or LazyFrame containing atmosphere
+ocean parcel trajectories (and accompanying tracers) stored in a tabular format.
+"""
+##############################################################################
+# Import relevant packages.
 import os
 import numpy as np
 import polars as pl
 import xarray as xr
 import plotly.express as px
 
-# Importing utility functions
-from .utils.list_ops import EagerListOperations, LazyListOperations
+# Import types:
+from typing_extensions import Self
+
+# Import utility functions
+from .utils.list_ops import (
+    EagerListOperations,
+    LazyListOperations,
+    )
 from .utils.filter_frame_utils import filter_traj_polygon, filter_traj, filter_summary
-from .utils.compute_frame_utils import binned_statistic_1d, binned_statistic_2d, binned_group_statistic_1d, binned_group_statistic_2d, binned_lazy_group_statistic_1d, binned_lazy_group_statistic_2d
+from .utils.compute_frame_utils import (
+    binned_statistic_1d, binned_statistic_2d,
+    binned_group_statistic_1d,
+    binned_group_statistic_2d,
+    binned_lazy_group_statistic_1d,
+    binned_lazy_group_statistic_2d,
+    )
 from .utils.interpolate_frame_utils import interpolation_1d, interpolation_2d
 
 ##############################################################################
 # Define TrajFrame Class.
 
-
 class TrajFrame:
+    """
+    Create a TrajFrame from Lagrangian trajectories stored in either a
+    polars DataFrame or LazyFrame or an xarray DataSet.
 
-    def __init__(self, source:pl.DataFrame | pl.LazyFrame | xr.Dataset, condense=False, rename_cols=None, summary_source=None):
-        """
-        Create a TrajFrame from an xarray DataSet or a polars DataFrame or LazyFrame.
+    Parameters
+    ----------
+    source: DataFrame | LazyFrame | DataSet
+        Lagrangian trajectories to be stored in TrajFrame.
+        Trajectories specified in eager or lazy tabular data formats
+        can be stored in long-format or condensed formats.
+        Trajectories specified in an xarray DataSet will be transformed
+        to a condensed DataFrame before TrajFrame creation. 
+    condense: bool
+        Transform DataFrame or LazyFrame from long-format to condensed
+        format where data is stored in list columns.
+    rename_cols : dict
+        Rename columns variables using key value pairs that map from
+        current to new column names.
+    summary_source : DataSet
+        DataSet storing summary statistics in the form of n-dimensional 
+        DataArrays generated from Lagrangian trajectory data contained in
+        the TrajFrame.
 
-        Parameters
-        ----------
-        source: DataFrame | LazyFrame | DataSet
-            Lagrangian trajectories to be stored in TrajFrame.
-            Trajectories specified in eager or lazy tabular data formats
-            can be stored in long-format or condensed formats.
-            Trajectories specified in an xarray DataSet will be transformed
-            to a condensed DataFrame before TrajFrame creation. 
-        condense: bool
-            Transform DataFrame or LazyFrame from long-format to condensed
-            format where data is stored in list columns.
-        rename_cols : dict
-            Rename columns variables using key value pairs that map from
-            current to new column names.
-        summary_source : DataSet
-            DataSet storing summary statistics in the form of n-dimensional 
-            DataArrays generated from Lagrangian trajectory data contained in
-            the TrajFrame.
+    Returns
+    --------
+    TrajFrame
+        Complete trajectories, including all column variables contained
+        in .data attribute. Summary statistics stored as n-dimensional
+        arrays in .summary_data.
 
-        Returns
-        --------
-        TrajFrame object
-            Complete trajectories, including all column variables contained
-            in .data attribute. Summary statistics stored as n-dimensional
-            arrays in .summary_data.
+    Examples
+    --------
+    Creating TrajFrame, trajectories, with example_trajectories.csv file in eager mode.
 
-        Examples
-        --------
-        Creating TrajFrame object, trajectories, with example_trajectories.csv file in eager mode.
+    >>> filename = 'example_trajectories.csv'
+    >>> data = pl.read_csv(filename)
+    >>> trajectories = TrajFrame(source=data)
 
-        >>> filename = 'example_trajectories.csv'
-        >>> data = pl.read_csv(filename)
-        >>> trajectories = TrajFrame(source=data)
+    Creating TrajFrame, trajectories, with multiple parquet files in lazy mode.
 
-        Creating TrajFrame object, trajectories, with multiple parquet files in lazy mode.
+    >>> filenames = [ 'example_trajectories1.parquet', 'example_trajectories2.parquet']
+    >>> data = pl.concat([pl.scan_csv(file) for file in filenames])
+    >>> trajectories = TrajFrame(source=data)
 
-        >>> filenames = [ 'example_trajectories1.parquet', 'example_trajectories2.parquet']
-        >>> data = pl.concat([pl.scan_csv(file) for file in filenames])
-        >>> trajectories = TrajFrame(source=data)
+    Creating TrajFrame, trajectories, from a .zarr file with dimensions (traj x obs).
+    The water parcel IDs must be stored in a 2-dimensional array, trajectory. When
+    creating a TrajFrame from a DataSet, condense is defined as True by default.
 
-        Creating TrajFrame object, trajectories, from a .zarr file with dimensions (traj x obs).
-        The water parcel IDs must be stored in a 2-dimensional array, trajectory. When
-        creating a TrajFrame from a DataSet, condense is defined as True by default.
+    >>> filename = 'example_trajectories.zarr'
+    >>> dataset = xr.open_zarr(filename, chunks=None)
+    >>> trajectories = TrajFrame(source=dataset, condense=True)
+    """
 
-        >>> filename = 'example_trajectories.zarr'
-        >>> dataset = xr.open_zarr(filename, chunks=None)
-        >>> trajectories = TrajFrame(source=dataset, condense=True)
-        """
+    def __init__(self,
+                 source:pl.DataFrame | pl.LazyFrame | xr.Dataset,
+                 condense:bool=False,
+                 rename_cols:dict | None=None,
+                 summary_source:xr.Dataset | None=None
+                 ):
         # -------------------
         # Raising exceptions:
         # -------------------
@@ -114,14 +122,14 @@ class TrajFrame:
         if rename_cols is not None:
             if isinstance(rename_cols, dict) is False:
                 raise TypeError("rename columns mapping specified as a dictionary")
-   
+
         # Raise error if trajectory and obs coords not present in xarray DataSet:
         if is_dataset:
             coord_list = list(source.coords)
             if 'trajectory' not in coord_list:
-                raise ValueError("invalid value: \'trajectory\' must be specified as a coordinate in the xarray DataSet")
+                raise ValueError("\'trajectory\' must be specified as a coordinate in the xarray DataSet")
             if 'obs' not in coord_list:
-                raise ValueError("invalid value: \'obs\' must be specified as a coordinate in the xarray DataSet")
+                raise ValueError("\'obs\' must be specified as a coordinate in the xarray DataSet")
 
         # ----------------------------------------------
         # Constructing Lagrangian TrajFrame from source:
@@ -192,9 +200,9 @@ class TrajFrame:
 
         # Raise error if any core column variables are absent from TrajFrame.
         if 'id' not in self.columns:
-            raise ValueError("invalid value: core variable missing from TrajFrame: \'id\'")
+            raise ValueError("core variable missing from TrajFrame: \'id\'")
         if 'time' not in self.columns:
-            raise ValueError("invalid value: core variable missing from TrajFrame: \'time\'")
+            raise ValueError("core variable missing from TrajFrame: \'time\'")
 
         # ----------------------------------------------------
         # Storing LazyFrame query plan as TrajFrame attribute:
@@ -210,9 +218,8 @@ class TrajFrame:
 ##############################################################################
 # Define print() method.
 
-    def __str__(self):
-        # Return summary of TrajFrame and SummaryFrame
-        # stored in TrajFrame object.
+    def __str__(self) -> str:
+        # Return summary of TrajFrame object.
 
         # Construct summary string for TrajFrame:
         if self.traj_mode == 'eager':
@@ -225,9 +232,8 @@ class TrajFrame:
 ##############################################################################
 # Define repr() method.
 
-    def __repr__(self):
-        # Return summary of TrajFrame and SummaryFrame
-        # stored in TrajFrame object.
+    def __repr__(self) -> str:
+        # Return summary of TrajFrame object.
 
         # Construct summary string for TrajFrame:
         if self.traj_mode == 'eager':
@@ -240,8 +246,8 @@ class TrajFrame:
 ##############################################################################
 # Define len() method.
 
-    def __len__(self):
-        # Return the total number of trajectories in SummaryFrame:
+    def __len__(self) -> int:
+        # Return the total number of trajectories in TrajFrame:
         if self.traj_mode == 'eager':
             len_str = self.data.shape[0]
         elif self.traj_mode == 'lazy':
@@ -252,39 +258,40 @@ class TrajFrame:
 ##############################################################################
 # Define collect() method.
 
-    def collect(self, streaming=False, **kwargs):
+    def collect(self,
+                streaming:bool=False,
+                **kwargs
+                ) -> Self:
         """
         Execute LazyFrame optimised query and collect DataFrame.
 
         Parameters
         ----------
         streaming : bool
-            Run parts of the query in a streaming fashion
-            (this is in an alpha state). Default is False.
+            Run parts of the query in a streaming fashion (this is in an alpha state).
+            Default is False.
         **kwargs (optional)
-            Additional keyword arguments to be passed to Polars
-            collect() function.
+            Additional keyword arguments to be passed to Polars collect() function.
 
         Returns
         --------
-        TrajFrame object
-            TrajFrame object is returned with one or more eager
-            DataFrames following query execution.
+        TrajFrame
+            TrajFrame is returned as an eager DataFrame following query execution.
 
         Examples
         --------
-        Execute and collect the trajectories resulting from a simple
+        Execute and collect the Lagrangian trajectories resulting from a simple
         filter without implementing streaming:
 
-        >>> trajectories.filter('id < 100').collect(frame='all', streaming=False)
+        >>> trajectories.filter('id < 100').collect(streaming=False)
         """
         # -------------------
         # Raising exceptions.
         # -------------------
         if isinstance(self.data, pl.LazyFrame) is False:
-            raise TypeError("invalid type: Lagrangian trajectories are not stored in a LazyFrame")
+            raise TypeError("Lagrangian trajectories are not stored in a LazyFrame")
         if isinstance(streaming, bool) is False:
-            raise TypeError("invalid type: streaming must be specified as a boolean")
+            raise TypeError("streaming must be specified as a boolean")
 
         # ------------------------------------------------------------
         # Collect LazyFrame(s) as DataFrame following query execution.
@@ -298,32 +305,34 @@ class TrajFrame:
 ##############################################################################
 # Define use_datetime.
 
-    def use_datetime(self, start_date:str, unit='s', fmt="%Y-%m-%d"):
+    def use_datetime(self,
+                     start_date:str,
+                     unit:str='s',
+                     fmt:str="%Y-%m-%d"
+                     ) -> Self:
         """
         Convert time column variable to Datetime format.
 
         Parameters
         ----------
-        start_date : string
-            Starting date to use when converting time column
-            variable to Datetime.
-        unit : string
+        start_date : str
+            Starting date to use when converting time column variable to Datetime.
+        unit : str
             Unit time variable is stored as (e.g., 's', 'd', 'w' etc.).
             Default is seconds, 's'.
-        fmt : string
-            Datetime format of specified start data. Default
-            format is YYYY-MM-DD.
+        fmt : str
+            Datetime format of specified start data. Default format is YYYY-MM-DD.
 
         Returns
         --------
-        TrajFrame object
-            Original TrajFrame object is returned with transformed
-            time column variable Series containing datetimes.
+        TrajFrame
+            TrajFrame is returned with transformed time column variable
+            containing datetimes.
 
         Examples
         --------
-        Convert time in seconds in TrajFrame object to datetime with 
-        start date '2000-01-01 using default Datetime format.
+        Convert time in seconds in TrajFrame to datetime with start date '2000-01-01'
+        using default Datetime format.
 
         >>> trajectories.use_datetime(start_date='2000-01-01')
         """
@@ -331,13 +340,13 @@ class TrajFrame:
         # Raising exceptions.
         # -------------------
         if isinstance(start_date, str) is False:
-            raise TypeError("invalid type: start_date must be specified as a string")
+            raise TypeError("start_date must be specified as a string")
         if isinstance(unit, str) is False:
-            raise TypeError("invalid type: unit must be specified as a string")
+            raise TypeError("unit must be specified as a string")
         if unit not in ['w', 'd', 'h', 'm', 's']:
-            raise ValueError("invalid value: unit must be specified as one of \'s\', \'m\', \'h\', \'D\', \'W\'")
+            raise ValueError("unit must be specified as one of \'s\', \'m\', \'h\', \'D\', \'W\'")
         if isinstance(self.data.schema['time'], pl.Datetime) is True:
-            raise TypeError("invalid type: time already exists with dtype = \'Datetime\'")
+            raise TypeError("time already exists with dtype = \'Datetime\'")
 
         # ------------------------------------------------
         # Convert time to Datetime format with start_date.
@@ -367,19 +376,20 @@ class TrajFrame:
 ##############################################################################
 # Define transform_trajectory_coords() method.
 
-    def transform_trajectory_coords(self, lon:np.ndarray, lat:np.ndarray, depth:np.ndarray):
+    def transform_trajectory_coords(self,
+                                    lon:np.ndarray,
+                                    lat:np.ndarray,
+                                    depth:np.ndarray
+                                    ) -> Self:
         """
-        Transform Lagrangian trajectories from model grid coordinates {i,j,k}.
+        Transform trajectories from model grid coordinates {i,j,k}
         to geographical coordinates {lon, lat, depth}.
 
         Lagrangian trajectory positions are (bi-)linearly interpolated from
-        the specified ocean general circulation model grid using xarray.
+        the specified ocean general circulation model grid.
 
         Parameters
         ----------
-        self : TrajFrame object
-            TrajFrame object containing Lagrangian trajectories in model coords
-            {i, j, k}.
         lon : ndarray
             Longitudes associated with the center of each model grid cell.
         lat : ndarray
@@ -389,7 +399,7 @@ class TrajFrame:
 
         Returns
         -------
-        TrajFrame object
+        TrajFrame
             TrajFrame containing Lagrangian trajectories in geographical
             coords {lon, lat, depth}.
 
@@ -410,13 +420,13 @@ class TrajFrame:
         # Raising exceptions.
         # -------------------
         if isinstance(lon, np.ndarray) is False:
-            raise TypeError("invalid type: longitude array must be specified as an ndarray")
+            raise TypeError("longitude must be specified as an ndarray")
 
         if isinstance(lat, np.ndarray) is False:
-            raise TypeError("invalid type: latitude array must be specified as an ndarray")
+            raise TypeError("latitude must be specified as an ndarray")
 
         if isinstance(depth, np.ndarray) is False:
-            raise TypeError("invalid type: depth array must be specified as an ndarray")
+            raise TypeError("depth must be specified as an ndarray")
 
         # ---------------------------------------------------------
         # Transforming Lagrangian Trajectories stored in TrajFrame.
@@ -463,20 +473,19 @@ class TrajFrame:
 ##############################################################################
 # Define filter() method.
 
-    def filter(self, expr:str | pl.Expr, drop=False):
+    def filter(self,
+               expr:str | pl.Expr,
+               drop:bool=False
+               ) -> Self:
         """
         Filter trajectories using conditional on a single column variable
         specified with a string or Polars expression.
 
-        Filtering returns a reduced TrajectoryFrame where only the
-        complete trajectories meeting the specified condition are retained.
+        Filtering returns a reduced TrajFrame where only the complete
+        trajectories meeting the specified condition are retained.
         The exception is when users specify drop=True, in which case
         trajectories meeting the specified condition are dropped from the
         TrajFrame.
-
-        Filtering also reduces the SummaryFrame, retaining only the
-        summary statistics available for trajectories meeting the specfied
-        condition. The exception is when users specify drop=True.
 
         When the expression variable is specified as 'time' only the
         observations (obs) meeting the specified date conditions
@@ -484,22 +493,22 @@ class TrajFrame:
 
         Parameters
         ----------
-        expr : string | Expression
+        expr : str | Expression
             String expression of the form "{variable} {operator} {value}",
             where {variable} represents the column variable contained in
             the TrajFrame used to filter trajectories, {operator}
             represents one of the six standard comparison operators and
             {value} represents the value with which to compare the {variable}
-            to. Users can alternatively specify a Polars expression.
-        drop : boolean
+            to. Users can alternatively specify a polars expression.
+        drop : bool
             Indcates if fitered trajectories should be retained in the
             new TrajFrame (False) or instead dropped from the
             existing TrajFrame (True).
 
         Returns
         -------
-        TrajFrame object
-            Complete TrajFrame, including the complete Lagrangian trajectories
+        TrajFrame
+            TrajFrame including the complete Lagrangian trajectories
             which meet (do not meet) the specified filter condition.
 
         Examples
@@ -530,7 +539,7 @@ class TrajFrame:
             operator_list = ['==', '!=', '<', '>', '<=', '>=']
 
             if isinstance(variable, str) is False:
-                raise TypeError("inavalid type - variable must be specified as a string")
+                raise TypeError("variable must be specified as a string")
 
             if isinstance(drop, bool) is False:
                 raise TypeError("drop must be specified as a boolean")
@@ -539,11 +548,11 @@ class TrajFrame:
                 raise ValueError("unknown comparison operator specified: \'" + operator + "\'. Use one of the standard Python comparison operators: ==, !=, <, >, <=, >=")
         else:
             if isinstance(expr, pl.Expr) is False:
-                raise TypeError('invalid type - expr must be specified as either a str or polars expression')
+                raise TypeError('expr must be specified as either a string query or polars expression')
 
-        # ----------------------------------------------
-        # Applying specified filter to Trajectory Frame.
-        # ----------------------------------------------
+        # ---------------------------------------
+        # Applying specified filter to TrajFrame.
+        # ---------------------------------------
         if isinstance(expr, str):
             # Determine dtype of filter column values:
             value_dtype = self.data.schema[variable]
@@ -580,7 +589,12 @@ class TrajFrame:
 ##############################################################################
 # Define filter_polygon() method.
 
-    def filter_polygon(self, xy_vars:list, x_poly:list, y_poly:list, drop=False):
+    def filter_polygon(self,
+                       xy_vars:list,
+                       x_poly:list,
+                       y_poly:list,
+                       drop:bool=False
+                       ) -> Self:
         """
         Filter trajectories which intersect a specified polygon.
 
@@ -591,20 +605,20 @@ class TrajFrame:
         Parameters
         ----------
         xy_vars : list(str)
-            List of x and y coordinate variable names.
+            List of x and y coordinate column variable names.
         x_poly : list
             List of x-coordinates representing the boundary of the polygon.
         y_poly : list
             List of y-coordinates representing the boundary of the polygon.
-        drop : boolean
+        drop : bool
             Determines if fitered trajectories should be returned as a
             new TrajFrame (False) or instead dropped from the
             existing TrajFrame (True).
 
         Returns
         -------
-        TrajFrame object
-            Complete TrajFrame, including the complete Lagrangian trajectories
+        TrajFrame
+            TrajFrame including the complete Lagrangian trajectories
             which meet (do not meet) the specified filter condition.
 
         Examples
@@ -671,7 +685,11 @@ class TrajFrame:
 ##############################################################################
 # Define filter_isin() method.
 
-    def filter_isin(self, var:str, values:list | pl.Series, drop=False):
+    def filter_isin(self,
+                    var:str,
+                    values:list | pl.Series,
+                    drop:bool=False
+                    ) -> Self:
         """
         Filter trajectories with at least one variable observation
         in a given sequence of values.
@@ -683,18 +701,18 @@ class TrajFrame:
         Parameters
         ----------
         var : str
-            Name of variable contained in TrajFrame object.
+            Name of variable contained in TrajFrame.
         values : list | Series
             Values of variables used to filter trajectories.
-        drop : boolean
+        drop : bool
             Determines if fitered trajectories should be returned as a
             new TrajFrame (False) or instead dropped from the
             existing TrajFrame (True).
 
         Returns
         -------
-        TrajFrame object
-            Complete TrajFrame, including the complete Lagrangian trajectories
+        TrajFrame
+            TrajFrame including the complete Lagrangian trajectories
             which meet (do not meet) the specified filter condition.
 
         Examples
@@ -739,7 +757,10 @@ class TrajFrame:
 ##############################################################################
 # Define compute_distance() method.
 
-    def compute_distance(self, cum_dist=False, unit='km'):
+    def compute_distance(self,
+                         cum_dist:bool=False,
+                         unit:str='km'
+                         ) -> Self:
         """
         Compute distance travelled by particles along their
         of trajectories.
@@ -753,24 +774,18 @@ class TrajFrame:
 
         Parameters
         ----------
-        self : TrajFrame object
-            TrajFrame object passed from TrajFrame class method.
-        cum_dist : logical
+        cum_dist : bool
             Compute the cumulative distance travelled by each particle -
             default is False.
-        unit : string
-            Unit for distance travelled output - default is 'km' -
-            alternative option 'm'.
+        unit : str
+            Unit for distance travelled output. The default is kilometers, 'km',
+            alternatively meters can be specified, 'm'.
 
         Returns
         -------
-        TrajFrame object.
-        Original TrajFrame object is returned with new column variable
-        containing the distance travelled by each particle along it's
-        trajectory.
-
-        The first element for all trajectories is Null since the (cumulative)
-        distance from the origin of a particle at the origin is not defined.
+        TrajFrame.
+            TrajFrame is returned with new column variable containing the distance
+            travelled by particles along their trajectories.
 
         Examples
         --------
@@ -788,7 +803,7 @@ class TrajFrame:
 
         # Raising exception when unavailable unit is specified.
         if unit not in unit_options:
-            raise ValueError("invalid unit - options: \'m\', \'km\'")
+            raise ValueError("unit must be specified as either \'m\' or \'km\'")
 
         # Assigning boolean value to use_km:
         use_km = True if unit == 'km' else False
@@ -796,7 +811,7 @@ class TrajFrame:
         # Raising exception if longitude or latitude variables are
         # not included in TrajFrame:
         if ('lon' not in self.columns) | ('lat' not in self.columns):
-            raise ValueError("required variable missing from TrajFrame: \'lon\', \'lat\'")
+            raise ValueError("required column variable missing from TrajFrame: \'lon\', \'lat\'")
 
         # ------------------------------------------------
         # Computing haversine distance along trajectories.
@@ -816,7 +831,7 @@ class TrajFrame:
 ##############################################################################
 # Define compute_velocity() method.
 
-    def compute_velocity(self):
+    def compute_velocity(self) -> Self:
         """
         Compute magnitude and direction of the velocity vectors describing
         each Lagrangian trajectory.
@@ -827,17 +842,12 @@ class TrajFrame:
         The final element in each list is Null since the velocity
         magnitude and direction is undefined at the final position.
 
-        Parameters
-        ----------
-        self : TrajFrame object
-            TrajFrame object passed from TrajFrame class method.
-
         Returns
         -------
-        TrajFrame object.
-        Original TrajFrame object is returned with two new column variables:
-        magnitude (speed) and the direction (bearing) of the velocity vectors
-        describing each Lagrangian trajectory.
+        TrajFrame.
+            TrajFrame is returned with two new column variables: magnitude (speed)
+            and the direction (bearing) of the velocity vectors describing each
+            Lagrangian trajectory.
 
         Examples
         --------
@@ -886,7 +896,11 @@ class TrajFrame:
 ##############################################################################
 # Define compute_grouped_expr() method.
 
-    def compute_grouped_expr(self, group:str, expr:pl.Expr, alias:str):
+    def compute_grouped_expr(self,
+                             group:str,
+                             expr:pl.Expr,
+                             alias:str
+                             ) -> Self:
         """
         Compute polars expression over groups. 
 
@@ -903,14 +917,14 @@ class TrajFrame:
         Returns
         -------
         TrajFrame
-            Original TrajFrame is returned with the computed grouped
+            TrajFrame is returned with the computed grouped
             expression included in the summary_data where the groups
             are given as the coordinate dimension.
 
         Examples
         --------
         Calculating summed volume transport of Lagrangian trajectories
-        grouped by start date column variable.
+        grouped by the start_date column variable.
 
         >>> expr = pl.col('vol').sum()
         >>> trajectories.compute_grouped_expr(group='start_date', expr=expr)
@@ -919,9 +933,9 @@ class TrajFrame:
         # Raising exceptions.
         # -------------------
         if isinstance(group, str) is False:
-            raise TypeError('invalid type - group must be specfified as a string')
+            raise TypeError('group must be specfified as a string')
         if isinstance(expr, pl.Expr) is False:
-            raise TypeError('invalid type - expr must be specified as a polars expression')
+            raise TypeError('expr must be specified as a polars expression')
 
         # -----------------------------
         # Calculate grouped expression:
@@ -956,7 +970,14 @@ class TrajFrame:
 ##############################################################################
 # Define compute_binned_statistic_1d() method.
 
-    def compute_binned_statistic_1d(self, var:str, values:str, statistic:str, bin_breaks:list, alias=None, group=None):
+    def compute_binned_statistic_1d(self,
+                                    var:str,
+                                    values:str,
+                                    statistic:str,
+                                    bin_breaks:list,
+                                    alias:str | None=None,
+                                    group:str | None=None
+                                    ) -> Self:
         """
         Compute a 1-dimensional binned statistic using variables stored in
         a TrajFrame.
@@ -970,62 +991,61 @@ class TrajFrame:
         ----------
         var : str
             Name of column variable whose values will binned.
-
         values : str
             Name of the column variable on which the statistic will be computed.
-
         group : str
             Name of column variable to group according to unique values using group_by()
             method. A 1-dimensional binned statistic will be computed for each
             group member.
-
         statistic: str
-            The statistic to compute.
+            The statistic to compute; empty bins will be assigned a Null value.
             The following statistics are available:
-
             * 'mean' : compute the mean of values for points within each bin.
-                Empty bins will be represented by null.
             * 'std' : compute the standard deviation within each bin.
             * 'median' : compute the median of values for points within each
-                bin. Empty bins will be represented by null.
+                bin.
             * 'count' : compute the count of points within each bin. This is
                 identical to an unweighted histogram.
             * 'sum' : compute the sum of values for points within each bin.
                 This is identical to a weighted histogram.
             * 'min' : compute the minimum of values for points within each bin.
-                Empty bins will be represented by null.
             * 'max' : compute the maximum of values for point within each bin.
-                Empty bins will be represented by null.
-
         bin_breaks: list
             List of bin edges used in the binning of var variable.
-
         alias : str
             New name of output statistics.
 
         Returns
         -------
         TrajFrame
-            Original TrajFrame is returned with the 1-dimensional binned
+            TrajFrame is returned with the 1-dimensional binned
             statistic included in the summary_data where the mid-points
             of the specified bins are given as the coordinate dimension.
+
+        Examples
+        --------
+        Calculating the total volume transport of the Lagrangian trajectories
+        according to the longitude of their starting positions.
+
+        >>> bin_lon = np.arange(-40, 10, 1).tolist()
+        >>> trajectories.compute_binned_statistic_1d(var='start_lon', values='vol', statistic='sum', bin_breaks=bin_lon, alias='vol_transport')
         """
         # -----------------
         # Raise exceptions.
         # -----------------
         if isinstance(bin_breaks, list) is False:
-            raise TypeError('invalid type - bin_breaks must be specified as a list')
+            raise TypeError('bin_breaks must be specified as a list')
         if alias is not None:
             if isinstance(alias, str) is False:
-                raise TypeError('invalid type - alias must be specified as a list')
+                raise TypeError('alias must be specified as a list')
 
         if var not in self.columns:
-            raise ValueError(f'invalid variable - {var} is not contained in TrajFrame')
+            raise ValueError(f'variable {var} is not contained in TrajFrame')
         if values not in self.columns:
-            raise ValueError(f'invalid variable - {values} is not contained in TrajFrame')
+            raise ValueError(f'variable {values} is not contained in TrajFrame')
         if group is not None:
             if group not in self.columns:
-                raise ValueError(f'invalid variable - {group} is not contained in TrajFrame')
+                raise ValueError(f'variable {group} is not contained in TrajFrame')
 
         # ---------------------------------
         # Calculating 1-D binned statistic.
@@ -1082,7 +1102,15 @@ class TrajFrame:
 ##############################################################################
 # Define compute_binned_statistic_2d() method.
 
-    def compute_binned_statistic_2d(self, var_x:str, var_y:str, values:str, statistic:str, bin_breaks:list, alias=None, group=None):
+    def compute_binned_statistic_2d(self,
+                                    var_x:str,
+                                    var_y:str,
+                                    values:str,
+                                    statistic:str,
+                                    bin_breaks:list,
+                                    alias:str | None=None,
+                                    group:str | None=None
+                                    ) -> Self:
         """
         Compute a 2-dimensional binned statistic using the variables stored
         in a TrajFrame.
@@ -1096,67 +1124,68 @@ class TrajFrame:
         ----------
         var_x : str
             Name of variable whose values to be binned along the first dimension.
-
         var_y : str
             Name of variable whose values to be binned along the second dimension.
-
         values : str
             Name of variable on which the statistic will be computed.
             This must be the same length as var_x & var_y.
-
         group : str
             Name of variable to group according to unique values using group_by()
             method. A 1-dimensional binned statistic will be computed for each
             group member.
-
         statistic: str
-            The statistic to compute.
+            The statistic to compute; empty bins will be assigned a Null value.
             The following statistics are available:
-
             * 'mean' : compute the mean of values for points within each bin.
-                Empty bins will be represented by null.
             * 'std' : compute the standard deviation within each bin.
             * 'median' : compute the median of values for points within each
-                bin. Empty bins will be represented by null.
+                bin.
             * 'count' : compute the count of points within each bin. This is
                 identical to an unweighted histogram.
             * 'sum' : compute the sum of values for points within each bin.
                 This is identical to a weighted histogram.
             * 'min' : compute the minimum of values for points within each bin.
-                Empty bins will be represented by null.
             * 'max' : compute the maximum of values for point within each bin.
-                Empty bins will be represented by null.
-
         bin_breaks: list
             List of lists including bin edges used in the binning of var_x
             and var_y variables.
-
         alias : str
             New name of output statistics.
 
         Returns
         -------
-        statistic : DataArray
-            DataArray containing values of the selected statistic in each bin.
+        TrajFrame
+            TrajFrame is returned with the 2-dimensional binned
+            statistic included in the summary_data where the mid-points
+            of the specified bins are given as the coordinate dimensions.
+
+        Examples
+        --------
+        Calculating the mean potential temperature recorded along Lagrangian
+        trajectories in discrete longitude-latitude bins.
+
+        >>> bin_lon = np.arange(-40, 10, 1).tolist()
+        >>> bin_lat = np.arange(30, 60, 1).tolist()
+        >>> trajectories.compute_binned_statistic_2d(var_x='lon', var_y='lat', values='potemp', statistic='mean', bin_breaks=[bin_lon, bin_lat], alias='potemp_mean')
         """
         # -----------------
         # Raise exceptions.
         # -----------------
         if isinstance(bin_breaks, list) is False:
-            raise TypeError('invalid type - bin_breaks must be specified as a list')
+            raise TypeError('bin_breaks must be specified as a list')
         if alias is not None:
             if isinstance(alias, str) is False:
-                raise TypeError('invalid type - alias must be specified as a string')
+                raise TypeError('alias must be specified as a string')
 
         if var_x not in self.columns:
-            raise ValueError(f'invalid variable - {var_x} is not contained in TrajFrame')
+            raise ValueError(f'variable {var_x} is not contained in TrajFrame')
         if var_y not in self.columns:
-            raise ValueError(f'invalid variable - {var_y} is not contained in TrajFrame')
+            raise ValueError(f'variable {var_y} is not contained in TrajFrame')
         if values not in self.columns:
-            raise ValueError(f'invalid variable - {values} is not contained in TrajFrame')
+            raise ValueError(f'variable {values} is not contained in TrajFrame')
         if group is not None:
             if group not in self.columns:
-                raise ValueError(f'invalid variable - {group} is not contained in TrajFrame')
+                raise ValueError(f'variable {group} is not contained in TrajFrame')
 
         # ---------------------------------
         # Calculating 2-D binned statistic.
@@ -1216,7 +1245,15 @@ class TrajFrame:
 ##############################################################################
 # Define compute_property_lof() method.
 
-    def compute_property_lof(self, subvol:str, prop_in:str, prop_out:str, bin_breaks:list, alias=None, direction='+1', group=None):
+    def compute_property_lof(self,
+                             subvol:str,
+                             prop_in:str,
+                             prop_out:str,
+                             bin_breaks:list,
+                             alias:str | None=None,
+                             direction:str='+1',
+                             group:str | None=None
+                             ) -> Self:
         """
         Compute Lagrangian Overturning Function in discrete property-space.
 
@@ -1227,23 +1264,18 @@ class TrajFrame:
         ----------
         subvol : str
             Name of the variable storing water parcel volume transport.
-
         prop_in : str
             Name of the inflow property variable to bin volume transports.
-
         prop_out : str
             Name of the outflow property variable to bin volume transports.
-
         bin_breaks: list
             List of bin edges used in the binning volume transports.
-
         alias: str
             New name for Lagrangian overturning funtion in property-coordinates.
-
         direction : str
-            direction of accumulation: '+1' is smallest to largest, 
-            '-1' is largest to smallest.
-
+            Direction of integration. Two options are available: to integrate from
+            the smallest to largest bin use '+1' or to integrate from the largest
+            to smallest bin use '-1'.
         group : str
             Name of variable to group according to unique values using group_by()
             method. A Lagrangian overturning function will be computed for each
@@ -1252,34 +1284,46 @@ class TrajFrame:
         Returns
         -------
         TrajFrame
-            Original TrajFrame is returned with Lagrangian overturning
+            TrajFrame is returned with Lagrangian overturning
             functions included in the summary_data where the mid-points
             of the specified bins are given as the coordinate dimension.
+
+        Examples
+        --------
+        Calculating the Lagrangian overturning function in potential density
+        space for all trajectories grouped by the {start_date} column variable.
+
+        See Tooth et al. (2023) for further details on the definition of the
+        Lagrangian overturning function in property-space and its application
+        to quantifying along-stream water mass transformation.
+
+        >>> bin_sigma0 = np.arange(25, 28, 0.01).tolist()
+        >>> trajectories.compute_property_lof(subvol='vol', prop_in='sigma0_in', prop_out='sigma0_out', bin_breaks=bin_sigma0, alias='LOF_sigma0', direction='+1', group='start_date')
         """
         # -----------------
         # Raise exceptions.
         # -----------------
         if isinstance(bin_breaks, list) is False:
-            raise TypeError('invalid type - bin_breaks must be specified as a list')
+            raise TypeError('bin_breaks must be specified as a list')
         if isinstance(self.schema[subvol], pl.List):
-            raise TypeError(f'invalid type - {subvol} cannot be a Polars Lists dtype')
+            raise TypeError(f'variable {subvol} cannot be a polars Lists dtype')
         if isinstance(self.schema[prop_in], pl.List):
-            raise TypeError(f'invalid type - {prop_in} cannot be a Polars Lists dtype')
+            raise TypeError(f'variable {prop_in} cannot be a polars Lists dtype')
         if isinstance(self.schema[prop_out], pl.List):
-            raise TypeError(f'invalid type - {prop_out} cannot be a Polars Lists dtype')
+            raise TypeError(f'variable {prop_out} cannot be a polars Lists dtype')
         if alias is not None:
             if isinstance(alias, str) is False:
-                raise TypeError('invalid type - alias must be specified as a string')
+                raise TypeError('alias must be specified as a string')
 
         if subvol not in self.columns:
-            raise ValueError(f'invalid variable - {subvol} is not contained in TrajFrame')
+            raise ValueError(f'variable {subvol} is not contained in TrajFrame')
         if prop_in not in self.columns:
-            raise ValueError(f'invalid variable - {prop_in} is not contained in TrajFrame')
+            raise ValueError(f'variable {prop_in} is not contained in TrajFrame')
         if prop_out not in self.columns:
-            raise ValueError(f'invalid variable - {prop_out} is not contained in TrajFrame')
+            raise ValueError(f'variable {prop_out} is not contained in TrajFrame')
         if group is not None:
             if group not in self.columns:
-                raise ValueError(f'invalid variable - {group} is not contained in TrajFrame')
+                raise ValueError(f'variable {group} is not contained in TrajFrame')
 
         # Determine common prefix of property variable:
         prop = os.path.commonprefix([prop_in, prop_out])
@@ -1387,7 +1431,11 @@ class TrajFrame:
 ##############################################################################
 # Define compute_probability() method.
 
-    def compute_probability(self, bin_res:float, prob_type:str='pos', group:str=None):
+    def compute_probability(self,
+                            bin_res:float,
+                            prob_type:str='pos',
+                            group:str | None=None
+                            ) -> Self:
         """
         Compute Lagrangian probability in discrete geographical (longitude,
         latitude) space.
@@ -1402,14 +1450,12 @@ class TrajFrame:
         bin_res : float
             Geographical bin resolution to compute Lagrangian probability.
             The bin resolution should be specified in degrees.
-
         prob_type : str
             Type of Lagrangian probability to compute. Options are 'pos' and
             'traj'. The default is 'pos' which returns the probability that
             a Lagrangian trajectory position is found in any given
             geographical bin. The 'traj' option returns the probability that
             a Lagrangian trajectory will enter any given geographical bin.
-
         group : str
             Name of column variable to group according to unique values using
             group_by() before computing Lagrangian probability.
@@ -1417,21 +1463,32 @@ class TrajFrame:
 
         Returns
         -------
-        statistic : DataArray
-            DataArray containing values of the selected statistic in each bin.
+        TrajFrame
+            TrajFrame is returned with the 2-dimensional Lagrangian probability
+            statistic included in the summary_data where the mid-points of the
+            latitude-longitude bins are given as the dimensions.
+
+        Examples
+        --------
+        Calculating the Lagrangian probability of trajectories in discrete (1 x 1)
+        degree longitude-latitude bins. The probability is computed using the 'traj'
+        option which returns the probability that a Lagrangian trajectory will
+        enter any given geographical bin.
+
+        >>> trajectories.compute_probability(bin_res=1, prob_type='traj')
         """
         # -----------------
         # Raise exceptions.
         # -----------------
         if isinstance(bin_res, float) is False:
-            raise TypeError('invalid type - bin_res must be specified as a float')
+            raise TypeError('bin_res must be specified as a float')
         if isinstance(prob_type, str) is False:
-            raise TypeError('invalid type - probability type must be specified as a string')
+            raise TypeError('probability type must be specified as a string')
         if group is not None:
             if isinstance(group, str) is False:
-                raise TypeError('invalid type - group must be specified as a string')
+                raise TypeError('group must be specified as a string')
             if group not in self.columns:
-                raise ValueError(f'invalid variable - {group} is not contained in TrajFrame')
+                raise ValueError(f'variable {group} is not contained in TrajFrame')
 
         # ---------------------------------
         # Calculating 2-D binned statistic.
@@ -1506,23 +1563,17 @@ class TrajFrame:
 ##############################################################################
 # Define get_start_time() method.
 
-    def get_start_time(self):
+    def get_start_time(self) -> Self:
         """
-        Returns time when water parcels are seeded (start of trajectory).
+        Get time when particles are seeded (start of trajectory).
 
-        The start time is given in the format of the {time} core variable
-        and stored for each trajectory in the SummaryFrame.
-
-        Parameters
-        ----------
-        self : TrajFrame
-            TrajFrame passed from TrajFrame class method.
+        The start time is returned for each trajectory in the format of
+        the {time} column variable in a new column variable {start_time}.
 
         Returns
         -------
         TrajFrame
-            Original TrajFrame is returned with appended column
-            variable {start_time} in the SummaryFrame
+            TrajFrame is returned with appended column variable {start_time}
             containing the times each trajectory was seeded.
 
         Examples
@@ -1545,25 +1596,18 @@ class TrajFrame:
 ##############################################################################
 # Define get_start_loc() method.
 
-    def get_start_loc(self):
+    def get_start_loc(self) -> Self:
         """
-        Returns locations where water parcels are seeded (start of trajectory).
+        Get locations where particles are seeded (start of trajectory).
 
         The start locations of each trajectory are added in the form of three
-        new column variables in the SummaryFrame: {lon_start}, {lat_start}
-        and {depth_start}.
-
-        Parameters
-        ----------
-        self : TrajFrame
-            TrajFrame passed from TrajFrame class method.
+        new column variables: {lon_start}, {lat_start} and {depth_start}.
 
         Returns
         -------
         TrajFrame
-            Original TrajFrame is returned with appended column
-            variables {lon_start}, {lat_start}, {depth_start} in
-            the SummaryFrame.
+            TrajFrame is returned with appended column variables {lon_start},
+            {lat_start}, {depth_start}.
 
         Examples
         --------
@@ -1596,24 +1640,18 @@ class TrajFrame:
 ##############################################################################
 # Define get_end_time() method.
 
-    def get_end_time(self):
+    def get_end_time(self) -> Self:
         """
-        Returns time when water parcels are terminated (end of trajectory).
+        Get time when particles are terminated (end of trajectory).
 
-        The end time is given in the format of the {time} core variable
-        and stored for each trajectory in the SummaryFrame.
-
-        Parameters
-        ----------
-        self : TrajFrame
-            TrajFrame passed from TrajFrame class method.
+        The end time is returned for each trajectory in the format of
+        the {time} column variable in a new column variable {end_time}.
 
         Returns
         -------
         TrajFrame
-            Original TrajFrame is returned with appended column
-            variable {end_time} in the SummaryFrame
-            containing the times each trajectory was terminate.
+            TrajFrame is returned with appended column variable {end_time}
+            containing the times each trajectory was terminated.
 
         Examples
         --------
@@ -1635,25 +1673,18 @@ class TrajFrame:
 ##############################################################################
 # Define get_end_loc() method.
 
-    def get_end_loc(self):
+    def get_end_loc(self) -> Self:
         """
-        Returns locations where water parcels are terminated (end of trajectory).
+        Get locations where particles are terminated (end of trajectory).
 
         The end locations of each trajectory are added in the form of three
-        new column variables in the SummaryFrame: {lon_end}, {lat_end}
-        and {depth_end}.
-
-        Parameters
-        ----------
-        self : TrajFrame
-            TrajFrame object passed from TrajFrame class method.
+        new column variables: {lon_end}, {lat_end} and {depth_end}.
 
         Returns
         -------
         TrajFrame
-            Original TrajFrame is returned with appended column
-            variables {lon_end}, {lat_end}, {depth_end} in
-            the SummaryFrame.
+            TrajFrame is returned with appended column variables {lon_end},
+            {lat_end}, {depth_end}.
 
         Examples
         --------
@@ -1685,24 +1716,18 @@ class TrajFrame:
 ##############################################################################
 # Define get_duration() method.
 
-    def get_duration(self):
+    def get_duration(self) -> Self:
         """
-        Returns time taken for particles to be terminated following seeding
+        Get time taken for particles to be terminated following seeding
         (duration of trajectory).
 
         The duration of each trajectory is stored in the polars Duration
         dtype format.
 
-        Parameters
-        ----------
-        self : TrajFrame
-            TrajFrame passed from TrajFrame class method.
-
         Returns
         -------
         TrajFrame
-            Original TrajFrame is returned with appended column
-            variable {total_time} in the SummaryFrame.
+            TrajFrame is returned with appended column variable {total_time}.
 
         Examples
         --------
@@ -1715,7 +1740,7 @@ class TrajFrame:
         # -------------------
         # Raise exception if {time} column variable is not stored as polar Datetime dtype.
         if isinstance(self.schema["time"].inner, pl.Datetime) is False:
-            raise TypeError("times must be stored as polars Datetime dtype")
+            raise TypeError("time must be specified as polars Datetime dtype")
 
         # --------------------------------------
         # Calculate duration of each trajectory.
@@ -1731,30 +1756,34 @@ class TrajFrame:
 ##############################################################################
 # Define get_values() function.
 
-    def get_values(self, var:str, date:str, alias:str=None, fmt="%Y-%m-%d"):
+    def get_values(self,
+                   var:str,
+                   date:str,
+                   alias:str | None=None,
+                   fmt:str="%Y-%m-%d"
+                   ) -> Self:
         """
-        Returns the values of a specified column variable at a specified
-        date for each trajectory.
+        Get the values of a specified column variable at a given
+        date along each trajectory.
 
         Parameters
         ----------
-        self : TrajFrame
-            TrajFrame passed from TrajFrame class method.
-        var : string
+        var : str
             Name of the column variable in the TrajFrame.
-        date : string
+        date : str
             date on which to get values of specified column variable.
-        alias : string
+        alias : str
             New name of the resulting column variable.
-        fmt : string
+        fmt : str
             Datetime format of specified date. Default
             format is YYYY-MM-DD.
 
         Returns
         -------
         TrajFrame
-            Original TrajFrame is returned with appended column
-            variable {var}_i in the SummaryFrame.
+            TrajFrame is returned with appended column variable {var}_i
+            recording the values of spcified column variable at the given
+            date.
 
         Examples
         --------
@@ -1774,7 +1803,7 @@ class TrajFrame:
             raise TypeError("variable must be specified as a string")
 
         if var not in variables:
-            raise ValueError("variable: \'" + var + "\' not found in TrajFrame")
+            raise ValueError(f"variable {var} not contained in TrajFrame")
 
         if isinstance(date, str) is False:
             raise TypeError("date must be specified as a string in format givent to fmt")
@@ -1810,26 +1839,26 @@ class TrajFrame:
 ##############################################################################
 # Define get_max() function.
 
-    def get_max(self, var):
+    def get_max(self,
+                var:str
+                ) -> Self:
         """
-        Returns maximum value of a specified variable for each trajectory.
+        Get maximum value of a specified variable for each trajectory.
 
         The maximum value of the variable is returned for all trajectories
-        as a new column variable in the SummaryFrame.
+        as a new column variable.
 
         Parameters
         ----------
-        self : TrajFrame
-            TrajFrame passed from TrajFrame class method.
-        var : string
-            Name of the variable in the TrajFrame.
+        var : str
+            Name of column variable to find maximum value along each 
+            trajectory.
 
         Returns
         -------
         TrajFrame
-            Original TrajFrame is returned with appended column
-            variable {variable}_max in the SummaryFrame
-            containing the max values along each trajectory.
+            TrajFrame is returned with appended column variable {var}_max
+            containing the maximum values along each trajectory.
 
         Examples
         --------
@@ -1847,7 +1876,7 @@ class TrajFrame:
             raise TypeError("variable must be specified as a string")
 
         if var not in col_variables:
-            raise ValueError("variable: \'" + var + "\' not found in main DataFrame")
+            raise ValueError(f"variable {var} not found in main DataFrame")
 
         # -----------------------------------------------
         # Calculate maximum values of variable as Series.
@@ -1863,26 +1892,26 @@ class TrajFrame:
 ##############################################################################
 # Define get_min() function.
 
-    def get_min(self, var):
+    def get_min(self,
+                var:str
+                ) -> Self:
         """
-        Returns minimum value of a specified variable for each trajectory.
+        Get minimum value of a specified variable for each trajectory.
 
         The minimum value of the variable is returned for all trajectories
-        as a new column variable in the SummaryFrame.
+        as a new column variable.
 
         Parameters
         ----------
-        self : TrajFrame
-            TrajFrame passed from TrajFrame class method.
-        var : string
-            Name of the variable in the TrajFrame.
+        var : str
+            Name of column variable to find minimum value along each 
+            trajectory.
 
         Returns
         -------
         TrajFrame
-            Original TrajFrame is returned with appended column
-            variable {variable}_min in the SummaryFrame
-            containing the min values along each trajectory.
+            TrajFrame is returned with appended column variable {variable}_min
+            containing the minmum values along each trajectory.
 
         Examples
         --------
@@ -1916,22 +1945,25 @@ class TrajFrame:
 ##############################################################################
 # Define add_variable() method.
 
-    def add_variable(self, name:str, values:list=None, expr:pl.Expr=None, list_expr:bool=False):
+    def add_variable(self,
+                     name:str,
+                     values:list | None=None,
+                     expr:pl.Expr | None=None,
+                     list_expr:bool=False
+                     ) -> Self:
         """
-        Adds a new variable to the existing TrajFrame object.
+        Add a new column variable to the TrajFrame.
 
-        The variable data can either be provided using a Polars
+        The variable can either be defined using a polars
         expression or a list of values.
 
         Parameters
         ----------
-        self : TrajFrame
-            TrajFrame passed from TrajFrame class method.
         name : str
-            New variable name to be added to TrajFrame.
+            New column variable name to be added to TrajFrame.
         values : list
             values of new variable to be added to the TrajFrame.
-        expr : pl.Expr
+        expr : Expression
             Expression used to determine values of new variable.
             The expression must use only columns contained in the
             TrajFrame.
@@ -1942,21 +1974,40 @@ class TrajFrame:
         Returns
         -------
         TrajFrame
-            Original TrajFrame is returned with the new column variable
+            TrajFrame is returned with the new column variable
             appended to the TrajFrame.
 
+        Examples
+        --------
+        Add a new column variable {sigma0} to the TrajFrame containing
+        the potential density values recorded along particle trajectories.
+
+        Method 1: Using a list of values with an eager TrajFrame, trajectories.
+        Here, we first import the Gibbs Seawater Toolbox package, gsw.
+
+        >>> import gsw
+        >>> sigma0 = gsw.density.sigma0(SA=trajectories.data['sal'], CT=trajectories.data['temp']).tolist()
+        >>> trajectories.add_variable(name='sigma0', values=sigma0).
+
+        Method 2: Using a polars expression with a lazy TrajFrame, trajectories.
+        Importantly, this method is much more performant approach to create a new variable
+        than using a list of values since the expression is only evaluated when the
+        TrajFrame is collected by leveraging the eager/lazy_list_ops extensions of the
+        polars API.
+
+        >>> trajectories.add_variable(name='sigma0', expr=gsw.density.sigma0(SA=pl.col('sal'), CT=pl.col('temp')), list_expr=True)
         """
         # -------------------
         # Raising exceptions.
         # -------------------
         if values is not None:
             if isinstance(values, list) is False:
-                raise TypeError("inavlid type - values must be specified as a list")
+                raise TypeError("values must be specified as a list")
         if isinstance(name, str) is False:
-            raise TypeError('invalid type - variable name must be specfied as a string')
+            raise TypeError('variable name must be specfied as a string')
         if expr is not None:
             if isinstance(expr, pl.Expr) is False:
-                raise TypeError("invalid type - expr must be specified as a Polars Expression")
+                raise TypeError("expr must be specified as a Polars Expression")
 
         # -----------------------------------------------------
         # Returning updated TrajFrame with new column variable.
@@ -1994,19 +2045,20 @@ class TrajFrame:
 ##############################################################################
 # Define plot_trajectories() function.
 
-    def plot_trajectories(self, sample_size=None, kwargs=None):
+    def plot_trajectories(self,
+                          sample_size:int | None=None,
+                          **kwargs
+                          ):
         """
         Plot Lagrangian trajectories in a plotly
         express interactive figure.
 
         Parameters
         ----------
-        self : TrajFrame
-            TrajFrame passed from TrajFrame class method.
-        sample_size : integer
+        sample_size : int
             Size of random sample of Lagrangian trajectories
             to plot.
-        kwargs : dict
+        **kwargs (optional)
             Additional keyword arguments to be passed to plotly line_geo(),
             when creating the figure.
 
@@ -2088,21 +2140,23 @@ class TrajFrame:
 ##############################################################################
 # Define plot_timeseries() function.
 
-    def plot_timeseries(self, var, sample_size=None, kwargs=None):
+    def plot_timeseries(self,
+                        var:str,
+                        sample_size:int | None=None,
+                        **kwargs
+                        ):
         """
         Plot timeseries of property sampled along Lagrangian trajectories
         in a plotly express interactive figure.
 
         Parameters
         ----------
-        self : TrajFrame
-            TrajFrame passed from TrajFrame class method.
         var : str
             Name of column variable to plot timeseries.
-        sample_size : integer
+        sample_size : int
             Size of random sample of Lagrangian trajectories
             to plot.
-        kwargs : dict
+        **kwargs (optional)
             Additional keyword arguments to be passed to plotly line(),
             when creating the figure.
 
