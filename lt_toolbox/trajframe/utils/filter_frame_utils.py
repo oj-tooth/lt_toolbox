@@ -1,18 +1,10 @@
 ##############################################################################
-# _filter_utils.py
+"""
+# filter_frame_utils.py
 #
 # Description:
-#
-#
-# Last Edited:
-# 2023/17/06
-#
-# Last Edited By:
-# Ollie Tooth
-#
-# Contact:
-# oliver.tooth@env-res.ox.ac.uk
-#
+# Defines functions for filtering trajectories stored in TrajFrames.
+"""
 ##############################################################################
 # Importing relevant packages.
 
@@ -23,7 +15,13 @@ from matplotlib.path import Path
 ##############################################################################
 # Define filter_traj() function.
 
-def filter_traj(df:pl.DataFrame, variable:str, operator:str, value:str, value_dtype:type, drop:bool) -> pl.DataFrame:
+def filter_traj(df:pl.DataFrame,
+                variable:str,
+                operator:str,
+                value:str,
+                value_dtype:type,
+                drop:bool
+                ) -> pl.DataFrame:
     """
     Filter trajectories using conditional on a single column variable
     specified with a string expression.
@@ -38,21 +36,21 @@ def filter_traj(df:pl.DataFrame, variable:str, operator:str, value:str, value_dt
     ----------
     df : DataFrame
         DataFrame containing variable to filter.
-    variable : string
+    variable : str
         Name of the variable to filter.
-    operator : string
+    operator : str
         Logical operator used to filter variable.
-    value : string
+    value : str
         Value used to filter variable.
     value_dtype : type
         Polars type of the value used to filter variable.
-    drop : boolean
+    drop : bool
         Indcates if fitered trajectories should be retained in the
         new DataFrame (False) or dropped from the DataFrame (True).
 
     Returns
     -------
-    df_reduced DataFrame
+    df_reduced : DataFrame
         Reduced DataFrame, including the Lagrangian trajectories
         which meet (do not meet) the specified filter condition.
 
@@ -115,7 +113,13 @@ def filter_traj(df:pl.DataFrame, variable:str, operator:str, value:str, value_dt
 ##############################################################################
 # Define filter_summary() function.
 
-def filter_summary(df:pl.DataFrame, variable:str, operator:str, value:str, value_dtype:type, drop:bool) -> pl.DataFrame:
+def filter_summary(df:pl.DataFrame,
+                   variable:str,
+                   operator:str,
+                   value:str,
+                   value_dtype:type,
+                   drop:bool
+                   ) -> pl.DataFrame:
     """
     Filter trajectories using conditional on a single column variable
     specified with a string expression.
@@ -130,21 +134,21 @@ def filter_summary(df:pl.DataFrame, variable:str, operator:str, value:str, value
     ----------
     df : DataFrame
         DataFrame containing variable to filter.
-    variable : string
+    variable : str
         Name of the variable to filter.
-    operator : string
+    operator : str
         Logical operator used to filter variable.
-    value : string
+    value : str
         Value used to filter variable.
     value_dtype : type
         Polars type of the value used to filter variable.
-    drop : boolean
+    drop : bool
         Indcates if fitered trajectories should be retained in the
         new DataFrame (False) or dropped from the DataFrame (True).
 
     Returns
     -------
-    df_reduced DataFrame
+    df_reduced : DataFrame
         Reduced DataFrame, including the Lagrangian trajectories
         which meet (do not meet) the specified filter condition.
 
@@ -207,7 +211,12 @@ def filter_summary(df:pl.DataFrame, variable:str, operator:str, value:str, value
 ##############################################################################
 # Define filter_traj_polygon() function.
 
-def filter_traj_polygon(df:pl.DataFrame, xy_vars:list, x_poly:list, y_poly:list, drop:bool) -> pl.DataFrame:
+def filter_traj_polygon(df:pl.DataFrame,
+                        xy_vars:list,
+                        x_poly:list,
+                        y_poly:list,
+                        drop:bool
+                        ) -> pl.DataFrame:
     """
     Filter trajectories which intersect a specified polygon.
 
@@ -232,8 +241,8 @@ def filter_traj_polygon(df:pl.DataFrame, xy_vars:list, x_poly:list, y_poly:list,
 
     Returns
     -------
-    trajectory_data DataFrame
-        Complete TrajFrame, including the complete Lagrangian trajectories
+    df_reduced : DataFrame
+        Reduced DataFrame, including the Lagrangian trajectories
         which meet (do not meet) the specified filter condition.
 
     """
@@ -260,9 +269,9 @@ def filter_traj_polygon(df:pl.DataFrame, xy_vars:list, x_poly:list, y_poly:list,
 
     # Filter DataFrame to exclude / include IDs which intersect polygon.
     if drop is True:
-        trajectory_data = df.filter(~pl.col('id').is_in(poly_ids))
+        df_reduced = df.filter(~pl.col('id').is_in(poly_ids))
     else:
-        trajectory_data = df.filter(pl.col('id').is_in(poly_ids))
+        df_reduced = df.filter(pl.col('id').is_in(poly_ids))
 
     # Return filtered Lagrangian trajectories:
-    return trajectory_data
+    return df_reduced
