@@ -1,18 +1,13 @@
 ##############################################################################
-# list_ops.py
-#
-# Description:
-# Defines the list operations polars DataFrame & LazyFrame registered
-# namespaces.
-#
-# Date Created:
-# 2023/12/28
-#
-# Created By:
-# Ollie Tooth
-#
+"""
+list_ops.py
+
+Description:
+Defines the list operations polars DataFrame & LazyFrame registered
+namespaces.
+"""
 ##############################################################################
-# Importing relevant packages.
+# Import relevant packages.
 import numpy as np
 import polars as pl
 
