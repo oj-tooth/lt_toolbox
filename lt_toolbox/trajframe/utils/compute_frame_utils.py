@@ -1,15 +1,10 @@
 ##############################################################################
-# compute_frame_utils.py
-#
-# Description:
-# Defines functions for computing new properties for TrajStore objects.
-#
-# Date Created:
-# 2023/11/09
-#
-# Created By:
-# Ollie Tooth
-#
+"""
+compute_frame_utils.py
+
+Description:
+Defines functions for computing new properties for TrajStore objects.
+"""
 ##############################################################################
 # Importing relevant packages.
 import numpy as np
@@ -20,7 +15,12 @@ import polars as pl
 # Define binned_statistic_1d() function.
 
 
-def binned_statistic_1d(df:pl.DataFrame | pl.LazyFrame, var:str, values:str, statistic:str, bin_breaks:list) -> xr.DataArray:
+def binned_statistic_1d(df:pl.DataFrame | pl.LazyFrame,
+                        var:str,
+                        values:str,
+                        statistic:str,
+                        bin_breaks:list
+                        ) -> xr.DataArray:
     """
     Compute a 1-dimensional binned statistic using the Series stored in a
     DataFrame.
@@ -34,17 +34,12 @@ def binned_statistic_1d(df:pl.DataFrame | pl.LazyFrame, var:str, values:str, sta
     ----------
     df : DataFrame | LazyFrame
         DataFrame or LazyFrame containing variable and values columns.
-
     var : str
         Name of variable whose values will be binned.
-
     values : str
         Name of values over which the statistic will be computed.
-
     statistic: str
-        The statistic to compute.
-        The following statistics are available:
-
+        The statistic to compute. The following statistics are available:
           * 'mean' : compute the mean of values for points within each bin.
             Empty bins will be represented by null.
           * 'std' : compute the standard deviation within each bin.
@@ -58,7 +53,6 @@ def binned_statistic_1d(df:pl.DataFrame | pl.LazyFrame, var:str, values:str, sta
             Empty bins will be represented by null.
           * 'max' : compute the maximum of values for point within each bin.
             Empty bins will be represented by null.
-
     bin_breaks: list
           List of bin edges used in the binning of var variable.
 
@@ -162,7 +156,13 @@ def binned_statistic_1d(df:pl.DataFrame | pl.LazyFrame, var:str, values:str, sta
 # Define binned_group_statistic_1d() function.
 
 
-def binned_group_statistic_1d(df:pl.DataFrame, var:str, values:str, groups:str, statistic:str, bin_breaks:list) -> xr.DataArray:
+def binned_group_statistic_1d(df:pl.DataFrame,
+                              var:str,
+                              values:str,
+                              groups:str,
+                              statistic:str,
+                              bin_breaks:list
+                              ) -> xr.DataArray:
     """
     Compute a grouped  1-dimensional binned statistic using the Series stored
     in a DataFrame.
@@ -176,21 +176,15 @@ def binned_group_statistic_1d(df:pl.DataFrame, var:str, values:str, groups:str, 
     ----------
     df : DataFrame
         DataFrame containing variable and values columns.
-
     var : str
         Name of variable whose values will be binned.
-
     values : str
         Name of values over which the statistic will be computed.
-
     groups : str
         Name of values to grouped according to unique
         values using group_by() method.
-
     statistic: str
-        The statistic to compute.
-        The following statistics are available:
-
+        The statistic to compute. The following statistics are available:
           * 'mean' : compute the mean of values for points within each bin.
             Empty bins will be represented by null.
           * 'std' : compute the standard deviation within each bin.
@@ -204,7 +198,6 @@ def binned_group_statistic_1d(df:pl.DataFrame, var:str, values:str, groups:str, 
             Empty bins will be represented by null.
           * 'max' : compute the maximum of values for point within each bin.
             Empty bins will be represented by null.
-
     bin_breaks: list
           List of bin edges used in the binning of var variable.
 
@@ -319,7 +312,13 @@ def binned_group_statistic_1d(df:pl.DataFrame, var:str, values:str, groups:str, 
 # Define binned_lazy_group_statistic_1d() function.
 
 
-def binned_lazy_group_statistic_1d(ldf:pl.LazyFrame, var:str, values:str, groups:str, statistic:str, bin_breaks:list) -> xr.DataArray:
+def binned_lazy_group_statistic_1d(ldf:pl.LazyFrame,
+                                   var:str,
+                                   values:str,
+                                   groups:str,
+                                   statistic:str,
+                                   bin_breaks:list
+                                   ) -> xr.DataArray:
     """
     Compute a grouped 1-dimensional binned statistic using the Series stored
     in a LazyFrame.
@@ -333,21 +332,15 @@ def binned_lazy_group_statistic_1d(ldf:pl.LazyFrame, var:str, values:str, groups
     ----------
     ldf : LazyFrame
         LazyFrame containing variable and values columns.
-
     var : str
         Name of variable whose values will be binned.
-
     values : str
         Name of values over which the statistic will be computed.
-
     groups : str
         Name of values to grouped according to unique
         values using group_by() method.
-
     statistic: str
-        The statistic to compute.
-        The following statistics are available:
-
+        The statistic to compute. The following statistics are available:
           * 'mean' : compute the mean of values for points within each bin.
             Empty bins will be represented by null.
           * 'std' : compute the standard deviation within each bin.
@@ -361,7 +354,6 @@ def binned_lazy_group_statistic_1d(ldf:pl.LazyFrame, var:str, values:str, groups
             Empty bins will be represented by null.
           * 'max' : compute the maximum of values for point within each bin.
             Empty bins will be represented by null.
-
     bin_breaks: list
           List of bin edges used in the binning of var variable.
 
@@ -486,7 +478,14 @@ def binned_lazy_group_statistic_1d(ldf:pl.LazyFrame, var:str, values:str, groups
 # Define binned_statistic_2d() function.
 
 
-def binned_statistic_2d(df:pl.DataFrame | pl.LazyFrame, var_x:str, var_y:str, values:str, statistic:str, bin_breaks:list, drop_duplicates:bool=False) -> xr.DataArray:
+def binned_statistic_2d(df:pl.DataFrame | pl.LazyFrame,
+                        var_x:str,
+                        var_y:str,
+                        values:str,
+                        statistic:str,
+                        bin_breaks:list,
+                        drop_duplicates:bool=False
+                        ) -> xr.DataArray:
     """
     Compute a 2-dimensional binned statistic using the Series stored in a
     DataFrame.
@@ -500,21 +499,15 @@ def binned_statistic_2d(df:pl.DataFrame | pl.LazyFrame, var_x:str, var_y:str, va
     ----------
     df : DataFrame | LazyFrame
         DataFrame or LazyFrame containing variable and values columns.
-
-    var_x : string
+    var_x : str
         Name of values to be binned along the first dimension.
-
-    var_y : Series
+    var_y : str
         Name of values to be binned along the second dimension.
-
-    values : Series
+    values : str
         Name of values over which the statistic will be computed.
         This must be the same length as var_x & var_y.
-
     statistic: str
-        The statistic to compute.
-        The following statistics are available:
-
+        The statistic to compute. The following statistics are available:
           * 'mean' : compute the mean of values for points within each bin.
             Empty bins will be represented by null.
           * 'std' : compute the standard deviation within each bin.
@@ -528,11 +521,9 @@ def binned_statistic_2d(df:pl.DataFrame | pl.LazyFrame, var_x:str, var_y:str, va
             Empty bins will be represented by null.
           * 'max' : compute the maximum of values for point within each bin.
             Empty bins will be represented by null.
-
     bin_breaks: list
           List of lists including bin edges used in the binning of var_x
           and var_y variables.
-
     drop_duplicates: bool
         Remove duplicate Lagrangian trajectory occurences in each
         bin before computing specified statistic. The default is False.
@@ -688,7 +679,15 @@ def binned_statistic_2d(df:pl.DataFrame | pl.LazyFrame, var_x:str, var_y:str, va
 # Define binned_group_statistic_2d() function.
 
 
-def binned_group_statistic_2d(df:pl.DataFrame, var_x:str, var_y:str, values:str, groups:str, statistic:str, bin_breaks:list, drop_duplicates:bool=False) -> xr.DataArray:
+def binned_group_statistic_2d(df:pl.DataFrame,
+                              var_x:str,
+                              var_y:str,
+                              values:str,
+                              groups:str,
+                              statistic:str,
+                              bin_breaks:list,
+                              drop_duplicates:bool=False
+                              ) -> xr.DataArray:
     """
     Compute a 2-dimensional grouped binned statistic using the Series stored in a
     DataFrame.
@@ -702,25 +701,18 @@ def binned_group_statistic_2d(df:pl.DataFrame, var_x:str, var_y:str, values:str,
     ----------
     df : DataFrame
         DataFrame containing variable and values columns.
-
     var_x : str
         Name of values to be binned along the first dimension.
-
     var_y : str
         Name of values to be binned along the second dimension.
-
     values : str
         Name of values over which the statistic will be computed.
         This must be the same length as var_x & var_y.
-
     groups : str
         Name of values to grouped according to unique
         values using group_by() method.
-
     statistic: str
-        The statistic to compute.
-        The following statistics are available:
-
+        The statistic to compute. The following statistics are available:
           * 'mean' : compute the mean of values for points within each bin.
             Empty bins will be represented by null.
           * 'std' : compute the standard deviation within each bin.
@@ -734,11 +726,9 @@ def binned_group_statistic_2d(df:pl.DataFrame, var_x:str, var_y:str, values:str,
             Empty bins will be represented by null.
           * 'max' : compute the maximum of values for point within each bin.
             Empty bins will be represented by null.
-
     bin_breaks: list
           List of lists including bin edges used in the binning of var_x
           and var_y variables.
-
     drop_duplicates: bool
         Remove duplicate Lagrangian trajectory occurences in each
         bin before computing specified statistic. The default is False.
@@ -902,7 +892,15 @@ def binned_group_statistic_2d(df:pl.DataFrame, var_x:str, var_y:str, values:str,
 # Define binned_lazy_group_statistic_2d() function.
 
 
-def binned_lazy_group_statistic_2d(ldf:pl.LazyFrame, var_x:str, var_y:str, values:str, groups:str, statistic:str, bin_breaks:list, drop_duplicates:bool=False) -> xr.DataArray:
+def binned_lazy_group_statistic_2d(ldf:pl.LazyFrame,
+                                   var_x:str,
+                                   var_y:str,
+                                   values:str,
+                                   groups:str,
+                                   statistic:str,
+                                   bin_breaks:list,
+                                   drop_duplicates:bool=False
+                                   ) -> xr.DataArray:
     """
     Compute a 2-dimensional grouped binned statistic using the Series stored in a
     LazyFrame.
@@ -916,25 +914,18 @@ def binned_lazy_group_statistic_2d(ldf:pl.LazyFrame, var_x:str, var_y:str, value
     ----------
     ldf : LazyFrame
         LazyFrame containing variable and values columns.
-
     var_x : str
         Name of values to be binned along the first dimension.
-
     var_y : str
         Name of values to be binned along the second dimension.
-
     values : str
         Name of values over which the statistic will be computed.
         This must be the same length as var_x & var_y.
-
     groups : str
         Name of values to grouped according to unique
         values using group_by() method.
-
     statistic: str
-        The statistic to compute.
-        The following statistics are available:
-
+        The statistic to compute. The following statistics are available:
           * 'mean' : compute the mean of values for points within each bin.
             Empty bins will be represented by null.
           * 'std' : compute the standard deviation within each bin.
@@ -948,11 +939,9 @@ def binned_lazy_group_statistic_2d(ldf:pl.LazyFrame, var_x:str, var_y:str, value
             Empty bins will be represented by null.
           * 'max' : compute the maximum of values for point within each bin.
             Empty bins will be represented by null.
-
     bin_breaks: list
           List of lists including bin edges used in the binning of var_x
           and var_y variables.
-
     drop_duplicates: bool
         Remove duplicate Lagrangian trajectory occurences in each bin before
         computing specified statistic. The default is False.
