@@ -1003,11 +1003,11 @@ class TrajFrame:
             * 'mean' : compute the mean of values for points within each bin.
             * 'std' : compute the standard deviation within each bin.
             * 'median' : compute the median of values for points within each
-                bin.
+            bin.
             * 'count' : compute the count of points within each bin. This is
-                identical to an unweighted histogram.
+            identical to an unweighted histogram.
             * 'sum' : compute the sum of values for points within each bin.
-                This is identical to a weighted histogram.
+            This is identical to a weighted histogram.
             * 'min' : compute the minimum of values for points within each bin.
             * 'max' : compute the maximum of values for point within each bin.
         bin_breaks: list
@@ -1139,11 +1139,11 @@ class TrajFrame:
             * 'mean' : compute the mean of values for points within each bin.
             * 'std' : compute the standard deviation within each bin.
             * 'median' : compute the median of values for points within each
-                bin.
+            bin.
             * 'count' : compute the count of points within each bin. This is
-                identical to an unweighted histogram.
+            identical to an unweighted histogram.
             * 'sum' : compute the sum of values for points within each bin.
-                This is identical to a weighted histogram.
+            This is identical to a weighted histogram.
             * 'min' : compute the minimum of values for points within each bin.
             * 'max' : compute the maximum of values for point within each bin.
         bin_breaks: list
