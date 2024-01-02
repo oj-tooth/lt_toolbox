@@ -1,0 +1,51 @@
+name: Documentation
+
+on:
+  release:
+    types:
+      - published
+  
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  docs:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: ["3.9"]
+    steps:
+    - uses: actions/checkout@v3
+    - uses: mamba-org/setup-micromamba@v1
+      with:
+        environment-file: environment.yml
+        environment-name: lt_toolbox
+    - name: Build_Docs
+      shell: bash -l {0}
+      run: |
+        pushd docs
+        pip install spinx pydata-sphinx-theme sphinx-copybutton nbsphinx
+        make html
+    - name: Upload_HTML
+      uses: actions/upload-artifact@v3
+      with:
+        name: Documentation_HTML
+        path: docs/_build/html/
+    - name: Commit_to_gh-pages
+      run: |
+        git clone https://github.com/ammaraskar/sphinx-action-test.git --branch gh-pages --single-branch gh-pages
+        cp -r docs/_build/html/* gh-pages/
+        cd gh-pages
+        touch .nojekyll
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .
+        git commit -m "Update documentation" -a || true
+    - name: Push_Changes
+      uses: ad-m/github-push-action@master
+      with:
+        branch: gh-pages
+        directory: gh-pages
+        force: true
