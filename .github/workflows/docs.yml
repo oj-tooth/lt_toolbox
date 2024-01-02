@@ -27,7 +27,6 @@ jobs:
         environment-name: lt_toolbox
     - name: Build_Docs
       shell: bash -l {0}
-      shell: pwd
       run: |
         pushd docs
         pip install sphinx sphinx-autobuild pydata-sphinx-theme sphinx-copybutton nbsphinx
