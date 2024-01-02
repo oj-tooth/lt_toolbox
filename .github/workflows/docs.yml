@@ -25,11 +25,14 @@ jobs:
       with:
         environment-file: environment.yml
         environment-name: lt_toolbox
+    - name: Install_LT_Toolbox
+      run: |
+        pip install git+https://github.com/oj-tooth/lt_toolbox.git
     - name: Build_Docs
       shell: bash -l {0}
       run: |
         pushd docs
-        pip install sphinx pydata-sphinx-theme sphinx-copybutton nbsphinx
+        pip install sphinx sphinx-autobuild pydata-sphinx-theme sphinx-copybutton nbsphinx
         make html
     - name: Upload_HTML
       uses: actions/upload-artifact@v3
