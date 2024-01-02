@@ -4,6 +4,8 @@ channels:
   - default
 dependencies:
   - python=3.9
+  - polars
+  - plotly
   - numpy
   - cython
   - matplotlib
@@ -13,4 +15,3 @@ dependencies:
   - proj
   - cartopy
   - zarr
-  - polars
