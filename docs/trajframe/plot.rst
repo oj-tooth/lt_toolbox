@@ -2,7 +2,7 @@
 Plot
 ====
 
-.. currentmodule:: trajframe.trajframe
+.. currentmodule:: lt_toolbox
 
 .. autosummary::
    :toctree: api/

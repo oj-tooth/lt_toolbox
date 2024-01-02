@@ -2,7 +2,7 @@
 Find
 ====
 
-.. currentmodule:: trajarray.trajarray
+.. currentmodule:: lt_toolbox
 
 .. autosummary::
    :toctree: api/

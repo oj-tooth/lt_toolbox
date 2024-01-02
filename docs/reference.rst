@@ -7,7 +7,6 @@ For example applications of the LT Toolbox, users are referred to our `Jupyter N
 
 .. toctree::
     :maxdepth: 2
-    :caption: Contents:
     
     trajarray/index
     trajframe/index

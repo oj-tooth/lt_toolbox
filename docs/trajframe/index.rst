@@ -16,7 +16,7 @@ This page gives an overview of all public TrajFrame methods.
    transform
    use
 
-.. currentmodule:: trajframe.trajframe
+.. currentmodule:: lt_toolbox
 
 .. autosummary:: TrajFrame
 

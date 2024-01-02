@@ -17,7 +17,7 @@ This page gives an overview of all public TrajArray methods.
    plot
    use
 
-.. currentmodule:: trajarray.trajarray
+.. currentmodule:: lt_toolbox
 
 .. autosummary:: TrajArray
 
