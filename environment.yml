@@ -1,7 +1,6 @@
 name: lt_toolbox
 channels:
   - conda-forge
-  - default
 dependencies:
   - python=3.9
   - polars
@@ -14,4 +13,6 @@ dependencies:
   - pygeos
   - proj
   - cartopy
-  - zarr
+  - dask
+pip:
+  - git+https://github.com/oj-tooth/lt_toolbox.git
