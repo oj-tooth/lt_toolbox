@@ -29,7 +29,7 @@ jobs:
       shell: bash -l {0}
       run: |
         pushd docs
-        pip install spinx pydata-sphinx-theme sphinx-copybutton nbsphinx
+        pip install sphinx pydata-sphinx-theme sphinx-copybutton nbsphinx
         make html
     - name: Upload_HTML
       uses: actions/upload-artifact@v3
