@@ -1,11 +1,14 @@
 name: Documentation
 
 on:
+  push:
+    branches:
+      - main  # Deploy documentation only when pushing to main branch
   release:
     types:
-      - published
+      - published # Deploy documentation only when a new release is published
   
-  # Allows you to run this workflow manually from the Actions tab
+  # Enable workflow to run manually using GitHub Actions
   workflow_dispatch:
 
 jobs:
