@@ -13,7 +13,7 @@
     <br />
     <br />
     ·
-    <a href="https://oj-tooth.github.io/lt_toolbox/lt_toolbox/docs/html/index.html"><strong>Explore the docs</strong></a>
+    <a href="https://oj-tooth.github.io/lt_toolbox/index.html"><strong>Explore the docs</strong></a>
     ·
     <a href="https://github.com/oj-tooth/lt-toolbox/issues"><strong>Report an issue</strong></a>
     ·
@@ -110,9 +110,9 @@ pip install -e ./
 <!-- Usage -->
 ## Usage
 
-To learn more about how to use the LT Toolbox in your own projects see our Jupyter Notebooks [**tutorials**](https://github.com/oj-tooth/lt-toolbox/tutorials).
+To learn more about how to use the LT Toolbox in your own projects see our Jupyter Notebooks [**tutorials**](https://oj-tooth.github.io/lt_toolbox/tutorials.html).
     
-For further details on each of the modules included in the LT Toolbox view our [**API Reference**](https://oj-tooth.github.io/lt_toolbox/lt_toolbox/docs/html/index.html).
+For further details on each of the modules included in the LT Toolbox view our [**API Reference**](https://oj-tooth.github.io/lt_toolbox/reference.html).
 
 ## Example
 
