@@ -14,11 +14,27 @@ __pycache__/
 /lt_toolbox/trajstore/test_TrajStore.ipynb
 /lt_toolbox/trajframe/test_TrajFrame.ipynb
 
-# Data for Tutorials.
-/tutorials/data/*.zarr
-/tutorials/data/*.parquet
-/tutorials/data/*.mat
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Notebooks for Tutorials
-/tutorials/LT_Toolbox_Testing_MITgcm_IrmSea.ipynb
-/tutorials/data/Export_MITgcm_Lagrangian_trajectories_to_zarr.ipynb
+# Sphinx documentation
+docs/_build/
+docs/_autosummary/
