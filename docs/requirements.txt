@@ -1,0 +1,6 @@
+sphinx
+sphinx-autobuild
+pydata-sphinx-theme
+sphinx-copybutton
+nbsphinx
+pandoc
