@@ -42,7 +42,7 @@ The Lagrangian Trajectories Toolbox is a Python library dedicated to the post-pr
 The toolbox offers users two data structures to work with Lagrangian particle trajectories: Trajectory Arrays (TrajArrays) and Trajectory Frames (TrajFrames).
 TrajArrays utilise [xarray](http://xarray.pydata.org/en/stable/#) multidimensional data arrays to store attribute variables (e.g. lat, lon, temperature etc.) evaluated along trajectories. Meanwhile, TrajFrames make use of the blazingly fast [polars](https://pola-rs.github.io/polars-book/user-guide/index.html) DataFrame library to store attribute variables in a tabular format. The choice of whether to use a TrajArray of TrajFrame in your analysis is often determined by the Lagrangian trajectory code used to evaluate your particle trajectories in the first place. For example, TrajArrays are best suited for working with .zarr files output from [OceanParcels](https://oceanparcels.org), whereas TrajFrames are well suited for working with large .csv files generated from [TRACMASS](https://www.tracmass.org).
 
-Beyond simply storing Lagrangian data, TrajArrays and TrajFrames contain a wide range of built-in methods to enable the efficient post-processing and visualisation of particle trajectories with both [matplotlib](https://matplotlib.org) and [Cartopy](https://scitools.org.uk/cartopy/docs/latest/).
+Beyond simply storing Lagrangian data, TrajArrays and TrajFrames contain a wide range of built-in methods to enable the efficient post-processing and visualisation of particle trajectories with [plotly](https://plotly.com/python-api-reference/index.html), [matplotlib](https://matplotlib.org) and [Cartopy](https://scitools.org.uk/cartopy/docs/latest/).
 
 #### The LT Toolbox is under active development - current features include:
 
@@ -56,9 +56,7 @@ Beyond simply storing Lagrangian data, TrajArrays and TrajFrames contain a wide 
 
 + **Compute** metrics, such as distance travelled, binned-statistics and Lagrangian probabilities from trajectories.
 
-+ **Plot** trajectory data in the form of time series, temperature-salinity diagrams and more.
-
-+ **Map** trajectories, properties and probability distributions onto the Earth's surface using Cartopy.
++ **Plot** trajectories, properties and probability distributions in the form of maps, time series, temperature-salinity diagrams and more.
 
 ### Background
 
@@ -99,18 +97,18 @@ Below are our simple installation intructions to quickly get started with the LT
 
 The LT Toolbox is currently under development and is awaiting packaging for formal release. A temporary installation method is provided below.
 
-To install the current development version of the LT Toolbox, clone this repository and create a new virtual environment (this is optional, but recommended).
+To install the current development version of the LT Toolbox, users are strongly recommended to create a new virtual environment.
 
-Next, run the following command in the root directory of the cloned repository to install the package into your virtual environment:
+Next, run the following command to install the package into your virtual environment:
 
 ```sh 
-pip install -e ./
+pip install git+https://github.com/oj-tooth/lt_toolbox.git
 ```
 
 <!-- Usage -->
 ## Usage
 
-To learn more about how to use the LT Toolbox in your own projects see our Jupyter Notebooks [**tutorials**](https://oj-tooth.github.io/lt_toolbox/tutorials.html).
+To learn more about how to use the LT Toolbox in your own projects see our [**tutorials**](https://oj-tooth.github.io/lt_toolbox/tutorials.html).
     
 For further details on each of the modules included in the LT Toolbox view our [**API Reference**](https://oj-tooth.github.io/lt_toolbox/reference.html).
 
