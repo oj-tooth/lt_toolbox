@@ -5,10 +5,9 @@ dependencies:
   - python>=3.9
   - Cartopy>=0.22.0
   - matplotlib>=3.8.0
-  - numpy>=1.26.3
+  - numpy>=1.21.3
   - pandas>=2.1.4
   - plotly>=5.18.0
-  - polars>=0.20.3
   - pygeos>=0.14
   - scipy>=1.11.4
   - setuptools>=68.2.2
@@ -17,4 +16,5 @@ dependencies:
   - xarray>=2023.9.0
   - zarr>=2.16.1
   - pip:
+    - polars>=0.20.3
     - git+https://github.com/oj-tooth/lt_toolbox.git
