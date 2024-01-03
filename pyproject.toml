@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lt_toolbox"
+version = "0.10"
+requires-python = ">=3.9"
+authors = [
+  {name = "Ollie Tooth", email = "olivertooth98@gmail.com"},
+]
+maintainers = [
+  {name = "Ollie Tooth", email = "olivertooth98@gmail.com"}
+]
+description = "Post-processing, visualisation and analysis of Lagrangian trajectories"
+
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["Lagrangian", "trajectories", "oceanography"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "Cartopy>=0.22.0",
+    "matplotlib>=3.8.0",
+    "numpy>=1.26.3",
+    "pandas>=2.1.4",
+    "plotly>=5.18.0",
+    "polars>=0.20.3",
+    "pygeos>=0.14",
+    "scipy>=1.11.4",
+    "tqdm>=4.66.1",
+    "typing_extensions>=4.9.0",
+    "xarray>=2023.9.0",
+    "zarr>=2.16.1",
+]
+
+[project.urls]
+Homepage = "https://oj-tooth.github.io/lt_toolbox/"
+Documentation = "https://oj-tooth.github.io/lt_toolbox/reference/"
+Repository = "https://github.com/oj-tooth/lt_toolbox/"
+"Bug Tracker" = "https://github.com/oj-tooth/lt_toolbox/issues/"
