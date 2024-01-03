@@ -13,9 +13,9 @@ To get started with contributing to LT Toolbox, please follow these steps:
 3. Create a new branch for your contribution.
 4. Make your changes and improvements to the codebase.
 
-- Follow the [NumPy docstring conventions](https://numpydoc.readthedocs.io/en/latest/format.html) when adding or modifying docstrings.
+- Follow the `NumPy docstring conventions <https://numpydoc.readthedocs.io/en/latest/format.html>`_ when adding or modifying docstrings.
 
-- Follow the [PEP 8](https://peps.python.org/pep-0008/) style guide when writing code.
+- Follow the `PEP 8 <https://peps.python.org/pep-0008/>`_` style guide when writing code.
 
 5. Test your changes thoroughly to ensure they work as expected.
 
