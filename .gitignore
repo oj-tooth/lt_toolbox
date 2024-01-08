@@ -4,7 +4,7 @@
 
 # Ignore vscode & tutorials .ipynb files.
 .DS_Store
-.vs_code/
+.vscode/
 **/*.ipynb_checkpoints/
 
 # Byte-compiled / optimized / DLL files
