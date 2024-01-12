@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajArray.get\_start\_time
+======================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajArray.get_start_time

@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajFrame.get\_duration
+===================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajFrame.get_duration

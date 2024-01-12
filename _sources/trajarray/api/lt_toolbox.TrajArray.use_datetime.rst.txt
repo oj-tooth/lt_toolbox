@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajArray.use\_datetime
+===================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajArray.use_datetime

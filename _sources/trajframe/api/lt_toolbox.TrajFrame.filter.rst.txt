@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajFrame.filter
+============================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajFrame.filter

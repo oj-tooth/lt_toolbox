@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajArray.find\_equal
+=================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajArray.find_equal

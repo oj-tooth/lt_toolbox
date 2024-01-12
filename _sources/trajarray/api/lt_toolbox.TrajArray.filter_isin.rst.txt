@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajArray.filter\_isin
+==================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajArray.filter_isin

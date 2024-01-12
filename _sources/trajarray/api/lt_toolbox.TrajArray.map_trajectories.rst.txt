@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajArray.map\_trajectories
+=======================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajArray.map_trajectories

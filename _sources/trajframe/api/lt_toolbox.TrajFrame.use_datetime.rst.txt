@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajFrame.use\_datetime
+===================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajFrame.use_datetime

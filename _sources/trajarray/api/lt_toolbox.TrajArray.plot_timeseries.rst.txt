@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajArray.plot\_timeseries
+======================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajArray.plot_timeseries
