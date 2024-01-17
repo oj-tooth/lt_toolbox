@@ -1402,19 +1402,18 @@ class TrajFrame:
 
         # Join inflow and outflow volume transport DataArrays:
         result_net = xr.merge([result_in, result_out])
-        result_net['subvol'] = result_net['subvol_in'] - result_net['subvol_out']
 
         # Calculate accumulative sum of net volume transport:
         # Case 1. Accumulate with increasing property values:
         if direction == '+1':
             # Accumlate along property dimension:
-            result_lof = result_net['subvol'].cumsum(dim=prop, skipna=True)
+            result_lof = result_net['subvol_in'].cumsum(dim=prop) - result_net['subvol_out'].cumsum(dim=prop)
         # Case 2. Accumulate with decreasing property values:
         elif direction == '-1':
-            # Reverse DataArray along property dimension:
-            result_net = result_net.reindex({prop:list(reversed(result_net[prop]))})
-            # Accumlate along property dimension:
-            result_lof = result_net['subvol'].cumsum(dim=prop, skipna=True)
+            # Reverse DataArray along property dimension
+            # and accumlate along property dimension:
+            result_lof = (result_net['subvol_in'].reindex({prop:list(reversed(result_net[prop]))}).cumsum(dim=prop)
+                          - result_net['subvol_out'].reindex({prop:list(reversed(result_net[prop]))}).cumsum(dim=prop))
 
         # ----------------------------------------
         # Adding LOF statistic to summary DataSet.
