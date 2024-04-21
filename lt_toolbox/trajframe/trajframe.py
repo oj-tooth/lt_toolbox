@@ -343,7 +343,7 @@ class TrajFrame:
             raise TypeError("unit must be specified as a string")
         if unit not in ['w', 'd', 'h', 'm', 's']:
             raise ValueError("unit must be specified as one of \'s\', \'m\', \'h\', \'D\', \'W\'")
-        if isinstance(self.data.schema['time'], pl.Datetime) is True:
+        if (self.data.schema['time'] == pl.Datetime) | (self.data.schema['time'] == pl.List(pl.Datetime)) is True:
             raise TypeError("time already exists with dtype = \'Datetime\'")
 
         # ------------------------------------------------
@@ -1867,7 +1867,7 @@ class TrajFrame:
             raise ValueError(f"variable {var} not contained in TrajFrame")
 
         if isinstance(date, str) is False:
-            raise TypeError("date must be specified as a string in format givent to fmt")
+            raise TypeError("date must be specified as a string in format given to fmt")
 
         # ------------------------------------------------------
         # Extract values of specfied variable at specified date.
