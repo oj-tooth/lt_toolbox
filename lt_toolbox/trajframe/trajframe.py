@@ -1502,6 +1502,12 @@ class TrajFrame:
         bin_y = np.arange(-180, 180+bin_res, bin_res).tolist()
         bin_breaks = [bin_x, bin_y]
 
+        # Define drop duplicates according to probability type:
+        if prob_type == 'pos':
+            drop_duplicates = False
+        elif prob_type == 'traj':
+            drop_duplicates = True
+
         # Determine column names with List dtype:
         list_cols = [col for col in self.data.columns if self.data.schema[col] == pl.List]
         # Explode positions from condensed format to long format
@@ -1519,6 +1525,7 @@ class TrajFrame:
                                          values=values,
                                          statistic='count',
                                          bin_breaks=bin_breaks,
+                                         drop_duplicates=drop_duplicates,
                                          )
         else:
             if self.traj_mode == 'lazy':
@@ -1530,6 +1537,7 @@ class TrajFrame:
                                                         groups=group,
                                                         statistic='count',
                                                         bin_breaks=bin_breaks,
+                                                        drop_duplicates=drop_duplicates,
                                                         )
             else:
                 # Calculate 2-dimensional grouped statistic from DataFrame:
@@ -1540,6 +1548,7 @@ class TrajFrame:
                                                    groups=group,
                                                    statistic='count',
                                                    bin_breaks=bin_breaks,
+                                                   drop_duplicates=drop_duplicates,
                                                    )
 
         # ----------------------------------------
@@ -1548,6 +1557,7 @@ class TrajFrame:
         if prob_type == 'pos':
             # Calculate Lagrangian probability of positions:
             self.summary_data['probability'] = result / result.sum()
+
         elif prob_type == 'traj':
             # Calculate number of trajectories:
             if self.traj_mode == 'eager':
