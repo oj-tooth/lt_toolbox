@@ -13,6 +13,7 @@ __pycache__/
 # Development .ipynb files.
 /lt_toolbox/trajstore/test_TrajStore.ipynb
 /lt_toolbox/trajframe/test_TrajFrame.ipynb
+/lt_toolbox/conversions/test_conversions.ipynb
 
 # Distribution / packaging
 .Python

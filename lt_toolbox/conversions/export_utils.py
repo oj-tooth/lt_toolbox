@@ -61,11 +61,11 @@ def export_csv_to_zarr(csv_filename:str,
         Path to input .csv file storing Lagrangian trajectories.
     zarr_filename : str
         Path to output .zarr store containing Lagrangian trajectories.
-    vars : list
+    variables : list
         List of variable names to include in .zarr store.
     attrs : dict
         Attributes of resulting xarray DataSet.
-    read_options : dict
+    read_options : dict | None
         Dictionary of optional keyword arguments to be
         passed to polars read_csv().
 
@@ -75,6 +75,29 @@ def export_csv_to_zarr(csv_filename:str,
         DataSet containing Lagrangian trajectory properties
         and positions in array format.
     """
+    # -------------
+    # Raise errors:
+    # -------------
+    # Mandatory arguments:
+    if isinstance(csv_filename, str) is False:
+        raise TypeError("invalid type: csv_filename must be a string.")
+    if isinstance(zarr_filename, str) is False:
+        raise TypeError("invalid type: zarr_filename must be a string.")
+    if isinstance(variables, list) is False:
+        raise TypeError("invalid type: variables must be a list.")
+    if isinstance(attrs, dict) is False:
+        raise TypeError("invalid type: attrs must be a dictionary.")
+
+    # Default value arguments:
+    if read_options is not None:
+        if isinstance(read_options, dict) is False:
+            raise TypeError("invalid type: read_options must be a dictionary.")
+    else:
+        read_options = {}
+
+    # -----------------------------------------------
+    # Write Lagrangian trajectories to .zarr store:
+    # -----------------------------------------------
     # Import Lagrangian trajectories .csv file as DataFrame:
     df_run = pl.read_csv(csv_filename, **(read_options))
 
@@ -113,6 +136,126 @@ def export_csv_to_zarr(csv_filename:str,
 
     # Construct dictionary to define DataArrays from ndarrays:
     data_dict = {variables[n]: var_arrays[n] for n in range(len(variables))}
+
+    # Define DataSet using (trajectory x obs) arrays for each variable:
+    ds = xr.Dataset(
+        data_vars=data_dict,
+        coords=dict(
+            trajectory=(["trajectory"], traj_array),
+            obs=(["obs"], obs_array),
+        ),
+        attrs=attrs,
+        )
+
+    # Define compressor:
+    compressor = zarr.Blosc(cname="zstd", clevel=3, shuffle=2)
+    # Define encodings dictionary:
+    enc = {var: {"compressor": compressor} for var in ds}
+
+    # Write Lagrangian trajectories to compressed .zarr store:
+    ds.to_zarr(zarr_filename, encoding=enc)
+
+##############################################################################
+# Define export_parquet_to_zarr() function.
+
+def export_parquet_to_zarr(parquet_filename:str,
+                           zarr_filename:str,
+                           variables:list,
+                           attrs:dict,
+                           read_options:dict | None = None,
+                           ) -> None:
+    """
+    Export Lagrangian trajectory properties and positions
+    stored in tabular format in .parquet file to array format
+    in xarray DataSet saved to .zarr store.
+
+    Parameters
+    ----------
+    parquet_filename : str
+        Path to input .parquet file storing Lagrangian trajectories.
+    zarr_filename : str
+        Path to output .zarr store containing Lagrangian trajectories.
+    vars : list
+        List of variable names to include in .zarr store.
+    attrs : dict
+        Attributes of resulting xarray DataSet.
+    read_options : dict
+        Dictionary of optional keyword arguments to be
+        passed to polars read_csv().
+
+    Returns
+    -------
+    zarr store
+        DataSet containing Lagrangian trajectory properties
+        and positions in array format.
+    """
+    # -------------
+    # Raise errors:
+    # -------------
+    # Mandatory arguments:
+    if isinstance(parquet_filename, str) is False:
+        raise TypeError("invalid type: parquet_filename must be a string.")
+    if isinstance(zarr_filename, str) is False:
+        raise TypeError("invalid type: zarr_filename must be a string.")
+    if isinstance(variables, list) is False:
+        raise TypeError("invalid type: variables must be a list.")
+    if isinstance(attrs, dict) is False:
+        raise TypeError("invalid type: attrs must be a dictionary.")
+
+    # Default value arguments:
+    if read_options is not None:
+        if isinstance(read_options, dict) is False:
+            raise TypeError("invalid type: read_options must be a dictionary.")
+    else:
+        read_options = {}
+
+    # -----------------------------------------------
+    # Write Lagrangian trajectories to .zarr store:
+    # -----------------------------------------------
+    # Import Lagrangian trajectories .csv file as DataFrame:
+    df_run = pl.read_parquet(parquet_filename, **(read_options))
+
+    # Raise error if required columns not in DataFrame:
+    if 'id' not in df_run.columns:
+        raise ValueError("missing column: 'id' column not found in DataFrame.")
+    if 'time' not in df_run.columns:
+        raise ValueError("missing column: 'time' column not found in DataFrame.")
+
+    # Add observation numbers for each Lagrangian trajectory in DataFrame:
+    df_obs = (df_run
+        .sort(by='id')
+        .group_by(by=pl.col('id'), maintain_order=True)
+        .agg(
+            pl.map_groups(exprs=['time'], function=lambda args : eval_obs_numbers(args[0])).alias('obs')
+            )
+            )
+
+    # Add exploded observations column to DataFrame:
+    df = (df_run
+        .sort(by='id')
+        .with_columns(
+            df_obs.explode(columns='obs')['obs']
+            ))
+
+    # Initialise empty list to store ndarrays for column variables
+    var_arrays = []
+
+    # Iterate over column variables:
+    for col in tqdm(variables):
+        # For non-ID variables pivot to form table of values with
+        # rows -> IDs and columns -> obs dimensions:
+        var = df.pivot(values=col, index='id', columns='obs')
+        # Drop first column storing unique ID and append as
+        # ndarray to list:
+        var_arrays.append(var.drop(['id']).to_numpy())
+
+    # Define trajectory dimension 1-D array as unique IDs:
+    traj_array = var['id'].to_numpy()
+    # Define observation dimension 1-D as sequence to largest no. of observations:
+    obs_array = np.array(var.drop('id').columns, dtype=np.int32)
+
+    # Construct dictionary to define DataArrays from ndarrays:
+    data_dict = {variables[n]: (["trajectory", "obs"], var_arrays[n]) for n in range(len(variables))}
 
     # Define DataSet using (trajectory x obs) arrays for each variable:
     ds = xr.Dataset(
