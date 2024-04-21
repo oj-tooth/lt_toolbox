@@ -48,13 +48,13 @@ class TrajFrame:
         can be stored in long-format or condensed formats.
         Trajectories specified in an xarray DataSet will be transformed
         to a condensed DataFrame before TrajFrame creation. 
-    condense: bool
+    condense: bool, default: False
         Transform DataFrame or LazyFrame from long-format to condensed
         format where data is stored in list columns.
-    rename_cols : dict
+    rename_cols : dict, default: None
         Rename columns variables using key value pairs that map from
         current to new column names.
-    summary_source : DataSet
+    summary_source : DataSet, default: None
         DataSet storing summary statistics in the form of n-dimensional 
         DataArrays generated from Lagrangian trajectory data contained in
         the TrajFrame.
@@ -267,9 +267,8 @@ class TrajFrame:
 
         Parameters
         ----------
-        streaming : bool
-            Run parts of the query in a streaming fashion (this is in an alpha state).
-            Default is False.
+        streaming : bool, default: False
+            Run parts of the query concurrently with streaming.
         **kwargs (optional)
             Additional keyword arguments to be passed to Polars collect() function.
 
@@ -317,10 +316,9 @@ class TrajFrame:
         ----------
         start_date : str
             Starting date to use when converting time column variable to Datetime.
-        unit : str
+        unit : str, default: 's'
             Unit time variable is stored as (e.g., 's', 'd', 'w' etc.).
-            Default is seconds, 's'.
-        fmt : str
+        fmt : str, default: "%Y-%m-%d"
             Datetime format of specified start data. Default format is YYYY-MM-DD.
 
         Returns
@@ -500,7 +498,7 @@ class TrajFrame:
             represents one of the six standard comparison operators and
             {value} represents the value with which to compare the {variable}
             to. Users can alternatively specify a polars expression.
-        drop : bool
+        drop : bool, default: False
             Indcates if fitered trajectories should be retained in the
             new TrajFrame (False) or instead dropped from the
             existing TrajFrame (True).
@@ -610,7 +608,7 @@ class TrajFrame:
             List of x-coordinates representing the boundary of the polygon.
         y_poly : list
             List of y-coordinates representing the boundary of the polygon.
-        drop : bool
+        drop : bool, default: False
             Determines if fitered trajectories should be returned as a
             new TrajFrame (False) or instead dropped from the
             existing TrajFrame (True).
@@ -704,7 +702,7 @@ class TrajFrame:
             Name of variable contained in TrajFrame.
         values : list | Series
             Values of variables used to filter trajectories.
-        drop : bool
+        drop : bool, default: False
             Determines if fitered trajectories should be returned as a
             new TrajFrame (False) or instead dropped from the
             existing TrajFrame (True).
@@ -774,10 +772,10 @@ class TrajFrame:
 
         Parameters
         ----------
-        cum_dist : bool
+        cum_dist : bool, default: False
             Compute the cumulative distance travelled by each particle -
             default is False.
-        unit : str
+        unit : str, default: 'km'
             Unit for distance travelled output. The default is kilometers, 'km',
             alternatively meters can be specified, 'm'.
 
@@ -899,7 +897,8 @@ class TrajFrame:
     def compute_grouped_expr(self,
                              group:str,
                              expr:pl.Expr,
-                             alias:str
+                             alias:str,
+                             append:bool=False
                              ) -> Self:
         """
         Compute polars expression over groups. 
@@ -913,6 +912,10 @@ class TrajFrame:
             Compute expression to aggregate each group. 
         alias : str
             Name of output statistic from computing grouped expression.
+        append : bool, default: False
+            If set to True, the grouped expression will be appended
+            to the existing summary_data, otherwise summary_data will
+            be replaced with a new DataSet.
 
         Returns
         -------
@@ -936,6 +939,10 @@ class TrajFrame:
             raise TypeError('group must be specfified as a string')
         if isinstance(expr, pl.Expr) is False:
             raise TypeError('expr must be specified as a polars expression')
+        if isinstance(alias, str) is False:
+            raise TypeError('alias must be specified as a string')
+        if isinstance(append, bool) is False:
+            raise TypeError('append must be specified as a boolean')
 
         # -----------------------------
         # Calculate grouped expression:
@@ -952,6 +959,10 @@ class TrajFrame:
         # ---------------------------------------------
         # Adding grouped expression to summary DataSet.
         # ---------------------------------------------
+        # Append to or replace summary_data with empty DataSet:
+        if append is False:
+            self.summary_data = xr.Dataset()
+
         # Construct xarray DataArray from polars Series:
         result_array = xr.DataArray(data=grouped_data[alias].to_numpy(),
                                     dims=[group],
@@ -976,7 +987,8 @@ class TrajFrame:
                                     statistic:str,
                                     bin_breaks:list,
                                     alias:str | None=None,
-                                    group:str | None=None
+                                    group:str | None=None,
+                                    append:bool=False
                                     ) -> Self:
         """
         Compute a 1-dimensional binned statistic using variables stored in
@@ -993,10 +1005,6 @@ class TrajFrame:
             Name of column variable whose values will binned.
         values : str
             Name of the column variable on which the statistic will be computed.
-        group : str
-            Name of column variable to group according to unique values using group_by()
-            method. A 1-dimensional binned statistic will be computed for each
-            group member.
         statistic: str
             The statistic to compute; empty bins will be assigned a Null value.
             The following statistics are available:
@@ -1012,8 +1020,16 @@ class TrajFrame:
             * 'max' : compute the maximum of values for point within each bin.
         bin_breaks: list
             List of bin edges used in the binning of var variable.
-        alias : str
+        alias : str, default: None
             New name of output statistics.
+        group : str, default: None
+            Name of column variable to group according to unique values using group_by()
+            method. A 1-dimensional binned statistic will be computed for each
+            group member.
+        append : bool, default: False
+            If set to True, the 1-dimensional binned statistic will be appended
+            to the existing summary_data, otherwise summary_data will be replaced
+            with a new DataSet.
 
         Returns
         -------
@@ -1046,6 +1062,8 @@ class TrajFrame:
         if group is not None:
             if group not in self.columns:
                 raise ValueError(f'variable {group} is not contained in TrajFrame')
+        if isinstance(append, bool) is False:
+            raise TypeError('append must be specified as a boolean')
 
         # ---------------------------------
         # Calculating 1-D binned statistic.
@@ -1090,6 +1108,9 @@ class TrajFrame:
         # ----------------------------------------
         # Adding 1-D statistic to summary DataSet.
         # ----------------------------------------
+        # Append to or replace summary_data with empty DataSet:
+        if append is False:
+            self.summary_data = xr.Dataset()
         # Add result DataArray to DataSet as named variable:
         if alias is None:
             self.summary_data[result.name] = result
@@ -1109,7 +1130,8 @@ class TrajFrame:
                                     statistic:str,
                                     bin_breaks:list,
                                     alias:str | None=None,
-                                    group:str | None=None
+                                    group:str | None=None,
+                                    append:bool=False
                                     ) -> Self:
         """
         Compute a 2-dimensional binned statistic using the variables stored
@@ -1129,10 +1151,6 @@ class TrajFrame:
         values : str
             Name of variable on which the statistic will be computed.
             This must be the same length as var_x & var_y.
-        group : str
-            Name of variable to group according to unique values using group_by()
-            method. A 1-dimensional binned statistic will be computed for each
-            group member.
         statistic: str
             The statistic to compute; empty bins will be assigned a Null value.
             The following statistics are available:
@@ -1149,8 +1167,16 @@ class TrajFrame:
         bin_breaks: list
             List of lists including bin edges used in the binning of var_x
             and var_y variables.
-        alias : str
+        alias : str, default: None
             New name of output statistics.
+        group : str, default: None
+            Name of variable to group according to unique values using group_by()
+            method. A 1-dimensional binned statistic will be computed for each
+            group member.
+        append : bool, default: False
+            If set to True, the 2-dimensional binned statistic will be appended
+            to the existing summary_data, otherwise summary_data will be replaced
+            with a new DataSet.
 
         Returns
         -------
@@ -1186,6 +1212,8 @@ class TrajFrame:
         if group is not None:
             if group not in self.columns:
                 raise ValueError(f'variable {group} is not contained in TrajFrame')
+        if isinstance(append, bool) is False:
+            raise TypeError('append must be specified as a boolean')
 
         # ---------------------------------
         # Calculating 2-D binned statistic.
@@ -1233,6 +1261,9 @@ class TrajFrame:
         # ----------------------------------------
         # Adding 2-D statistic to summary DataSet.
         # ----------------------------------------
+        # Append to or replace summary_data with empty DataSet:
+        if append is False:
+            self.summary_data = xr.Dataset()
         # Add result DataArray to DataSet as named variable:
         if alias is None:
             self.summary_data[result.name] = result
@@ -1252,7 +1283,8 @@ class TrajFrame:
                              bin_breaks:list,
                              alias:str | None=None,
                              direction:str='+1',
-                             group:str | None=None
+                             group:str | None=None,
+                             append:bool=False
                              ) -> Self:
         """
         Compute Lagrangian Overturning Function in discrete property-space.
@@ -1270,16 +1302,20 @@ class TrajFrame:
             Name of the outflow property variable to bin volume transports.
         bin_breaks: list
             List of bin edges used in the binning volume transports.
-        alias: str
+        alias: str, default: None
             New name for Lagrangian overturning funtion in property-coordinates.
-        direction : str
+        direction : str, default: '+1'
             Direction of integration. Two options are available: to integrate from
             the smallest to largest bin use '+1' or to integrate from the largest
             to smallest bin use '-1'.
-        group : str
+        group : str, default: None
             Name of variable to group according to unique values using group_by()
             method. A Lagrangian overturning function will be computed for each
             group member.
+        append : bool, default: False
+            If set to True, the Lagrangian overturning function will be appended
+            to the existing summary_data, otherwise summary_data will be replaced
+            with a new DataSet.
 
         Returns
         -------
@@ -1324,6 +1360,8 @@ class TrajFrame:
         if group is not None:
             if group not in self.columns:
                 raise ValueError(f'variable {group} is not contained in TrajFrame')
+        if isinstance(append, bool) is False:
+            raise TypeError('append must be specified as a boolean')
 
         # Determine common prefix of property variable:
         prop = os.path.commonprefix([prop_in, prop_out])
@@ -1419,6 +1457,9 @@ class TrajFrame:
         # ----------------------------------------
         # Adding LOF statistic to summary DataSet.
         # ----------------------------------------
+        # Append to or replace summary_data with empty DataSet:
+        if append is False:
+            self.summary_data = xr.Dataset()
         # Add result_lof DataArray to DataSet as named variable:
         if alias is None:
             self.summary_data['LOF_'+prop] = result_lof
@@ -1434,7 +1475,8 @@ class TrajFrame:
     def compute_probability(self,
                             bin_res:float,
                             prob_type:str='pos',
-                            group:str | None=None
+                            group:str | None=None,
+                            append:bool=False,
                             ) -> Self:
         """
         Compute Lagrangian probability in discrete geographical (longitude,
@@ -1450,16 +1492,19 @@ class TrajFrame:
         bin_res : float
             Geographical bin resolution to compute Lagrangian probability.
             The bin resolution should be specified in degrees.
-        prob_type : str
+        prob_type : str, default: 'pos'
             Type of Lagrangian probability to compute. Options are 'pos' and
             'traj'. The default is 'pos' which returns the probability that
             a Lagrangian trajectory position is found in any given
             geographical bin. The 'traj' option returns the probability that
             a Lagrangian trajectory will enter any given geographical bin.
-        group : str
+        group : str, default: None
             Name of column variable to group according to unique values using
             group_by() before computing Lagrangian probability.
-            The default is None.
+        append : bool, default: False
+            If set to True, the probability statistic  will be appended to the
+            existing summary_data, otherwise summary_data will be replaced with
+            a new DataSet.
 
         Returns
         -------
@@ -1489,6 +1534,8 @@ class TrajFrame:
                 raise TypeError('group must be specified as a string')
             if group not in self.columns:
                 raise ValueError(f'variable {group} is not contained in TrajFrame')
+        if isinstance(append, bool) is False:
+            raise TypeError('append must be specified as a boolean')
 
         # ---------------------------------
         # Calculating 2-D binned statistic.
@@ -1554,6 +1601,10 @@ class TrajFrame:
         # ----------------------------------------
         # Adding 2-D statistic to summary DataSet.
         # ----------------------------------------
+        # Append to or replace summary_data with empty DataSet:
+        if append is False:
+            self.summary_data = xr.Dataset()
+
         if prob_type == 'pos':
             # Calculate Lagrangian probability of positions:
             self.summary_data['probability'] = result / result.sum()
@@ -1782,9 +1833,9 @@ class TrajFrame:
             Name of the column variable in the TrajFrame.
         date : str
             date on which to get values of specified column variable.
-        alias : str
+        alias : str, default: None
             New name of the resulting column variable.
-        fmt : str
+        fmt : str, default: "%Y-%m-%d"
             Datetime format of specified date. Default
             format is YYYY-MM-DD.
 
@@ -1971,13 +2022,13 @@ class TrajFrame:
         ----------
         name : str
             New column variable name to be added to TrajFrame.
-        values : list
+        values : list, default: None
             values of new variable to be added to the TrajFrame.
-        expr : Expression
+        expr : Expression, default: None
             Expression used to determine values of new variable.
             The expression must use only columns contained in the
             TrajFrame.
-        list_expr : bool
+        list_expr : bool, default: False
             Use list expression to determine values of new variable.
             The default value is False.
 
@@ -2065,7 +2116,7 @@ class TrajFrame:
 
         Parameters
         ----------
-        sample_size : int
+        sample_size : int, default: None
             Size of random sample of Lagrangian trajectories
             to plot.
         **kwargs (optional)
@@ -2163,7 +2214,7 @@ class TrajFrame:
         ----------
         var : str
             Name of column variable to plot timeseries.
-        sample_size : int
+        sample_size : int, default: None
             Size of random sample of Lagrangian trajectories
             to plot.
         **kwargs (optional)
