@@ -30,7 +30,7 @@ from .utils.compute_frame_utils import (
     binned_lazy_group_statistic_1d,
     binned_lazy_group_statistic_2d,
     )
-from .utils.interpolate_frame_utils import interpolation_1d, interpolation_2d
+from .utils.interpolate_frame_utils import interpolation_1d, interpolation_2d, interpolation_3d
 
 ##############################################################################
 # Define TrajFrame Class.
@@ -378,7 +378,7 @@ class TrajFrame:
                                     lon:np.ndarray,
                                     lat:np.ndarray,
                                     depth:np.ndarray
-                                    ) -> Self:
+                                    ):
         """
         Transform trajectories from model grid coordinates {i,j,k}
         to geographical coordinates {lon, lat, depth}.
@@ -386,14 +386,21 @@ class TrajFrame:
         Lagrangian trajectory positions are (bi-)linearly interpolated from
         the specified ocean general circulation model grid.
 
+        Both z and terrain following sigma vertical coordinate systems
+        are supported.
+
         Parameters
         ----------
         lon : ndarray
-            Longitudes associated with the center of each model grid cell.
+            Longitudes associated with the center of each model grid cell. 
+            This must be specified as a 2-D array with dimensions {j, i}.
         lat : ndarray
             Latitudes associated with the center of each model grid cell.
+            This must be specified as a 2-D array with dimensions {j, i}.
         depth : ndarray
             Depths associated with model vertical grid levels.
+            This must be as specified as either a 1-D array with dimensions {k}
+            or a 3-D array with dimensions {k, j, i}.
 
         Returns
         -------
@@ -407,7 +414,7 @@ class TrajFrame:
         coordinate system {x, y, z} to geographical coordinates {lon, lat, depth}
         using the ocean general circulation horizontal and vertical model grids.
         Here, we show a simple example for the Nucleus for European Modelling
-        of the Ocean ORCA C-grid:
+        of the Ocean ORCA C-grid with a z-level vertical coordinate system:
 
         >>> lon_mdl = ds_grid.nav_lon.values
         >>> lat_mdl = ds_grid.nav_lat.values
@@ -419,16 +426,19 @@ class TrajFrame:
         # -------------------
         if isinstance(lon, np.ndarray) is False:
             raise TypeError("longitude must be specified as an ndarray")
-
         if isinstance(lat, np.ndarray) is False:
             raise TypeError("latitude must be specified as an ndarray")
-
         if isinstance(depth, np.ndarray) is False:
             raise TypeError("depth must be specified as an ndarray")
+    
+        if (depth.ndim != 1) & (depth.ndim != 3):
+            raise ValueError("depth must be specified as either a 1-D or 3-D array")
 
         # ---------------------------------------------------------
         # Transforming Lagrangian Trajectories stored in TrajFrame.
         # ---------------------------------------------------------
+        # Determine number of dimensions for depth array:
+        ndim_depth = depth.ndim
         # Determine column names with List dtype:
         list_cols = [col for col in self.columns if self.schema[col] == pl.List]
         # Explode positions from condensed format to long format
@@ -436,26 +446,44 @@ class TrajFrame:
         df_exp = self.data.explode(columns=list_cols)
 
         if self.traj_mode == 'eager':
-            # Apply coordinate transformation:
-            df_exp = (df_exp
-                      .pipe(interpolation_2d, fields=[lon, lat], dims=['x', 'y'], aliases=['x', 'y'])
-                      .pipe(interpolation_1d, field=depth, dim='z', alias='z')
-                      )
+            if ndim_depth == 1:
+                # Apply coordinate transformation with 1D depth array:
+                df_exp = (df_exp
+                            .pipe(interpolation_2d, fields=[lon, lat], dims=['x', 'y'], aliases=['x', 'y'])
+                            .pipe(interpolation_1d, field=depth, dim='z', alias='z')
+                            )
+            else:
+                # Apply coordinate transformation with 3D depth array:
+                df_exp = (df_exp
+                            .pipe(interpolation_2d, fields=[lon, lat], dims=['x', 'y'], aliases=['x', 'y'])
+                            .pipe(interpolation_3d, fields=[depth], dims=['z'], aliases=['z'])
+                            )
 
         elif self.traj_mode == 'lazy':
-            # Apply coordinate transformation:
-            df_exp = (df_exp
-                .map_batches(lambda df : interpolation_2d(df, fields=[lon, lat], dims=['x', 'y'], aliases=['x', 'y']),
-                            streamable=True
-                            )
-                .map_batches(lambda df : interpolation_1d(df, field=depth, dim='z', alias='z'),
-                            streamable=True
-                            )
-                )
+            if ndim_depth == 1:
+                # Apply coordinate transformation with 1D depth array:
+                df_exp = (df_exp
+                    .map_batches(lambda df : interpolation_2d(df, fields=[lon, lat], dims=['x', 'y'], aliases=['x', 'y']),
+                                streamable=True
+                                )
+                    .map_batches(lambda df : interpolation_1d(df, field=depth, dim='z', alias='z'),
+                                streamable=True
+                                )
+                    )
+            else:
+                # Apply coordinate transformation with 3D depth array:
+                df_exp = (df_exp
+                    .map_batches(lambda df : interpolation_2d(df, fields=[lon, lat], dims=['x', 'y'], aliases=['x', 'y']),
+                                streamable=True
+                                )
+                    .map_batches(lambda df : interpolation_3d(df, fields=[depth], dims=['z'], aliases=['z']),
+                                streamable=True
+                                )
+                    )
 
         # Return output from exploded to Polars list dtypes:
         df_exp = (df_exp
-                    .group_by(by=pl.col('id'), maintain_order=True)
+                    .group_by(pl.col('id'), maintain_order=True)
                     .agg([
                         pl.col(list_cols),
                         ])
