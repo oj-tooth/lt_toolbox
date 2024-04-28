@@ -1,0 +1,43 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# **LT Toolbox Tutorial: 5. Lagrangian Overturning with Trajectory Frames**\n",
+    "\n",
+    "Welcome to the Lagrangian Trajectories Toolbox tutorial! \n",
+    "\n",
+    "The LT Toolbox is a Python library dedicated to the post-processing, visualisation and analysis of Lagrangian water parcel trajectories. The toolbox offers users two structures for working with Lagrangian trajectories: Trajectory Arrays (TrajArrays) and Trajectory Frames (TrajFrames).\n",
+    "\n",
+    "In this tutorial, we explore a specific application of TrajFrames: quantifying how water parcels are transformed along-stream in global ocean-sea ice hindcast simulations. This tutorial is based on the analysis conducted for the original research article: [Lagrangian Decomposition of the Meridional Heat Transport at 26.5N](DOI: 10.22541/essoar.170067209.93767492/v1) by Tooth et al. (in review).\n",
+    "\n",
+    "In this tutorial, we will learn how to:\n",
+    "\n",
+    "+ **Store** Lagrangian water parcel trajectory crossings of a given hydrographic section in a TrajFrame.\n",
+    "\n",
+    "+ **Compute** volume transport statistics using grouped expressions.\n",
+    "\n",
+    "+ **Compute** Lagrangian Overturning Functions (LOFs) for a chosen flow structure at a given hydrographic section.\n",
+    "\n",
+    "+ **Compute** Meridional Heat Transport (MHT) for a chosen flow structure across a given hydrographic section.\n",
+    "\n",
+    "+ **Plot** the time-mean and time-evolving LOFs & MHT across a given hydrographic section.\n",
+    "\n",
+    "To learn about the advanced analysis with TrajFrames, including using binned statistics, users should see **LT Toolbox Tutorial: 3. Advanced Analysis with Trajectory Frames**.\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": []
+  }
+ ],
+ "metadata": {
+  "language_info": {
+   "name": "python"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}

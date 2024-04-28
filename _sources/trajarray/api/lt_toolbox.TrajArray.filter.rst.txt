@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajArray.filter
+============================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajArray.filter

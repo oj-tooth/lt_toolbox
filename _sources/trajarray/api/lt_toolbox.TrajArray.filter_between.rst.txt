@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajArray.filter\_between
+=====================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajArray.filter_between

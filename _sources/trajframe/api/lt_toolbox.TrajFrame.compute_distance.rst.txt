@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajFrame.compute\_distance
+=======================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajFrame.compute_distance

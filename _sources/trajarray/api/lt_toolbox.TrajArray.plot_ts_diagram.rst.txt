@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajArray.plot\_ts\_diagram
+=======================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajArray.plot_ts_diagram

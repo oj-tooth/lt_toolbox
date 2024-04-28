@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajArray.get\_value
+================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajArray.get_value

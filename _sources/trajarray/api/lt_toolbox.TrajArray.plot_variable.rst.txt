@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajArray.plot\_variable
+====================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajArray.plot_variable

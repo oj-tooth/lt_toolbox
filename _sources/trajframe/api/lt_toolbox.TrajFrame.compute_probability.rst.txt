@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajFrame.compute\_probability
+==========================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajFrame.compute_probability

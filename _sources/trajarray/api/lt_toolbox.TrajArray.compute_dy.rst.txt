@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajArray.compute\_dy
+=================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajArray.compute_dy

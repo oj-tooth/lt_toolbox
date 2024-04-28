@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajArray.compute\_transit\_time
+============================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajArray.compute_transit_time

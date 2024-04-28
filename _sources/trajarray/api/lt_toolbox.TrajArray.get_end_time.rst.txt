@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajArray.get\_end\_time
+====================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajArray.get_end_time

@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajArray.find\_polygon
+===================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajArray.find_polygon

@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajArray.add\_variable
+===================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajArray.add_variable

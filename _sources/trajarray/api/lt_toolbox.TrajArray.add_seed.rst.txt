@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajArray.add\_seed
+===============================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajArray.add_seed
