@@ -8,5 +8,5 @@ setup(name='lt_toolbox',
       author_email='oliver.tooth@seh.ox.ac.uk',
       license='MIT',
       packages=find_packages(),
-      install_requires=["numpy", "scipy", "polars", "xarray", "plotly"]
+      install_requires=["numpy", "scipy", "polars", "xarray", "plotly", "numba"]
       )

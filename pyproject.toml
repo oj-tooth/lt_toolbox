@@ -36,6 +36,7 @@ dependencies = [
     "typing_extensions>=4.9.0",
     "xarray>=2023.9.0",
     "zarr>=2.16.1",
+    "numba>=0.59.1",
 ]
 
 [project.urls]
