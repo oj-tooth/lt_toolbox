@@ -652,7 +652,7 @@ def binned_statistic_2d(df:pl.DataFrame | pl.LazyFrame,
     # Store variable x bins as ndarray:
     var_x_array = np.sort(result_pivot['values_x_binned'].to_numpy())
     # Drop variable x bins from DataFrame:
-    result_pivot = result_pivot.drop(columns='values_x_binned')
+    result_pivot = result_pivot.drop('values_x_binned')
 
     # Store variable y bins as sorted ndarray:
     var_y_array = np.sort(np.array(result_pivot.columns, dtype=np.float64))
@@ -802,7 +802,7 @@ def binned_group_statistic_2d(df:pl.DataFrame,
     # Initialise empty list to store results:
     result_array_list = []
     # Iterate over DataFrame groups:
-    for group, df_group in df_binned.group_by(by=groups, maintain_order=True):
+    for group, df_group in df_binned.group_by(groups, maintain_order=True):
         # Evaluate statistic over values stored in each bin:
         if statistic == 'mean':
             result = (df_group
@@ -858,7 +858,7 @@ def binned_group_statistic_2d(df:pl.DataFrame,
         # Store variable x bins as ndarray:
         var_x_array = np.sort(result_pivot['values_x_binned'].to_numpy())
         # Drop variable x bins from DataFrame:
-        result_pivot = result_pivot.drop(columns='values_x_binned')
+        result_pivot = result_pivot.drop('values_x_binned')
 
         # Store variable y bins as sorted ndarray:
         var_y_array = np.sort(np.array(result_pivot.columns, dtype=np.float64))
@@ -1082,7 +1082,7 @@ def binned_lazy_group_statistic_2d(ldf:pl.LazyFrame,
         # Store variable x bins as ndarray:
         var_x_array = np.sort(result_pivot['values_x_binned'].to_numpy())
         # Drop variable x bins from DataFrame:
-        result_pivot = result_pivot.drop(columns='values_x_binned')
+        result_pivot = result_pivot.drop('values_x_binned')
 
         # Store variable y bins as sorted ndarray:
         var_y_array = np.sort(np.array(result_pivot.columns, dtype=np.float64))
