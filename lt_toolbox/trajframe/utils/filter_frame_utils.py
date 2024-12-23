@@ -63,41 +63,41 @@ def filter_traj(df:pl.DataFrame,
     if operator == '==':
         # Filter DataFrame according to drop argument:
         if drop is True:
-            df_reduced = df.filter((~pl.col(variable).list.eval(pl.element() == pl.lit(value).cast(value_dtype))).list.any())
+            df_reduced = df.filter(~pl.col(variable).list.eval(pl.element() == pl.lit(value).cast(value_dtype)).list.any())
         else:
-            df_reduced = df.filter((pl.col(variable).list.eval(pl.element() == pl.lit(value).cast(value_dtype))).list.any())
+            df_reduced = df.filter(pl.col(variable).list.eval(pl.element() == pl.lit(value).cast(value_dtype)).list.any())
 
     # Case 2. Not Equal
     elif operator == '!=':
         # Filter DataFrame according to drop argument:
         if drop is True:
-            df_reduced = df.filter((~pl.col(variable).list.eval(pl.element() != pl.lit(value).cast(value_dtype))).list.any())
+            df_reduced = df.filter(~pl.col(variable).list.eval(pl.element() != pl.lit(value).cast(value_dtype)).list.any())
         else:
-            df_reduced = df.filter((pl.col(variable).list.eval(pl.element() != pl.lit(value).cast(value_dtype))).list.any())
+            df_reduced = df.filter(pl.col(variable).list.eval(pl.element() != pl.lit(value).cast(value_dtype)).list.any())
 
     # Case 3. Less Than
     elif operator == '<':
         # Filter DataFrame according to drop argument:
         if drop is True:
-            df_reduced = df.filter((~pl.col(variable).list.eval(pl.element() < pl.lit(value).cast(value_dtype))).list.any())
+            df_reduced = df.filter(~pl.col(variable).list.eval(pl.element() < pl.lit(value).cast(value_dtype)).list.any())
         else:
-            df_reduced = df.filter((pl.col(variable).list.eval(pl.element() < pl.lit(value).cast(value_dtype))).list.any())
+            df_reduced = df.filter(pl.col(variable).list.eval(pl.element() < pl.lit(value).cast(value_dtype)).list.any())
 
     # Case 4. Greater Than
     elif operator == '>':
         # Filter DataFrame according to drop argument:
         if drop is True:
-            df_reduced = df.filter((~pl.col(variable).list.eval(pl.element() > pl.lit(value).cast(value_dtype))).list.any())
+            df_reduced = df.filter(~pl.col(variable).list.eval(pl.element() > pl.lit(value).cast(value_dtype)).list.any())
         else:
-            df_reduced = df.filter((pl.col(variable).list.eval(pl.element() > pl.lit(value).cast(value_dtype))).list.any())
+            df_reduced = df.filter(pl.col(variable).list.eval(pl.element() > pl.lit(value).cast(value_dtype)).list.any())
 
     # Case 5. Less Than or Equal
     elif operator == '<=':
         # Filter DataFrame according to drop argument:
         if drop is True:
-            df_reduced = df.filter((~pl.col(variable).list.eval(pl.element() <= pl.lit(value).cast(value_dtype))).list.any())
+            df_reduced = df.filter(~pl.col(variable).list.eval(pl.element() <= pl.lit(value).cast(value_dtype)).list.any())
         else:
-            df_reduced = df.filter((pl.col(variable).list.eval(pl.element() <= pl.lit(value).cast(value_dtype))).list.any())
+            df_reduced = df.filter(pl.col(variable).list.eval(pl.element() <= pl.lit(value).cast(value_dtype)).list.any())
 
     # Case 6. Greater Than or Equal
     elif operator == '>=':
