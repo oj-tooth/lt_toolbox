@@ -696,7 +696,7 @@ class TrajFrame:
 
         # Return output from exploded to Polars list dtypes:
         df_exp = (df_exp
-                    .group_by(by=pl.col('id'), maintain_order=True)
+                    .group_by(pl.col('id'), maintain_order=True)
                     .agg([
                         pl.col(list_cols).explode(),
                         ])
@@ -976,7 +976,7 @@ class TrajFrame:
         # Calculate grouped expression:
         # -----------------------------
         grouped_data = (self.data
-                        .groupby(by=group, maintain_order=True)
+                        .group_by(group, maintain_order=True)
                         .agg(expr.alias(alias))
                         )
 
