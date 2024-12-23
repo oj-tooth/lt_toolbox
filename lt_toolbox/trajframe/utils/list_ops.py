@@ -61,7 +61,7 @@ class EagerListOperations:
                 .with_columns(
                     expr.alias(alias)
                     )
-                .group_by(by='id', maintain_order=True)
+                .group_by(pl.col('id'), maintain_order=True)
                 .agg(pl.all())
                 )
 
@@ -134,12 +134,12 @@ class EagerListOperations:
         # Applying cumulative sum & returning DataFrame to condensed list format:
         if cum_dist:
             df_exp = (df_exp
-                    .group_by(by='id', maintain_order=True)
-                    .agg(pl.col('dist').cumsum())
+                    .group_by(pl.col('id'), maintain_order=True)
+                    .agg(pl.col('dist').cum_sum())
                     )
         else:
             df_exp = (df_exp
-                    .group_by(by='id', maintain_order=True)
+                    .group_by(pl.col('id'), maintain_order=True)
                     .agg(pl.col('dist'))
                     )
 
@@ -203,7 +203,7 @@ class EagerListOperations:
 
         # Returning DataFrame to condensed list format:
         df_exp = (df_exp
-                .group_by(by='id', maintain_order=True)
+                .group_by(pl.col('id'), maintain_order=True)
                 .agg(pl.col('direction'))
                 )
 
@@ -261,7 +261,7 @@ class EagerListOperations:
 
         # Returning DataFrame to condensed list format:
         df_exp = (df_exp
-                .group_by(by='id', maintain_order=True)
+                .group_by(pl.col('id'), maintain_order=True)
                 .agg(pl.col('speed'))
                 )
 
@@ -331,7 +331,7 @@ class LazyListOperations:
                 .with_columns(
                     expr.alias(alias)
                     )
-                .group_by(by='id', maintain_order=True)
+                .group_by(pl.col('id'), maintain_order=True)
                 .agg(pl.all())
                 )
 
@@ -406,12 +406,12 @@ class LazyListOperations:
         # Applying cumulative sum & returning LazyFrame to condensed list format:
         if cum_dist:
             ldf_exp = (ldf_exp
-                       .group_by(by='id', maintain_order=True)
-                       .agg(pl.col('dist').cumsum())
+                       .group_by(pl.col('id'), maintain_order=True)
+                       .agg(pl.col('dist').cum_sum())
                        )
         else:
             ldf_exp = (ldf_exp
-                       .group_by(by='id', maintain_order=True)
+                       .group_by(pl.col('id'), maintain_order=True)
                        .agg(pl.col('dist'))
                        )
 
@@ -479,7 +479,7 @@ class LazyListOperations:
 
         # Returning LazyFrame to condensed list format:
         ldf_exp = (ldf_exp
-                   .group_by(by='id', maintain_order=True)
+                   .group_by(pl.col('id'), maintain_order=True)
                    .agg(pl.col('direction'))
                    )
 
@@ -539,7 +539,7 @@ class LazyListOperations:
 
         # Returning LazyFrame to condensed list format:
         ldf_exp = (ldf_exp
-                   .group_by(by='id', maintain_order=True)
+                   .group_by(pl.col('id'), maintain_order=True)
                    .agg(pl.col('speed'))
                    )
 
