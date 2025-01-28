@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajFrame.plot\_trajectories
+========================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajFrame.plot_trajectories

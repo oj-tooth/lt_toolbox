@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajFrame.transform\_trajectory\_coords
+===================================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajFrame.transform_trajectory_coords
