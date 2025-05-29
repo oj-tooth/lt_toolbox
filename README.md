@@ -39,54 +39,24 @@
 
 The Lagrangian Trajectories Toolbox is a Python library dedicated to the post-processing, visualisation and analysis of Lagrangian particle trajectories. 
 
-The toolbox offers users two data structures to work with Lagrangian particle trajectories: Trajectory Arrays (TrajArrays) and Trajectory Frames (TrajFrames).
-TrajArrays utilise [xarray](http://xarray.pydata.org/en/stable/#) multidimensional data arrays to store attribute variables (e.g. lat, lon, temperature etc.) evaluated along trajectories. Meanwhile, TrajFrames make use of the blazingly fast [polars](https://pola-rs.github.io/polars-book/user-guide/index.html) DataFrame library to store attribute variables in a tabular format. The choice of whether to use a TrajArray of TrajFrame in your analysis is often determined by the Lagrangian trajectory code used to evaluate your particle trajectories in the first place. For example, TrajArrays are best suited for working with .zarr files output from [OceanParcels](https://oceanparcels.org), whereas TrajFrames are well suited for working with large .csv files generated from [TRACMASS](https://www.tracmass.org).
+The toolbox introduces the Trajectory Frames (TrajFrames) data structure to work with Lagrangian particle trajectories. TrajFrames make use of the blazingly fast [polars](https://pola-rs.github.io/polars-book/user-guide/index.html) DataFrame library to store attribute variables in a tabular format. Traditionally, the data structure used to store trajectories has been determined by the Lagrangian trajectory code used to evaluate particle trajectories. However, TrajFrames are well suited for working with both large .csv files generated from [TRACMASS](https://www.tracmass.org) and .zarr files output from [OceanParcels](https://oceanparcels.org).
 
-Beyond simply storing Lagrangian data, TrajArrays and TrajFrames contain a wide range of built-in methods to enable the efficient post-processing and visualisation of particle trajectories with [plotly](https://plotly.com/python-api-reference/index.html), [matplotlib](https://matplotlib.org) and [Cartopy](https://scitools.org.uk/cartopy/docs/latest/).
+Beyond simply storing Lagrangian data, TrajFrames contain a wide range of built-in methods to enable the efficient post-processing and visualisation of particle trajectories with [plotly](https://plotly.com/python-api-reference/index.html), [matplotlib](https://matplotlib.org) and [Cartopy](https://scitools.org.uk/cartopy/docs/latest/).
 
-#### The LT Toolbox is under active development - current features include:
+Current Features of the LT Toolbox:
+-----------------------------------
 
-+ **Store** the attribute variables of Lagrangian trajectories in a TrajArray or TrajFrame object.
+* **Store** the attribute variables of Lagrangian trajectories in a TrajFrame object.
 
-+ **Add** new variables, such as transit times and seeding levels, to your TrajArray or TrajFrame.
+* **Add** new variables, such as transit times and seeding levels, to your TrajFrame.
 
-+ **Filter** trajectories using any attribute variable contained in your TrajArray or TrajFrame.
+* **Filter** trajectories using any attribute variable contained in your TrajFrame.
 
-+ **Get** existing features, including trajectory start/end times, start/end locations and durations.
+* **Get** existing features, including trajectory start/end times, start/end locations and durations.
 
-+ **Compute** metrics, such as distance travelled, binned-statistics and Lagrangian probabilities from trajectories.
+* **Compute** metrics, such as distance travelled, binned-statistics and Lagrangian probabilities from trajectories.
 
-+ **Plot** trajectories, properties and probability distributions in the form of maps, time series, temperature-salinity diagrams and more.
-
-### Background
-
-At the centre of the LT Toolbox are the TrajArray & TrajFrame objects. At their simplest, TrajArrays and TrajFrames represent containers for xarray DataSets and polars DataFrames respectively. This means that users always have complete access to their original trajectory data and also all of xarray's and polar's existing functionality.
-
-By looking at an example TrajArray (Fig. 1), we can see that our original DataSet must be 2-dimensional with dimensions traj (trajectory - representing one particle / float) and obs (observation - representing one time-level). This formatting follows the [NCEI template](https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/trajectoryIncomplete.cdl) for trajectory data, in which attribute variables for each particle / float are stored as a function of a series of observations (obs).
-
-<p align="centre">
-    <img src="docs/images/Figure1_Background.png" alt="Fig1" width="350" height="180"> 
- </a>
-<p
-
-
-For improved functionality, all attribute variables stored inside our DataSet are made accessible with the command:
-
-```sh
-traj.{variable}
-```
-where traj is our trajectories object and {variable} refers to the name of any attribute variable in our original DataSet. 
-
-The greatest value of the trajectories object comes with the use of the built-in functions specifically designed for post-processing, visualisation and analysis of Lagrangain water parcel trajectories. Below offers a great example of how, in only one line, the user can add a new unique ID attribute variable, trajectories according to their IDs and then map them onto the Earth's surface:
-
-```sh
-traj.add_id().filter(query='id < 1000', drop=False).map_trajectories()
-```
-
-<p align="centre">
-    <img src="docs/images/Figure2_Background.png" alt="Fig2" width="250" height="200"> 
- </a>
-<p
+* **Plot** trajectories, properties and probability distributions in the form of maps, time series, temperature-salinity diagrams and more.
 
 <!-- Getting Started -->
 ## Getting Started
@@ -114,23 +84,34 @@ For further details on each of the modules included in the LT Toolbox view our [
 
 ## Example
 
-Below we show an example of how we can quickly calculate and plot a Lagrangian probability map from a collection of water parcel trajectories evaluated using a 1 degree ocean general circulation model (ORCA1-N406 simulation):
+Below we show an example of how we can quickly calculate and plot a Lagrangian probability map from a collection of water parcel trajectories evaluated using a 1/12 degree ocean general circulation model ([ORCA0083-GO8p7 JRA55-do](https://dx.doi.org/10.5285/399b0f762a004657a411a9ea7203493a) simulation):
 
-```sh
-# Importing LT Toolbox following pip installation:
+```python
+# Importing LT Toolbox after installing with pip:
 import lt_toolbox as ltt
 
-# Define filepath to example ORCA1 output data:
-traj_filepath = ".../lt_toolbox/tutorials/data/ORCA1-N406_TRACMASS_example.zarr"
+# Defining filepath to our example ORCA0083-GO8p7 output trajectory file:
+traj_filepath = "./data/ORCA0083-GO8p7_JRA55_SPNA_1995_example.parquet"
 
-# Open output .zarr store as an eager xarray DataSet:
-dataset = xr.open_zarr(traj_filepath, chunks=None)
+# Open output .parquet file as a DataFrame.
+dataset = pl.read_parquet(traj_filepath, use_pyarrow=True)
 
-# Create a TrajArray from our DataSet:
-traj = ltt.TrajArray(ds=dataset)
+# Create a TrajFrame from the DataFrame:
+traj = ltt.TrajFrame(source=dataset, condense=True)
+```
 
+Next, let's plot a Lagrangian probability map using our TrajFrame:
+
+```python
 # Creating a map of the binned probability of all water parcel pathways.
-traj.map_probability(bin_res=1, prob_type='traj', cmap='viridis')
+traj.compute_probability(bin_res=0.25, # Bin resolution in degrees
+                         prob_type='traj', # Type of Lagrangian probability map.
+                         group=None, # Do not group trajectories - return single map.
+                         append=False, # Replace existing data in summary Dataset.
+                         )
+
+# Plotting the Lagrangian probability in discrete 2-D longitude-latitude bins:
+traj.summary_data.probability.plot()
 ```
 
 <p align="centre">
@@ -147,7 +128,7 @@ Distributed under the MIT License. See LICENSE file for further details.
 <!-- Contact -->
 ## Contact
 
-The LT Toolbox is developed and maintained by Ollie Tooth at the University of Oxford, UK. If you would like to get in contact about this project, please email oliver.tooth@seh.ox.ac.uk.
+The LT Toolbox is developed and maintained by Ollie Tooth whilst at the University of Oxford, UK. I have since moved to the National Oceangraphy Centre, UK, so if you would like to get in contact about this project, please email: **oliver.tooth@noc.ac.uk**.
 
 <!-- Acknowledgements -->
 ## Acknowledgements
