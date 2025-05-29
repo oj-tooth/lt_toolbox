@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajFrame.compute\_grouped\_expr
+============================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajFrame.compute_grouped_expr

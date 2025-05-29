@@ -1,0 +1,881 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lt_toolbox.conversions.export_utils &#8212; LT Toolbox 0.1.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/lt_toolbox/conversions/export_utils';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/LT_Toolbox_Logo_Icon.png" class="logo__image only-light" alt="LT Toolbox 0.1.0 documentation - Home"/>
+    <img src="../../../_static/LT_Toolbox_Logo_Icon.png" class="logo__image only-dark pst-js-only" alt="LT Toolbox 0.1.0 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../index.html">
+    Home
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorials.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../index.html">
+    Home
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorials.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">lt_toolbox.conversions.export_utils</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for lt_toolbox.conversions.export_utils</h1><div class="highlight"><pre>
+<span></span><span class="c1">##############################################################################</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">export_utils.py</span>
+
+<span class="sd">Description:</span>
+<span class="sd">Defines export functions for conversions module of Lagrangian Trajectories.</span>
+<span class="sd">Toolbox</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1">##############################################################################</span>
+<span class="c1"># Importing relevant packages.</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">zarr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="c1">##############################################################################</span>
+<span class="c1"># Define eval_obs_numbers() function.</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">eval_obs_numbers</span><span class="p">(</span><span class="n">time</span><span class="p">:</span><span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create Series with observation number (int)</span>
+<span class="sd">    for the corresponding positions and properties</span>
+<span class="sd">    stored at regular or irregular time-intervals</span>
+<span class="sd">    along a Lagrangian trajectory.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    time : Series</span>
+<span class="sd">        times corresponding to each observation along</span>
+<span class="sd">        Lagrangian trajectory.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    obs : Series</span>
+<span class="sd">        observation number along Lagrangian trajectory.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Define observation number along Lagrangian trajectory:</span>
+    <span class="n">obs</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;obs&#39;</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">time</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">obs</span>
+
+<span class="c1">##############################################################################</span>
+<span class="c1"># Define export_csv_to_zarr() function.</span>
+
+<div class="viewcode-block" id="export_csv_to_zarr">
+<a class="viewcode-back" href="../../../conversions/api/lt_toolbox.conversions.export_csv_to_zarr.html#lt_toolbox.conversions.export_csv_to_zarr">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">export_csv_to_zarr</span><span class="p">(</span><span class="n">csv_filename</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
+                       <span class="n">zarr_filename</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
+                       <span class="n">variables</span><span class="p">:</span><span class="nb">list</span><span class="p">,</span>
+                       <span class="n">attrs</span><span class="p">:</span><span class="nb">dict</span><span class="p">,</span>
+                       <span class="n">read_options</span><span class="p">:</span><span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="o">=</span><span class="kc">None</span>
+                       <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Export Lagrangian trajectory properties and positions</span>
+<span class="sd">    stored in tabular format in .csv file to array format</span>
+<span class="sd">    in xarray DataSet saved to .zarr store.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    csv_filename : str</span>
+<span class="sd">        Path to input .csv file storing Lagrangian trajectories.</span>
+<span class="sd">    zarr_filename : str</span>
+<span class="sd">        Path to output .zarr store containing Lagrangian trajectories.</span>
+<span class="sd">    variables : list</span>
+<span class="sd">        List of variable names to include in .zarr store.</span>
+<span class="sd">    attrs : dict</span>
+<span class="sd">        Attributes of resulting xarray DataSet.</span>
+<span class="sd">    read_options : dict | None</span>
+<span class="sd">        Dictionary of optional keyword arguments to be</span>
+<span class="sd">        passed to polars read_csv().</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    zarr store</span>
+<span class="sd">        DataSet containing Lagrangian trajectory properties</span>
+<span class="sd">        and positions in array format.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># -------------</span>
+    <span class="c1"># Raise errors:</span>
+    <span class="c1"># -------------</span>
+    <span class="c1"># Mandatory arguments:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">csv_filename</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: csv_filename must be a string.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">zarr_filename</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: zarr_filename must be a string.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: variables must be a list.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attrs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: attrs must be a dictionary.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Default value arguments:</span>
+    <span class="k">if</span> <span class="n">read_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">read_options</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: read_options must be a dictionary.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">read_options</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># -----------------------------------------------</span>
+    <span class="c1"># Write Lagrangian trajectories to .zarr store:</span>
+    <span class="c1"># -----------------------------------------------</span>
+    <span class="c1"># Import Lagrangian trajectories .csv file as DataFrame:</span>
+    <span class="n">df_run</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">csv_filename</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">read_options</span><span class="p">))</span>
+
+    <span class="c1"># Add observation numbers for each Lagrangian trajectory in DataFrame:</span>
+    <span class="n">df_obs</span> <span class="o">=</span> <span class="p">(</span><span class="n">df_run</span>
+        <span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s1">&#39;id&#39;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">),</span> <span class="n">maintain_order</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+            <span class="n">pl</span><span class="o">.</span><span class="n">map_groups</span><span class="p">(</span><span class="n">exprs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">],</span> <span class="n">function</span><span class="o">=</span><span class="k">lambda</span> <span class="n">args</span> <span class="p">:</span> <span class="n">eval_obs_numbers</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;obs&#39;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="c1"># Add exploded observations column to DataFrame:</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="p">(</span><span class="n">df_run</span>
+        <span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s1">&#39;id&#39;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+            <span class="n">df_obs</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s1">&#39;obs&#39;</span><span class="p">)[</span><span class="s1">&#39;obs&#39;</span><span class="p">]</span>
+            <span class="p">))</span>
+
+    <span class="c1"># Initialise empty list to store ndarrays for column variables</span>
+    <span class="n">var_arrays</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Iterate over column variables:</span>
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">variables</span><span class="p">):</span>
+        <span class="c1"># For non-ID variables pivot to form table of values with</span>
+        <span class="c1"># rows -&gt; IDs and columns -&gt; obs dimensions:</span>
+        <span class="n">var</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">pivot</span><span class="p">(</span><span class="n">values</span><span class="o">=</span><span class="n">col</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s1">&#39;obs&#39;</span><span class="p">)</span>
+        <span class="c1"># Drop first column storing unique ID and append as</span>
+        <span class="c1"># ndarray to list:</span>
+        <span class="n">var_arrays</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s1">&#39;id&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
+
+    <span class="c1"># Define trajectory dimension 1-D array as unique IDs:</span>
+    <span class="n">traj_array</span> <span class="o">=</span> <span class="n">var</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+    <span class="c1"># Define observation dimension 1-D as sequence to largest no. of observations:</span>
+    <span class="n">obs_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="c1"># Construct dictionary to define DataArrays from ndarrays:</span>
+    <span class="n">data_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">variables</span><span class="p">[</span><span class="n">n</span><span class="p">]:</span> <span class="n">var_arrays</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">variables</span><span class="p">))}</span>
+
+    <span class="c1"># Define DataSet using (trajectory x obs) arrays for each variable:</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span>
+        <span class="n">data_vars</span><span class="o">=</span><span class="n">data_dict</span><span class="p">,</span>
+        <span class="n">coords</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+            <span class="n">trajectory</span><span class="o">=</span><span class="p">([</span><span class="s2">&quot;trajectory&quot;</span><span class="p">],</span> <span class="n">traj_array</span><span class="p">),</span>
+            <span class="n">obs</span><span class="o">=</span><span class="p">([</span><span class="s2">&quot;obs&quot;</span><span class="p">],</span> <span class="n">obs_array</span><span class="p">),</span>
+        <span class="p">),</span>
+        <span class="n">attrs</span><span class="o">=</span><span class="n">attrs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Define compressor:</span>
+    <span class="n">compressor</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">Blosc</span><span class="p">(</span><span class="n">cname</span><span class="o">=</span><span class="s2">&quot;zstd&quot;</span><span class="p">,</span> <span class="n">clevel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="c1"># Define encodings dictionary:</span>
+    <span class="n">enc</span> <span class="o">=</span> <span class="p">{</span><span class="n">var</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;compressor&quot;</span><span class="p">:</span> <span class="n">compressor</span><span class="p">}</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">}</span>
+
+    <span class="c1"># Write Lagrangian trajectories to compressed .zarr store:</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">to_zarr</span><span class="p">(</span><span class="n">zarr_filename</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">enc</span><span class="p">)</span></div>
+
+
+<span class="c1">##############################################################################</span>
+<span class="c1"># Define export_parquet_to_zarr() function.</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">export_parquet_to_zarr</span><span class="p">(</span><span class="n">parquet_filename</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
+                           <span class="n">zarr_filename</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
+                           <span class="n">variables</span><span class="p">:</span><span class="nb">list</span><span class="p">,</span>
+                           <span class="n">attrs</span><span class="p">:</span><span class="nb">dict</span><span class="p">,</span>
+                           <span class="n">read_options</span><span class="p">:</span><span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                           <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Export Lagrangian trajectory properties and positions</span>
+<span class="sd">    stored in tabular format in .parquet file to array format</span>
+<span class="sd">    in xarray DataSet saved to .zarr store.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    parquet_filename : str</span>
+<span class="sd">        Path to input .parquet file storing Lagrangian trajectories.</span>
+<span class="sd">    zarr_filename : str</span>
+<span class="sd">        Path to output .zarr store containing Lagrangian trajectories.</span>
+<span class="sd">    vars : list</span>
+<span class="sd">        List of variable names to include in .zarr store.</span>
+<span class="sd">    attrs : dict</span>
+<span class="sd">        Attributes of resulting xarray DataSet.</span>
+<span class="sd">    read_options : dict</span>
+<span class="sd">        Dictionary of optional keyword arguments to be</span>
+<span class="sd">        passed to polars read_csv().</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    zarr store</span>
+<span class="sd">        DataSet containing Lagrangian trajectory properties</span>
+<span class="sd">        and positions in array format.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># -------------</span>
+    <span class="c1"># Raise errors:</span>
+    <span class="c1"># -------------</span>
+    <span class="c1"># Mandatory arguments:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parquet_filename</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: parquet_filename must be a string.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">zarr_filename</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: zarr_filename must be a string.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: variables must be a list.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attrs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: attrs must be a dictionary.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Default value arguments:</span>
+    <span class="k">if</span> <span class="n">read_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">read_options</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: read_options must be a dictionary.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">read_options</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># -----------------------------------------------</span>
+    <span class="c1"># Write Lagrangian trajectories to .zarr store:</span>
+    <span class="c1"># -----------------------------------------------</span>
+    <span class="c1"># Import Lagrangian trajectories .csv file as DataFrame:</span>
+    <span class="n">df_run</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">read_parquet</span><span class="p">(</span><span class="n">parquet_filename</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">read_options</span><span class="p">))</span>
+
+    <span class="c1"># Raise error if required columns not in DataFrame:</span>
+    <span class="k">if</span> <span class="s1">&#39;id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df_run</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;missing column: &#39;id&#39; column not found in DataFrame.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;time&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df_run</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;missing column: &#39;time&#39; column not found in DataFrame.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Add observation numbers for each Lagrangian trajectory in DataFrame:</span>
+    <span class="n">df_obs</span> <span class="o">=</span> <span class="p">(</span><span class="n">df_run</span>
+        <span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s1">&#39;id&#39;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">),</span> <span class="n">maintain_order</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+            <span class="n">pl</span><span class="o">.</span><span class="n">map_groups</span><span class="p">(</span><span class="n">exprs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">],</span> <span class="n">function</span><span class="o">=</span><span class="k">lambda</span> <span class="n">args</span> <span class="p">:</span> <span class="n">eval_obs_numbers</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;obs&#39;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="c1"># Add exploded observations column to DataFrame:</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="p">(</span><span class="n">df_run</span>
+        <span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s1">&#39;id&#39;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+            <span class="n">df_obs</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s1">&#39;obs&#39;</span><span class="p">)[</span><span class="s1">&#39;obs&#39;</span><span class="p">]</span>
+            <span class="p">))</span>
+
+    <span class="c1"># Initialise empty list to store ndarrays for column variables</span>
+    <span class="n">var_arrays</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Iterate over column variables:</span>
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">variables</span><span class="p">):</span>
+        <span class="c1"># For non-ID variables pivot to form table of values with</span>
+        <span class="c1"># rows -&gt; IDs and columns -&gt; obs dimensions:</span>
+        <span class="n">var</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">pivot</span><span class="p">(</span><span class="n">values</span><span class="o">=</span><span class="n">col</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s1">&#39;obs&#39;</span><span class="p">)</span>
+        <span class="c1"># Drop first column storing unique ID and append as</span>
+        <span class="c1"># ndarray to list:</span>
+        <span class="n">var_arrays</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s1">&#39;id&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
+
+    <span class="c1"># Define trajectory dimension 1-D array as unique IDs:</span>
+    <span class="n">traj_array</span> <span class="o">=</span> <span class="n">var</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+    <span class="c1"># Define observation dimension 1-D as sequence to largest no. of observations:</span>
+    <span class="n">obs_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="c1"># Construct dictionary to define DataArrays from ndarrays:</span>
+    <span class="n">data_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">variables</span><span class="p">[</span><span class="n">n</span><span class="p">]:</span> <span class="p">([</span><span class="s2">&quot;trajectory&quot;</span><span class="p">,</span> <span class="s2">&quot;obs&quot;</span><span class="p">],</span> <span class="n">var_arrays</span><span class="p">[</span><span class="n">n</span><span class="p">])</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">variables</span><span class="p">))}</span>
+
+    <span class="c1"># Define DataSet using (trajectory x obs) arrays for each variable:</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span>
+        <span class="n">data_vars</span><span class="o">=</span><span class="n">data_dict</span><span class="p">,</span>
+        <span class="n">coords</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+            <span class="n">trajectory</span><span class="o">=</span><span class="p">([</span><span class="s2">&quot;trajectory&quot;</span><span class="p">],</span> <span class="n">traj_array</span><span class="p">),</span>
+            <span class="n">obs</span><span class="o">=</span><span class="p">([</span><span class="s2">&quot;obs&quot;</span><span class="p">],</span> <span class="n">obs_array</span><span class="p">),</span>
+        <span class="p">),</span>
+        <span class="n">attrs</span><span class="o">=</span><span class="n">attrs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Define compressor:</span>
+    <span class="n">compressor</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">Blosc</span><span class="p">(</span><span class="n">cname</span><span class="o">=</span><span class="s2">&quot;zstd&quot;</span><span class="p">,</span> <span class="n">clevel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="c1"># Define encodings dictionary:</span>
+    <span class="n">enc</span> <span class="o">=</span> <span class="p">{</span><span class="n">var</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;compressor&quot;</span><span class="p">:</span> <span class="n">compressor</span><span class="p">}</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">}</span>
+
+    <span class="c1"># Write Lagrangian trajectories to compressed .zarr store:</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">to_zarr</span><span class="p">(</span><span class="n">zarr_filename</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">enc</span><span class="p">)</span>
+
+<span class="c1">##############################################################################</span>
+<span class="c1"># Define export_zarr_to_parquet() function.</span>
+
+<div class="viewcode-block" id="export_zarr_to_parquet">
+<a class="viewcode-back" href="../../../conversions/api/lt_toolbox.conversions.export_zarr_to_parquet.html#lt_toolbox.conversions.export_zarr_to_parquet">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">export_zarr_to_parquet</span><span class="p">(</span><span class="n">zarr_filename</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
+                           <span class="n">parquet_filename</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
+                           <span class="n">read_options</span><span class="p">:</span><span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">write_options</span><span class="p">:</span><span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="o">=</span><span class="kc">None</span>
+                           <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Export Lagrangian trajectory properties and positions</span>
+<span class="sd">    stored in tabular format in .csv file to array format</span>
+<span class="sd">    in xarray DataSet saved to .zarr store.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    zarr_filename : str</span>
+<span class="sd">        Path to input .zarr store containing Lagrangian trajectories.</span>
+<span class="sd">    parquet_filename : str</span>
+<span class="sd">        Path to output .csv file storing Lagrangian trajectories.</span>
+<span class="sd">    vars : list</span>
+<span class="sd">        List of variable names to include in .parquet file.</span>
+<span class="sd">    read_options : dict</span>
+<span class="sd">        Dictionary of optional keyword arguments to be</span>
+<span class="sd">        passed to xarray open_zarr().</span>
+<span class="sd">    write_options : dict</span>
+<span class="sd">        Dictionary of optional keyword arguments to be</span>
+<span class="sd">        passed to polars write_parquet().</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    parquet file</span>
+<span class="sd">        DataFrame containing Lagrangian trajectory properties</span>
+<span class="sd">        and positions in tabular format.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># -------------</span>
+    <span class="c1"># Raise errors:</span>
+    <span class="c1"># -------------</span>
+    <span class="c1"># Mandatory arguments:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parquet_filename</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: parquet_filename must be a string.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">zarr_filename</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: zarr_filename must be a string.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Default value arguments:</span>
+    <span class="k">if</span> <span class="n">read_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">read_options</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: read_options must be a dictionary.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">read_options</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">write_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">write_options</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: write_options must be a dictionary.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">write_options</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># -----------------------------------------------</span>
+    <span class="c1"># Write Lagrangian trajectories to .parquet file:</span>
+    <span class="c1"># -----------------------------------------------</span>
+    <span class="c1"># Import Lagrangian trajectories .zarr file as DataSet:</span>
+    <span class="n">ds_run</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_zarr</span><span class="p">(</span><span class="n">zarr_filename</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">read_options</span><span class="p">))</span>
+
+    <span class="c1"># Transform DataSet to Dask DataFrame:</span>
+    <span class="n">df_dask</span> <span class="o">=</span> <span class="p">(</span><span class="n">ds_run</span>
+               <span class="o">.</span><span class="n">to_dask_dataframe</span><span class="p">(</span><span class="n">dim_order</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;trajectory&#39;</span><span class="p">,</span> <span class="s1">&#39;obs&#39;</span><span class="p">],</span> <span class="n">set_index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+               <span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+               <span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s1">&#39;obs&#39;</span><span class="p">)</span>
+               <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;trajectory&#39;</span><span class="p">:</span><span class="s1">&#39;id&#39;</span><span class="p">})</span>
+               <span class="p">)</span>
+
+    <span class="c1"># Defining polars Dataframe from Dask DataFrame:</span>
+    <span class="c1"># NOTE: This loads the entire Dask DataFrame into memory.</span>
+    <span class="n">df_polars</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">from_pandas</span><span class="p">(</span><span class="n">df_dask</span><span class="o">.</span><span class="n">compute</span><span class="p">())</span>
+
+    <span class="c1"># Write polars DataFrame to .parquet file:</span>
+    <span class="n">df_polars</span><span class="o">.</span><span class="n">write_parquet</span><span class="p">(</span><span class="n">parquet_filename</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">write_options</span><span class="p">))</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Completed: Lagrangian trajectories written to .parquet file: </span><span class="si">{</span><span class="n">parquet_filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<span class="c1">##############################################################################</span>
+<span class="c1"># Define export_zarr_to_mfparquet() function.</span>
+
+<div class="viewcode-block" id="export_zarr_to_mfparquet">
+<a class="viewcode-back" href="../../../conversions/api/lt_toolbox.conversions.export_zarr_to_mfparquet.html#lt_toolbox.conversions.export_zarr_to_mfparquet">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">export_zarr_to_mfparquet</span><span class="p">(</span><span class="n">zarr_filename</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
+                             <span class="n">parquet_filedir</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
+                             <span class="n">parquet_filename</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
+                             <span class="n">npartitions</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span>
+                             <span class="n">read_options</span><span class="p">:</span><span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                             <span class="n">write_options</span><span class="p">:</span><span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="o">=</span><span class="kc">None</span>
+                             <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Export Lagrangian trajectory properties and positions</span>
+<span class="sd">    stored in array format in .zarr store to tabular format</span>
+<span class="sd">    in multifile .parquet store.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    zarr_filename : str</span>
+<span class="sd">        Path to input .zarr store containing Lagrangian trajectories.</span>
+<span class="sd">    parquet_filedir : str</span>
+<span class="sd">        Path to output .parquet store containing Lagrangian trajectories.</span>
+<span class="sd">    parquet_filename : str</span>
+<span class="sd">        Prefix of .parquet files containing Lagrangian trajectories.</span>
+<span class="sd">    npartitions : int, optional</span>
+<span class="sd">        Number of partitions to split Dask DataFrame into.</span>
+<span class="sd">        The default is &#39;auto&#39; (i.e., automatically determined</span>
+<span class="sd">        by the xarray to_dask_dataframe() function).</span>
+<span class="sd">    read_options : dict</span>
+<span class="sd">        Dictionary of optional keyword arguments to be</span>
+<span class="sd">        passed to xarray open_zarr().</span>
+<span class="sd">    write_options : dict</span>
+<span class="sd">        Dictionary of optional keyword arguments to be</span>
+<span class="sd">        passed to dask to_parquet().</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    parquet store</span>
+<span class="sd">        DataFrame containing Lagrangian trajectory properties</span>
+<span class="sd">        and positions in tabular format.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># -------------</span>
+    <span class="c1"># Raise errors:</span>
+    <span class="c1"># -------------</span>
+    <span class="c1"># Mandatory arguments:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parquet_filename</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: parquet_filename must be a string.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parquet_filedir</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: parquet_filedir must be a string.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">zarr_filename</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: zarr_filename must be a string.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Default value arguments:</span>
+    <span class="k">if</span> <span class="n">npartitions</span> <span class="o">!=</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">npartitions</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: npartitions must be an integer.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">read_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">read_options</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: read_options must be a dictionary.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">read_options</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">write_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">write_options</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;invalid type: write_options must be a dictionary.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">write_options</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># -----------------------------------------------</span>
+    <span class="c1"># Write Lagrangian trajectories to .parquet file:</span>
+    <span class="c1"># -----------------------------------------------</span>
+    <span class="c1"># Import Lagrangian trajectories .zarr file as DataSet:</span>
+    <span class="n">ds_run</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_zarr</span><span class="p">(</span><span class="n">zarr_filename</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">read_options</span><span class="p">))</span>
+
+    <span class="c1"># Transform DataSet to Dask DataFrame:</span>
+    <span class="n">df_dask</span> <span class="o">=</span> <span class="p">(</span><span class="n">ds_run</span>
+               <span class="o">.</span><span class="n">to_dask_dataframe</span><span class="p">(</span><span class="n">dim_order</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;trajectory&#39;</span><span class="p">,</span> <span class="s1">&#39;obs&#39;</span><span class="p">],</span> <span class="n">set_index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+               <span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+               <span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s1">&#39;obs&#39;</span><span class="p">)</span>
+               <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;trajectory&#39;</span><span class="p">:</span><span class="s1">&#39;id&#39;</span><span class="p">})</span>
+               <span class="p">)</span>
+
+    <span class="c1"># Repartition Dask DataFrame:</span>
+    <span class="k">if</span> <span class="n">npartitions</span> <span class="o">!=</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
+        <span class="n">df_dask</span> <span class="o">=</span> <span class="n">df_dask</span><span class="o">.</span><span class="n">repartition</span><span class="p">(</span><span class="n">npartitions</span><span class="o">=</span><span class="n">npartitions</span><span class="p">)</span>
+
+    <span class="c1"># Write Dask DataFrame to multiple .parquet files:</span>
+    <span class="n">df_dask</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">parquet_filedir</span><span class="p">,</span>
+                       <span class="n">write_index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                       <span class="n">name_function</span><span class="o">=</span><span class="k">lambda</span> <span class="n">n</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">parquet_filename</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">.parquet&quot;</span><span class="p">,</span>
+                       <span class="o">**</span><span class="p">(</span><span class="n">write_options</span><span class="p">)</span>
+                       <span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Completed: Lagrangian trajectories written to multi-file .parquet store: </span><span class="si">{</span><span class="n">parquet_filedir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023, Ollie Tooth.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
