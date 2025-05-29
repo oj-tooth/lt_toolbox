@@ -26,12 +26,12 @@ jobs:
         pip install sphinx
         pip install -r docs/requirements.txt
 
-    - name: Add .nojekyll
-      run: touch docs/_build/html/.nojekyll
-
     - name: Build documentation
       run: |
         sphinx-build -b html docs/ docs/_build/html
+
+    - name: Add .nojekyll
+      run: touch docs/_build/html/.nojekyll
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
