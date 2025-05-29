@@ -3,52 +3,41 @@ name: Documentation
 on:
   push:
     branches:
-      - main  # Deploy documentation only when pushing to main branch
+      - main
   release:
-    types:
-      - published # Deploy documentation only when a new release is published
-  
-  # Enable workflow to run manually using GitHub Actions
-  workflow_dispatch:
+    types: [published]
 
 jobs:
-  docs:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: ["ubuntu-latest"]
-        python-version: ["3.9"]
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v3
-    - uses: mamba-org/setup-micromamba@v1
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        environment-file: environment.yml
-        environment-name: lt_toolbox
-    - name: Build_Docs
-      shell: bash -l {0}
+        python-version: '3.x'
+
+    - name: Install dependencies
       run: |
-        pushd docs
-        pip install -r requirements.txt
-        make html
-    - name: Upload_HTML
-      uses: actions/upload-artifact@v3
-      with:
-        name: Documentation_HTML
-        path: docs/_build/html/
-    - name: Commit_to_gh-pages
+        python -m pip install --upgrade pip
+        pip install sphinx
+        pip install -r docs/requirements.txt
+
+    - name: Add .nojekyll
+      run: touch docs/_build/html/.nojekyll
+
+    - name: Build documentation
       run: |
-        git clone https://github.com/ammaraskar/sphinx-action-test.git --branch gh-pages --single-branch gh-pages
-        cp -r docs/_build/html/* gh-pages/
-        cd gh-pages
-        touch .nojekyll
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add .
-        git commit -m "Update documentation" -a || true
-    - name: Push_Changes
-      uses: ad-m/github-push-action@master
+        sphinx-build -b html docs/ docs/_build/html
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
       with:
-        branch: gh-pages
-        directory: gh-pages
-        force: true
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: docs/_build/html
+        publish_branch: gh-pages
+        force_orphan: true  # Optional: creates a clean gh-pages branch
+
