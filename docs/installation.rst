@@ -11,13 +11,4 @@ Users are strongly recommended to install the LT Toolbox in a new virtual enviro
 
 .. code-block:: text
 
-  pip install lt_toolbox
-
-GitHub
-------
-
-Contributors can access the latest development version of the LT Toolbox using a combination of GitHub & pip:
-
-.. code-block:: text
-
   pip install git+https://github.com/oj-tooth/lt_toolbox.git

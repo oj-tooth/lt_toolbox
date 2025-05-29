@@ -8,6 +8,6 @@ Users can also run the interactive versions of our tutorial Notebooks locally by
 .. nbgallery::
    :name: tutorial-overview
 
-   tutorials/tutorial_2_getting_started_with_TrajFrames.ipynb
-   tutorials/tutorial_3_advanced_analysis_with_TrajFrames.ipynb
-   tutorials/tutorial_4_OceanParcels_output_with_TrajFrames.ipynb
+   tutorials/tutorial_1_getting_started_with_TrajFrames.ipynb
+   tutorials/tutorial_2_advanced_analysis_with_TrajFrames.ipynb
+   tutorials/tutorial_3_OceanParcels_output_with_TrajFrames.ipynb
