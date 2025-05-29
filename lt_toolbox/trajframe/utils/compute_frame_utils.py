@@ -144,7 +144,7 @@ def binned_statistic_1d(df:pl.DataFrame | pl.LazyFrame,
     result_array = xr.DataArray(data=result[values].to_numpy(),
                                 dims=[var],
                                 coords={
-                                    var:([var], result['values_binned'].to_numpy().astype(np.float64))
+                                    var:(var, result['values_binned'].to_numpy().astype(np.float64))
                                 },
                                 name=values
                                 )
@@ -294,8 +294,8 @@ def binned_group_statistic_1d(df:pl.DataFrame,
         group_array = xr.DataArray(data=result[values].to_numpy()[np.newaxis, :],
                                     dims=[groups, var],
                                     coords={
-                                        groups:([groups], np.array([group_n])),
-                                        var:([var], result['values_binned'].to_numpy().astype(np.float64))
+                                        groups:(groups, np.array(group_n)),
+                                        var:(var, result['values_binned'].to_numpy().astype(np.float64))
                                     },
                                     name=values
                                     )
@@ -460,8 +460,8 @@ def binned_lazy_group_statistic_1d(ldf:pl.LazyFrame,
         group_array = xr.DataArray(data=result[values].to_numpy()[np.newaxis, :],
                                     dims=[groups, var],
                                     coords={
-                                        groups:([groups], np.array([val])),
-                                        var:([var], result['values_binned'].to_numpy().astype(np.float64))
+                                        groups:(groups, np.array(val)),
+                                        var:(var, result['values_binned'].to_numpy().astype(np.float64))
                                     },
                                     name=values
                                     )
@@ -666,8 +666,8 @@ def binned_statistic_2d(df:pl.DataFrame | pl.LazyFrame,
     result_array = xr.DataArray(data=result_pivot.to_numpy(),
                                 dims=[var_x, var_y],
                                 coords={
-                                    var_x:([var_x], var_x_array),
-                                    var_y:([var_y], var_y_array),
+                                    var_x:(var_x, var_x_array),
+                                    var_y:(var_y, var_y_array),
                                 },
                                 name=values
                                 )
@@ -872,9 +872,9 @@ def binned_group_statistic_2d(df:pl.DataFrame,
         group_array = xr.DataArray(data=result_pivot.to_numpy()[np.newaxis, :, :],
                                     dims=[groups, var_x, var_y],
                                     coords={
-                                        groups:([groups], np.array([group])),
-                                        var_x:([var_x], var_x_array),
-                                        var_y:([var_y], var_y_array),
+                                        groups:(groups, np.array(group)),
+                                        var_x:(var_x, var_x_array),
+                                        var_y:(var_y, var_y_array),
                                     },
                                     name=values
                                     )
@@ -1096,9 +1096,9 @@ def binned_lazy_group_statistic_2d(ldf:pl.LazyFrame,
         group_array = xr.DataArray(data=result_pivot.to_numpy()[np.newaxis, :, :],
                                     dims=[groups, var_x, var_y],
                                     coords={
-                                        groups:([groups], np.array([val])),
-                                        var_x:([var_x], var_x_array),
-                                        var_y:([var_y], var_y_array),
+                                        groups:(groups, np.array(val)),
+                                        var_x:(var_x, var_x_array),
+                                        var_y:(var_y, var_y_array),
                                     },
                                     name=values
                                     )
