@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajFrame.add\_variable
+===================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajFrame.add_variable

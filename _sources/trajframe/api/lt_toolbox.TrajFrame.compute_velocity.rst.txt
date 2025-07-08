@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajFrame.compute\_velocity
+=======================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajFrame.compute_velocity

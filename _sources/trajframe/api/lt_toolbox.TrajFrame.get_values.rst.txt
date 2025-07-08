@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajFrame.get\_values
+=================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajFrame.get_values

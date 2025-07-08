@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajFrame.filter\_isin
+==================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajFrame.filter_isin

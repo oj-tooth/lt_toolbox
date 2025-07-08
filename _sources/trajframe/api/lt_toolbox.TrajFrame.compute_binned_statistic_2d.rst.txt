@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajFrame.compute\_binned\_statistic\_2d
+====================================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajFrame.compute_binned_statistic_2d

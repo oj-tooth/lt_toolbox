@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajFrame.plot\_timeseries
+======================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajFrame.plot_timeseries

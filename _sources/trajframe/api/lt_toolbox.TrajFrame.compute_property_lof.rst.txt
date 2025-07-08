@@ -1,0 +1,6 @@
+﻿lt\_toolbox.TrajFrame.compute\_property\_lof
+============================================
+
+.. currentmodule:: lt_toolbox
+
+.. automethod:: TrajFrame.compute_property_lof
